@@ -1,4 +1,4 @@
-import {createMiddleware, hex} from "./deps.ts"
+import {hHelpers, hex} from "./deps.ts"
 
 export const getCryptoKey = (verify_key: string): Promise<CryptoKey> => {
   return crypto.subtle.importKey(
@@ -28,7 +28,7 @@ export const verify = async (request: Request, key: CryptoKey) => {
 }
 
 export const useVerify = (key: CryptoKey) => {
-  return createMiddleware(async (c, next) => {
+  return hHelpers.createMiddleware(async (c, next) => {
     if (!await verify(c.req.raw, key)) return c.json({error: 'Bad request signature'}, 401)
     await next()
   })
