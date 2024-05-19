@@ -1,4 +1,6 @@
 {
   "lock": false,
-  // "vendor": true
+  "imports": {
+    "hono": "npm:hono"
+  }
 }
