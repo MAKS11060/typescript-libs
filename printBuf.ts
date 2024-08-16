@@ -1,5 +1,5 @@
 /**
- * Configuration options for the `{@linkcode printBuf}` function.
+ * Configuration options for the {@linkcode printBuf} function.
  */
 export interface PrintBufOptions {
   /**
@@ -39,10 +39,10 @@ const defaultOptions: Required<PrintBufOptions> = {
 }
 
 /**
- * Prints the contents of an `{@linkcode ArrayBuffer}` in a formatted table to the console.
+ * Prints the contents of an {@linkcode ArrayBuffer} in a formatted table to the console.
  *
  * @param {ArrayBuffer} buffer - The buffer to print.
- * @param {PrintBufOptions} [options] - Configuration options for the `{@linkcode printBuf}` function.
+ * @param {PrintBufOptions} [options] - Configuration options for the {@linkcode printBuf} function.
  *
  * @example
  * ```ts
@@ -109,9 +109,9 @@ export const printBuf = (buffer: ArrayBuffer, options?: PrintBufOptions) => {
 }
 
 /**
- * Updates the default options for the `{@linkcode printBuf}` function.
+ * Updates the default options for the {@linkcode printBuf} function.
  *
- * @param {PrintBufOptions} config - The new default options for the `{@linkcode printBuf}` function.
+ * @param {PrintBufOptions} config - The new default options for the {@linkcode printBuf} function.
  */
 export const setPrintBufConfig = (config: PrintBufOptions) => {
   Object.assign(defaultOptions, config)
