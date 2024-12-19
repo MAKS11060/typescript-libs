@@ -61,23 +61,17 @@ type ModelOptions<
 type CreateOptions<Key> = {
   /** Set `Primary` key */
   key?: Key
-  /** override `AtomicOperation` for one transaction */
-  op?: Deno.AtomicOperation
   /** expireIn in `milliseconds` */
   expireIn?: number
   /** @default false - Don't check before rewriting */
   force?: boolean
-}
-
-type UpdateOptions = {
   /** override `AtomicOperation` for one transaction */
   op?: Deno.AtomicOperation
-  /** expireIn in `milliseconds` */
-  expireIn?: number
-  /** @default false - Don't check before rewriting */
-  force?: boolean
+  /** @default false - Prevents saves. To combine into one transaction */
+  transaction?: boolean
 }
 
+type UpdateOptions = Omit<CreateOptions<never>, 'key'>
 type EmptySchema = z.ZodObject<{}, 'strip', z.ZodTypeAny, {}, {}>
 
 export const createModel = <
@@ -196,7 +190,10 @@ export const createModel = <
     options?: CreateOptions<PrimaryKeyType>
   ) => {
     const key = options?.key ?? generateKey()
-    const output = schema.parse({[modelOptions.primaryKey]: key, ...input})
+    const output = schema.parse({
+      [modelOptions.primaryKey]: key,
+      ...input,
+    }) as Output
     const op = options?.op ?? kv.atomic()
 
     op.set([modelOptions.prefix, key], output, options) // primary
@@ -204,13 +201,15 @@ export const createModel = <
     // update index
     _updateIndex('create', op, options ?? {}, output)
 
+    if (options?.transaction) return output
+
     const res = await op.commit()
     if (!res.ok) {
       console.error(`%c[KV/Create]`, 'color: green', 'Error')
       throw new Error('Commit failed', {cause: 'duplicate detected'})
     }
 
-    return output as Output
+    return output
   }
 
   // Find
@@ -355,6 +354,8 @@ export const createModel = <
 
     // update index
     _updateIndex('update', op, options ?? {}, output, currentValue)
+
+    if (options?.transaction) return output
 
     const res = await op.commit()
     if (!res.ok) {
