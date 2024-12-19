@@ -28,3 +28,28 @@ export const printKV = async (kv: Deno.Kv, key: Deno.KvKey = []) => {
     console.log(item.key, item.value)
   }
 }
+
+export type KvPageOptions<T = string> = {
+  limit?: number
+  offset?: T
+  reverse?: boolean
+  batchSize?: number
+}
+
+export const getKvPage = async <T, O = string>(kv: Deno.Kv, key: Deno.KvKey, init: KvPageOptions<O>) => {
+  const options: Deno.KvListOptions = {limit: init?.limit, reverse: init?.reverse}
+  options.limit ??= 50
+
+  if (!options.reverse && init?.offset) options.limit += 1 // + 1 end element
+
+  const iter = init?.offset //
+    ? kv.list<T>({prefix: key, [options.reverse ? 'end' : 'start']: [...key, init.offset]}, options)
+    : kv.list<T>({prefix: key}, options)
+
+  if (!options.reverse && init?.offset) await iter.next()
+
+  return Array.fromAsync(iter)
+  // return Array.fromAsync(iter, v => v.value)
+  // const entries = await Array.fromAsync(iter, (v) => [v.key.at(-1), v.value])
+  // return Object.fromEntries(entries) as Record<string, T>
+}
