@@ -103,7 +103,7 @@ export const createModel = <
     generateKey = modelOptions.primaryKeyType
   }
 
-  const makeIndexKey = (key: Deno.KvKeyPart): Deno.KvKeyPart => {
+  const _makeIndexKey = (key: Deno.KvKeyPart): Deno.KvKeyPart => {
     switch (modelOptions.indexNameStyle) {
       case 'camelCase':
         return `${modelOptions.prefix as string}${(
@@ -114,6 +114,78 @@ export const createModel = <
       case 'kebab-case':
       default:
         return `${modelOptions.prefix as string}-${key as string}`
+    }
+  }
+
+  type _UpdateIndex = {
+    (
+      action: 'create',
+      op: Deno.AtomicOperation,
+      options: {
+        expireIn?: number
+        force?: boolean
+      },
+      output: Output
+    ): void
+    (
+      action: 'update',
+      op: Deno.AtomicOperation,
+      options: {
+        expireIn?: number
+        force?: boolean
+      },
+      output: Output,
+      currentValue?: Output
+    ): void
+  }
+
+  const _updateIndex: _UpdateIndex = (
+    action,
+    op,
+    options,
+    output,
+    currentValue?: any
+  ) => {
+    for (const index of modelOptions.secondaryKeys as SecondaryKeys[]) {
+      if (action === 'create') {
+        if (!output[index]) continue
+      } else {
+        if (!output[index]) continue
+      }
+
+      let newValue = output[index]
+
+      // apply transform
+      const indexOptions = modelOptions?.indexOptions?.[index] ?? {}
+      if (indexOptions.transform) newValue = indexOptions.transform(newValue)
+
+      const primaryId = output[modelOptions.primaryKey]
+
+      // index relation
+      indexOptions.relation ??= 'one'
+      if (indexOptions.relation === 'one') {
+        if (action === 'update') {
+          op.delete([_makeIndexKey(index), currentValue[index]])
+        }
+        const newSecondaryKey = [_makeIndexKey(index), newValue]
+        op.set(newSecondaryKey, primaryId, options)
+        if (!options?.force) {
+          op.check({key: newSecondaryKey, versionstamp: null})
+        }
+      } else if (indexOptions.relation === 'many') {
+        if (action === 'update') {
+          op.delete([
+            _makeIndexKey(index),
+            currentValue[index],
+            currentValue[modelOptions.primaryKey],
+          ])
+        }
+        const newSecondaryKey = [_makeIndexKey(index), newValue, primaryId]
+        op.set(newSecondaryKey, null, options)
+        if (!options?.force) {
+          op.check({key: newSecondaryKey, versionstamp: null})
+        }
+      }
     }
   }
 
@@ -130,32 +202,7 @@ export const createModel = <
     op.set([modelOptions.prefix, key], output, options) // primary
 
     // update index
-    for (const index of modelOptions.secondaryKeys as SecondaryKeys[]) {
-      if (!output[index]) continue
-      let value = output[index]
-
-      // apply transform
-      const indexOptions = modelOptions?.indexOptions?.[index] ?? {}
-      if (indexOptions.transform) value = indexOptions.transform(value)
-
-      const primaryId = output[modelOptions.primaryKey]
-
-      // index relation
-      indexOptions.relation ??= 'one'
-      if (indexOptions.relation === 'one') {
-        const newSecondaryKey = [makeIndexKey(index), value]
-        op.set(newSecondaryKey, primaryId, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      } else if (indexOptions.relation === 'many') {
-        const newSecondaryKey = [makeIndexKey(index), value, primaryId]
-        op.set(newSecondaryKey, null, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      }
-    }
+    _updateIndex('create', op, options ?? {}, output)
 
     const res = await op.commit()
     if (!res.ok) {
@@ -203,7 +250,7 @@ export const createModel = <
     const indexOptions = modelOptions?.indexOptions?.[indexKey] ?? {}
     if (indexOptions.transform) value = indexOptions.transform(value)
 
-    const prefix = makeIndexKey(indexKey)
+    const prefix = _makeIndexKey(indexKey)
     const key = [prefix, value] // 'user-username' 'index'
 
     if (indexOptions?.relation === 'many') {
@@ -238,7 +285,7 @@ export const createModel = <
     const indexOptions = modelOptions?.indexOptions?.[indexKey] ?? {}
     if (indexOptions.transform) value = indexOptions.transform(value)
 
-    const prefix = makeIndexKey(indexKey)
+    const prefix = _makeIndexKey(indexKey)
     const key = [prefix, value] // 'user-username' 'index'
 
     const kvPage = await getKvPage<PrimaryKeyType>(kv, key, {})
@@ -307,40 +354,7 @@ export const createModel = <
     op.set([modelOptions.prefix, key], output, options) // primary
 
     // update index
-    for (const index of modelOptions.secondaryKeys as SecondaryKeys[]) {
-      if (!value[index]) continue
-      let newValue = output[index]
-
-      // apply transform
-      const indexOptions = modelOptions?.indexOptions?.[index] ?? {}
-      if (indexOptions.transform) newValue = indexOptions.transform(newValue)
-
-      const primaryId = output[modelOptions.primaryKey]
-
-      // index relation
-      indexOptions.relation ??= 'one'
-      if (indexOptions.relation === 'one') {
-        const prevSecondaryKey = [makeIndexKey(index), currentValue[index]]
-        const newSecondaryKey = [makeIndexKey(index), newValue]
-        op.delete(prevSecondaryKey)
-        op.set(newSecondaryKey, primaryId, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      } else if (indexOptions.relation === 'many') {
-        const prevSecondaryKey = [
-          makeIndexKey(index),
-          currentValue[index],
-          currentValue[modelOptions.primaryKey],
-        ]
-        const newSecondaryKey = [makeIndexKey(index), newValue, primaryId]
-        op.delete(prevSecondaryKey)
-        op.set(newSecondaryKey, null, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      }
-    }
+    _updateIndex('update', op, options ?? {}, output, currentValue)
 
     const res = await op.commit()
     if (!res.ok) {
@@ -356,71 +370,10 @@ export const createModel = <
     newValue: UpdateNewValue,
     options?: UpdateOptions
   ) => {
-    // 1
     const currentValue = await find(key)
     if (!currentValue) throw new Error('Resolve by primary key failed')
 
-    // return _update(currentValue, newValue, options)
-
-    const value =
-      typeof newValue === 'function' ? await newValue(currentValue) : newValue
-
-    // 2
-    const output = {
-      [modelOptions.primaryKey]: currentValue[modelOptions.primaryKey],
-      ...updateSchema.parse({
-        ...currentValue,
-        ...value,
-      }),
-    } as Output
-
-    const op = options?.op ?? kv.atomic()
-
-    op.set([modelOptions.prefix, key], output, options) // primary
-
-    // update index
-    for (const index of modelOptions.secondaryKeys as SecondaryKeys[]) {
-      if (!value[index]) continue
-      let newValue = output[index]
-
-      // apply transform
-      const indexOptions = modelOptions?.indexOptions?.[index] ?? {}
-      if (indexOptions.transform) newValue = indexOptions.transform(newValue)
-
-      const primaryId = output[modelOptions.primaryKey]
-
-      // index relation
-      indexOptions.relation ??= 'one'
-      if (indexOptions.relation === 'one') {
-        const prevSecondaryKey = [makeIndexKey(index), currentValue[index]]
-        const newSecondaryKey = [makeIndexKey(index), newValue]
-        op.delete(prevSecondaryKey)
-        op.set(newSecondaryKey, primaryId, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      } else if (indexOptions.relation === 'many') {
-        const prevSecondaryKey = [
-          makeIndexKey(index),
-          currentValue[index],
-          currentValue[modelOptions.primaryKey],
-        ]
-        const newSecondaryKey = [makeIndexKey(index), newValue, primaryId]
-        op.delete(prevSecondaryKey)
-        op.set(newSecondaryKey, null, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      }
-    }
-
-    const res = await op.commit()
-    if (!res.ok) {
-      console.error(`%c[KV/Update]`, 'color: green', 'Error')
-      throw new Error('Commit failed', {cause: 'duplicate detected'})
-    }
-
-    return output
+    return _update(currentValue, newValue, options)
   }
 
   const updateByIndex = async <T extends SecondaryKeys>(
@@ -429,71 +382,9 @@ export const createModel = <
     newValue: UpdateNewValue,
     options?: UpdateOptions
   ): Promise<Output[T]> => {
-    // 1
     const currentValue = await findByIndex(indexKey, indexVal, {resolve: true})
 
-    // return _update(currentValue, newValue, options)
-
-    const value =
-      typeof newValue === 'function' ? await newValue(currentValue) : newValue
-
-    // 2
-    const output = {
-      [modelOptions.primaryKey]: currentValue[modelOptions.primaryKey],
-      ...updateSchema.parse({
-        ...currentValue,
-        ...value,
-      }),
-    } as Output
-
-    const key = currentValue[modelOptions.primaryKey]
-    const op = options?.op ?? kv.atomic()
-
-    op.set([modelOptions.prefix, key], output, options) // primary
-
-    // update index
-    for (const index of modelOptions.secondaryKeys as SecondaryKeys[]) {
-      if (!value[index]) continue
-      let newValue = output[index]
-
-      // apply transform
-      const indexOptions = modelOptions?.indexOptions?.[index] ?? {}
-      if (indexOptions.transform) newValue = indexOptions.transform(newValue)
-
-      const primaryId = output[modelOptions.primaryKey]
-
-      // index relation
-      indexOptions.relation ??= 'one'
-      if (indexOptions.relation === 'one') {
-        const prevSecondaryKey = [makeIndexKey(index), currentValue[index]]
-        const newSecondaryKey = [makeIndexKey(index), newValue]
-        op.delete(prevSecondaryKey)
-        op.set(newSecondaryKey, primaryId, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      } else if (indexOptions.relation === 'many') {
-        const prevSecondaryKey = [
-          makeIndexKey(index),
-          currentValue[index],
-          currentValue[modelOptions.primaryKey],
-        ]
-        const newSecondaryKey = [makeIndexKey(index), newValue, primaryId]
-        op.delete(prevSecondaryKey)
-        op.set(newSecondaryKey, null, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
-        }
-      }
-    }
-
-    const res = await op.commit()
-    if (!res.ok) {
-      console.error(`%c[KV/Update]`, 'color: green', 'Error')
-      throw new Error('Commit failed', {cause: 'duplicate detected'})
-    }
-
-    return output as Output
+    return _update(currentValue, newValue, options)
   }
 
   return {
