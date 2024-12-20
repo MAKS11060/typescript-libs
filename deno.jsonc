@@ -2,6 +2,8 @@
   "lock": false,
   "imports": {
     "@kv": "./deno/kvdb.ts",
+    "@std/collections": "jsr:@std/collections@^1.0.9",
+    "@std/ulid": "jsr:@std/ulid@^1.0.0",
     "hono": "npm:hono",
     "zod": "npm:zod",
   },

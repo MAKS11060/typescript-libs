@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {chunk} from 'jsr:@std/collections/chunk'
-import {ulid} from 'jsr:@std/ulid'
+import {chunk} from '@std/collections/chunk'
+import {ulid} from '@std/ulid'
 import {z} from 'zod'
 import {getKvPage, KvPageOptions} from './kvLib.ts'
 
@@ -273,7 +273,7 @@ export const createModel = <
     const prefix = _makeIndexKey(indexKey)
     const key = [prefix, value] // 'user-username' 'index'
 
-    const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(kv, key, options ?? {})
+    const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(kv, key, options)
     const ids = kvPage.map((v) => v.key.at(-1)!)
 
     if (indexOptions?.relation !== 'many') {
