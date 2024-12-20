@@ -11,10 +11,17 @@ export interface PrintBufOptions {
 
   /**
    * The format to use for displaying the byte number.
+   * @type {'hex' | 'dec' | 'bin'}
+   * @default 'dec'
+   */
+  byteNumberFormat?: 'hex' | 'dec' // | 'bin'
+
+  /**
+   * The format to use for displaying the byte.
    * @type {'hex' | 'dec'}
    * @default 'dec'
    */
-  byteNumberFormat?: 'hex' | 'dec'
+  byteFormat?: 'hex' | 'dec' | 'bin'
 
   /**
    * The format to use for displaying the address.
@@ -32,11 +39,16 @@ export interface PrintBufOptions {
 }
 
 const defaultOptions: Required<PrintBufOptions> = {
-  bytesPerLine: 16,
+  bytesPerLine: Math.max(16),
   byteNumberFormat: 'dec',
+  byteFormat: 'hex',
   addressFormat: 'hex',
   rowLimit: 0,
 }
+
+const formats = {hex: 16, dec: 10, bin: 2}
+const formatsPrintSize = {hex: 2, dec: 3, bin: 8}
+
 
 /**
  * Prints the contents of an {@linkcode ArrayBuffer} in a formatted table to the console.
@@ -60,39 +72,57 @@ export const printBuf = (buffer: ArrayBuffer, options?: PrintBufOptions) => {
     ...options,
   }
   const buf = new Uint8Array(buffer)
-  const css = ['color: blue', 'color: orange']
 
   let counter = 0
   let output = ''
+  let outputCss: string[] = []
   let row = 0
 
   // Print column numbers
   for (let i = 0; i < cfg.bytesPerLine; i++) {
-    output += `${i
-      .toString(cfg.byteNumberFormat === 'hex' ? 16 : 10)
-      .padStart(2, '0')} `
+    const col = i.toString(formats[cfg.byteNumberFormat])
+    const colWithPad = col.padStart(formatsPrintSize[cfg.byteFormat], '0')
+    // 000 001 => %c00 + %c1
+    output += `%c${colWithPad.slice(
+      0,
+      colWithPad.length - col.length
+    )}%c${col} `
+    outputCss.push('color: black', 'color: white')
   }
 
-  // Print size + col num
-  console.log(
-    `%c${buf.byteLength.toString().padStart(8, ' ')} %c${output}`,
-    'color: orange',
-    'color: black'
-  )
+  // Print size + col numbers
+  output = `%c${buf.byteLength.toString().padStart(8, ' ')} ${output}`
+
+  console.log(output, 'color: orange', ...outputCss)
   output = ''
 
+  if (!buf.byteLength) {
+    console.log(`         %c<Empty>`, 'color: gray')
+    return
+  }
+
   for (let i = 0; i < buf.length; i++) {
+    outputCss =
+      row % 2
+        ? ['color: blue', 'color: yellow']
+        : ['color: blue', 'color: orange']
+
+    // address
     if (counter === 0) {
       output += `%c${i
-        .toString(cfg.addressFormat === 'hex' ? 16 : 10)
+        .toString(formats[cfg.addressFormat])
         .padStart(8, '0')} %c`
     }
 
-    output += `${buf[i].toString(16).padStart(2, '0')} `
+    // byte
+    output += `${buf[i]
+      .toString(formats[cfg.byteFormat])
+      .padStart(formatsPrintSize[cfg.byteFormat], '0')} `
     counter++
 
+    // print line
     if (counter === cfg.bytesPerLine) {
-      console.log(output, ...css)
+      console.log(output, ...outputCss)
       output = ''
       counter = 0
       row++
@@ -103,8 +133,9 @@ export const printBuf = (buffer: ArrayBuffer, options?: PrintBufOptions) => {
     }
   }
 
+  // print last line
   if (output !== '') {
-    console.log(output, ...css)
+    console.log(output, ...outputCss)
   }
 }
 

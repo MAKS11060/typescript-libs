@@ -5,7 +5,7 @@
 
 ### printBuf
 ```ts
-import {printBuf} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/printBuf.ts'
+import {printBuf} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/debug/mod.ts'
 
 printBuf(crypto.getRandomValues(new Uint8Array(40)))
 

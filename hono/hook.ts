@@ -1,4 +1,4 @@
-import {Context} from 'hono'
+import type {Context} from 'hono'
 import {createMiddleware} from 'hono/factory'
 
 type ReturnTypeEnv<T extends Record<string, unknown>> = {
@@ -40,4 +40,36 @@ export const createHook = <R extends Record<string, unknown>>(
 
     await next()
   })
+}
+
+export const createHonoVar = <const R extends Record<string, unknown>>(handler: (c: Context) => Promise<R> | R) => {
+  const cache = new WeakMap()
+
+  if (handler.constructor.name === 'AsyncFunction') {
+    return createMiddleware<{Variables: Awaited<R>}>(async (c, next) => {
+      if (cache.has(c)) return await next() // per request
+
+      const res = (await handler(c)) as Awaited<R>
+      cache.set(c, res) // cache result
+
+      for (const key in res) {
+        c.set(key, res[key])
+      }
+
+      await next()
+    })
+  } else {
+    return createMiddleware<{Variables: R}>(async (c, next) => {
+      if (cache.has(c)) return await next() // per request
+
+      const res = handler(c) as Awaited<R>
+      cache.set(c, res) // cache result
+
+      for (const key in res) {
+        c.set(key, res[key])
+      }
+
+      await next()
+    })
+  }
 }
