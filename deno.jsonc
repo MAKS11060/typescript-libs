@@ -1,6 +1,11 @@
 {
   "lock": false,
   "imports": {
-    "hono": "npm:hono"
-  }
+    "@kv": "./deno/kvdb.ts",
+    "hono": "npm:hono",
+    "zod": "npm:zod",
+  },
+  "unstable": [
+    "kv"
+  ]
 }

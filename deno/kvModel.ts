@@ -5,36 +5,6 @@ import {ulid} from 'jsr:@std/ulid'
 import {z} from 'zod'
 import {getKvPage, KvPageOptions} from './kvLib.ts'
 
-// type CreateOptions<
-//   //
-//   S extends z.Schema,
-//   P extends keyof z.input<S>,
-//   T extends Exclude<keyof z.input<S>, P>
-// > = {
-//   /** `kv prefix` */
-//   prefix: string
-//   primaryKey: P
-//   /** @default 'ulid'  */
-//   primaryKeyType?: 'ulid' | (() => z.input<S>[P])
-//   secondaryKeys: T[] | Exclude<keyof z.input<S>, P>[]
-//   indexOptions?: {
-//     [K in T]?: {
-//       /** @default 'one'  */
-//       relation?: 'one' | 'many'
-//       transform?: (val: z.input<S>[K]) => z.input<S>[K]
-//     }
-//   }
-//   /** @default 'kebab-case' */
-//   indexNameStyle?: 'kebab-case' | 'camelCase' | 'snake_case'
-// }
-
-// type ModelOptions<
-//   //
-//   S extends z.Schema,
-//   P extends keyof z.input<S>,
-//   T extends z.input<S>
-// > = CreateOptions<S, P, T>
-
 type ModelOptions<
   //
   S extends z.Schema,
@@ -72,6 +42,8 @@ type CreateOptions<Key> = {
 }
 
 type UpdateOptions = Omit<CreateOptions<never>, 'key'>
+type RemoveOptions = Pick<CreateOptions<never>, 'op' | 'transaction'>
+
 type EmptySchema = z.ZodObject<{}, 'strip', z.ZodTypeAny, {}, {}>
 
 export const createModel = <
@@ -129,7 +101,16 @@ export const createModel = <
         force?: boolean
       },
       output: Output,
-      currentValue?: Output
+      currentValue: Output
+    ): void
+    (
+      action: 'remove',
+      op: Deno.AtomicOperation,
+      options: {
+        expireIn?: number
+        force?: boolean
+      },
+      output: Output
     ): void
   }
 
@@ -141,11 +122,8 @@ export const createModel = <
     currentValue?: any
   ) => {
     for (const index of modelOptions.secondaryKeys as SecondaryKeys[]) {
-      if (action === 'create') {
-        if (!output[index]) continue
-      } else {
-        if (!output[index]) continue
-      }
+      // skip unchanged index
+      if (action === 'update' && !currentValue[index]/* prev */) continue
 
       let newValue = output[index]
 
@@ -162,9 +140,13 @@ export const createModel = <
           op.delete([_makeIndexKey(index), currentValue[index]])
         }
         const newSecondaryKey = [_makeIndexKey(index), newValue]
-        op.set(newSecondaryKey, primaryId, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
+        if (action !== 'remove') {
+          op.set(newSecondaryKey, primaryId, options)
+          if (!options?.force) {
+            op.check({key: newSecondaryKey, versionstamp: null})
+          }
+        } else {
+          op.delete(newSecondaryKey)
         }
       } else if (indexOptions.relation === 'many') {
         if (action === 'update') {
@@ -175,9 +157,13 @@ export const createModel = <
           ])
         }
         const newSecondaryKey = [_makeIndexKey(index), newValue, primaryId]
-        op.set(newSecondaryKey, null, options)
-        if (!options?.force) {
-          op.check({key: newSecondaryKey, versionstamp: null})
+        if (action !== 'remove') {
+          op.set(newSecondaryKey, null, options)
+          if (!options?.force) {
+            op.check({key: newSecondaryKey, versionstamp: null})
+          }
+        } else {
+          op.delete(newSecondaryKey)
         }
       }
     }
@@ -287,7 +273,7 @@ export const createModel = <
     const prefix = _makeIndexKey(indexKey)
     const key = [prefix, value] // 'user-username' 'index'
 
-    const kvPage = await getKvPage<PrimaryKeyType>(kv, key, {})
+    const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(kv, key, options ?? {})
     const ids = kvPage.map((v) => v.key.at(-1)!)
 
     if (indexOptions?.relation !== 'many') {
@@ -353,7 +339,7 @@ export const createModel = <
     op.set([modelOptions.prefix, key], output, options) // primary
 
     // update index
-    _updateIndex('update', op, options ?? {}, output, currentValue)
+    _updateIndex('update', op, options ?? {}, output, value)
 
     if (options?.transaction) return output
 
@@ -388,7 +374,45 @@ export const createModel = <
     return _update(currentValue, newValue, options)
   }
 
+  const remove = async (key: PrimaryKeyType, options?: RemoveOptions) => {
+    const currentValue = await find(key)
+    if (!currentValue) throw new Error('Resolve by primary key failed')
+
+    const op = options?.op ?? kv.atomic()
+
+    op.delete([modelOptions.prefix, key]) // primary
+
+    // delete index
+    _updateIndex('remove', op, {}, currentValue)
+
+    if (options?.transaction) return
+
+    const res = await op.commit()
+    if (!res.ok) {
+      console.error(`%c[KV/Remove]`, 'color: green', 'Error')
+      throw new Error('Commit failed', {cause: 'duplicate detected'})
+    }
+
+    return res.ok
+  }
+
+  const removeByIndex = async <T extends SecondaryKeys>(
+    indexKey: T,
+    indexVal: Output[T],
+    options?: RemoveOptions
+  ) => {
+    const currentValue = await findByIndex(indexKey, indexVal, {resolve: true})
+
+    return remove(currentValue[modelOptions.primaryKey], options)
+  }
+
   return {
+    kv,
+    schema,
+    options: modelOptions,
+    atomics() {
+      return kv.atomic()
+    },
     create,
     find,
     findMany,
@@ -396,9 +420,11 @@ export const createModel = <
     findManyByIndex,
     update,
     updateByIndex,
-    indexUpdate() {
+    remove,
+    removeByIndex,
+    // indexUpdate() {
       // delete full index
       // create new index
-    },
+    // },
   }
 }
