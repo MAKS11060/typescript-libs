@@ -3,7 +3,7 @@
 import {chunk} from '@std/collections/chunk'
 import {ulid} from '@std/ulid'
 import {z} from 'zod'
-import {getKvPage, KvPageOptions} from './kvLib.ts'
+import {fromKvIterator, getKvPage, KvPageOptions} from './kvLib.ts'
 
 type ModelOptions<
   //
@@ -375,6 +375,25 @@ export const createModel = <
     return remove(currentValue[modelOptions.primaryKey], options)
   }
 
+  // Index
+  const wipeIndex = async (keys?: SecondaryKeys[]) => {
+    for (const index of keys ?? (modelOptions.secondaryKeys as SecondaryKeys[])) {
+      const iter = kv.list({prefix: [_makeIndexKey(index)]})
+      for (const item of await fromKvIterator(iter, {limit: 0})) {
+        await kv.delete(item.key)
+      }
+    }
+  }
+
+  const indexCreate = async () => {
+    const iter = kv.list({prefix: [modelOptions.prefix]})
+    for (const item of await fromKvIterator(iter, {limit: 0})) {
+      const op = kv.atomic()
+      _updateIndex('create', op, {}, item.value)
+      await op.commit()
+    }
+  }
+
   return {
     kv,
     schema,
@@ -391,9 +410,7 @@ export const createModel = <
     updateByIndex,
     remove,
     removeByIndex,
-    // indexUpdate() {
-    // delete full index
-    // create new index
-    // },
+    wipeIndex,
+    indexCreate,
   }
 }

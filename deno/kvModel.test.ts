@@ -231,15 +231,22 @@ Deno.test('kvModel optional', async (t) => {
     nickname: 'User1',
     email: 'User1@EXAMPLE.COM',
   })
-
-  await userModel.update('user2_1', {
+  await userModel.create({
     username: 'User2',
     nickname: 'User2',
     email: 'User2@EXAMPLE.COM',
   })
+  await userModel.update('user2_1', {
+    username: 'User3',
+    nickname: 'User3',
+    email: 'User3@EXAMPLE.COM',
+  })
 
-  // console.log('%cKV List', 'color: orange')
-  // for await (const item of kv.list({prefix: []})) {
-  //   console.log(item.key, '=>', item.value)
-  // }
+  await userModel.wipeIndex()
+  await userModel.indexCreate()
+
+  console.log('%cKV List', 'color: orange')
+  for await (const item of kv.list({prefix: []})) {
+    console.log(item.key, '=>', item.value)
+  }
 })
