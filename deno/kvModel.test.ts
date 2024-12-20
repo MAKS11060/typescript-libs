@@ -13,7 +13,7 @@ const smallID = (key: string, start = 0) => {
 
 // TEST
 Deno.test('kvModel', async (t) => {
-  const kv = await Deno.openKv(':memory:')
+  using kv = await Deno.openKv(':memory:')
 
   // SCHEMA
   const userSchema = z.object({
@@ -189,5 +189,57 @@ Deno.test('kvModel', async (t) => {
   // for await (const item of kv.list({prefix: []})) {
   //   console.log(item.key, '=>', item.value)
   // }
-  kv.close()
+})
+
+Deno.test('kvModel optional', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+
+  // SCHEMA
+  const userSchema = z.object({
+    id: z.string(),
+    username: z.string(),
+    nickname: z.string(),
+    email: z.string().email().optional(),
+    age: z.number().default(18),
+  })
+
+  // MODEL
+  const userModel = createModel(kv, userSchema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    secondaryKeys: ['username', 'email', 'age'],
+    primaryKeyType: () => smallID('user2'),
+    indexOptions: {
+      username: {
+        relation: 'one',
+        transform: (username) => username.toLowerCase(),
+      },
+      email: {
+        transform: (email) => {
+          const [name, host] = email.split('@', 2)
+          return [name, host.toLowerCase()].join('@')
+        },
+      },
+      age: {
+        relation: 'many',
+      },
+    },
+  })
+
+  const user1 = await userModel.create({
+    username: 'User1',
+    nickname: 'User1',
+    email: 'User1@EXAMPLE.COM',
+  })
+
+  await userModel.update('user2_1', {
+    username: 'User2',
+    nickname: 'User2',
+    email: 'User2@EXAMPLE.COM',
+  })
+
+  // console.log('%cKV List', 'color: orange')
+  // for await (const item of kv.list({prefix: []})) {
+  //   console.log(item.key, '=>', item.value)
+  // }
 })
