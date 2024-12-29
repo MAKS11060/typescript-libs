@@ -1,9 +1,24 @@
 # Deno-libs
 
-## How to import
-`https://raw.githubusercontent.com/MAKS11060/deno-libs/main/:pathToModule`
+How to import
+- `https://raw.githubusercontent.com/MAKS11060/deno-libs/main/:pathToModule`
 
-### printBuf
+
+## Api
+```ts
+import {} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/api/animego/animego.ts'
+import {} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/api/hdrezka/hdrezka.ts'
+```
+
+## CLI
+```ts
+import {
+  promptSelect,
+  promptMultipleSelect,
+} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/cli/prompt.ts'
+```
+
+## Debug
 ```ts
 import {printBuf} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/debug/mod.ts'
 
@@ -15,9 +30,75 @@ printBuf(crypto.getRandomValues(new Uint8Array(40)))
 // 00000020 cd 5a b3 2b 47 59 53 e6
 ```
 
-### generateKeyPair
+## Deno
+### KV Model
 ```ts
-import {generateKeyPair} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/crypto/keys.ts'
+import {createModel} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/deno/mod.ts'
+import z from 'zod'
 
-console.log(await generateKeyPair('Ed25519'))
+export const kv = await Deno.openKv()
+
+export const userSchema = z.object({
+  id: z.string().ulid(),
+  username: z.string().trim().min(2).max(64),
+  nickname: z.string().trim().min(2).max(64),
+  email: z.string().trim().min(3).max(320).email().optional(),
+})
+export const userModel = createModel(kv, userSchema, {
+  prefix: 'user',
+  primaryKey: 'id',
+  secondaryKeys: ['username', 'email'],
+  indexOptions: {
+    username: {
+      transform: (val) => val.toLowerCase(),
+    },
+  },
+})
+```
+
+## Hono
+```ts
+import {createHonoVar} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/hono/mod.ts'
+import {Hono} from 'hono'
+
+const var = createHonoVar(async (c) => {
+  return {
+    data: 'text',
+    foo(data: string) {
+      console.log(data)
+      return data
+    }
+  }
+})
+
+const app = new Hono()
+  .get('/test', var, (c) => {
+    return c.text(c.var.foo('hello'))
+  })
+
+```
+
+## Lib
+```ts
+import {weekCache} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/lib/mod.ts'
+
+const authHook = useWeakCache((headers: Headers) => {
+  if (headers.get('authorization') == 'Bearer test') return true
+})
+
+const ctx = {} // any object.
+const headers = new Headers({'Authorization': 'Bearer test'})
+console.log(await authHook(ctx, headers))
+console.log(await authHook(ctx, headers)) // from cache
+```
+
+## Web
+```ts
+import {createCachedFetch} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/web/cache.ts'
+
+const fetch = await createCachedFetch({
+  name: 'cache-1',
+  ttl: 60 * 60 * 24, // 1 day
+  log: true,
+})
 ```

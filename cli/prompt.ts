@@ -14,7 +14,7 @@ export const promptMultipleSelect = <const T extends string[]>(
   values: T,
   options?: PromptMultipleSelectOptions
 ): T => {
-  return _promptMultipleSelect('Test', values, options) as T
+  return _promptMultipleSelect(message, values, options) as T
 }
 
 export const promptSelect = <T extends string>(
@@ -22,5 +22,5 @@ export const promptSelect = <T extends string>(
   values: T[],
   options?: PromptSelectOptions
 ): T => {
-  return _promptSelect('Test', values, options) as T
+  return _promptSelect(message, values, options) as T
 }
