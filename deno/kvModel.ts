@@ -341,7 +341,7 @@ export const createModel = <
     indexVal: Output[T],
     newValue: UpdateNewValue,
     options?: UpdateOptions
-  ): Promise<Output[T]> => {
+  ): Promise<Output> => {
     const currentValue = await findByIndex(indexKey, indexVal, {resolve: true})
 
     return _update(currentValue, newValue, options)
