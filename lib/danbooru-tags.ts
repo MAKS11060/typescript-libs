@@ -243,6 +243,26 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
     return self
   }
 
+  /**
+   * Sets the order of the search results.
+   * @param {string} order - The order to set.
+   * @returns {Object} The builder object.
+   * @example
+   * builder.order('id')
+   * builder.order('id_asc')
+   * builder.order('id_desc')
+   * builder.order('favcount')
+   * builder.order('score')
+   * builder.order('score_asc')
+   * builder.order('rank')
+   * builder.order('downvotes')
+   * builder.order('upvotes')
+   */
+  const order = (order: string) => {
+    tags.push('order:' + order)
+    return self
+  }
+
   const self = {
     toString,
     tag,
@@ -257,6 +277,7 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
     score,
     downvotes,
     upvotes,
+    order,
   }
 
   return self
