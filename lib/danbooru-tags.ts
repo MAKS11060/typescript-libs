@@ -135,7 +135,7 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds an age range tag to the query.
-   * @param {string} age - The age range to add.
+   * @param {string|number} age - The age range to add.
    * @param {boolean} [exclude=false] - Whether to exclude the age range.
    * @returns {Object} The builder object.
    * @example
@@ -146,7 +146,7 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
    * builder.age('2mi..1h')
    * builder.age('2s..1mi')
    */
-  const age = (age: string, exclude: boolean = false) => {
+  const age = (age: string | number, exclude: boolean = false) => {
     tags.push((exclude ? '-' : '') + 'age:' + age)
     return self
   }
@@ -193,59 +193,61 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a favorite count tag to the query.
-   * @param {string} count - The favorite count to add.
+   * @param {string|number} count - The favorite count to add.
    * @param {boolean} [exclude=false] - Whether to exclude the favorite count.
    * @returns {Object} The builder object.
    * @example
    * builder.favcount('>10')
    */
-  const favcount = (count: string, exclude: boolean = false) => {
+  const favcount = (count: string | number, exclude: boolean = false) => {
     tags.push((exclude ? '-' : '') + 'favcount:' + count)
     return self
   }
 
   /**
    * Adds a score tag to the query.
-   * @param {string} score - The score to add.
+   * @param {string|number} score - The score to add.
    * @param {boolean} [exclude=false] - Whether to exclude the score.
    * @returns {Object} The builder object.
    * @example
    * builder.score('100')
    */
-  const score = (score: string, exclude: boolean = false) => {
+  const score = (score: string | number, exclude: boolean = false) => {
     tags.push((exclude ? '-' : '') + 'score:' + score)
     return self
   }
 
   /**
    * Adds a downvotes tag to the query.
-   * @param {string} count - The downvotes count to add.
+   * @param {string|number} count - The downvotes count to add.
    * @param {boolean} [exclude=false] - Whether to exclude the downvotes count.
    * @returns {Object} The builder object.
    * @example
    * builder.downvotes('>10')
    */
-  const downvotes = (count: string, exclude: boolean = false) => {
+  const downvotes = (count: string | number, exclude: boolean = false) => {
     tags.push((exclude ? '-' : '') + 'downvotes:' + count)
     return self
   }
 
   /**
    * Adds an upvotes tag to the query.
-   * @param {string} count - The upvotes count to add.
+   * @param {string|number} count - The upvotes count to add.
    * @param {boolean} [exclude=false] - Whether to exclude the upvotes count.
    * @returns {Object} The builder object.
    * @example
    * builder.upvotes('>10')
    */
-  const upvotes = (count: string, exclude: boolean = false) => {
+  const upvotes = (count: string | number, exclude: boolean = false) => {
     tags.push((exclude ? '-' : '') + 'upvotes:' + count)
     return self
   }
 
+  type Order = 'id' | 'id_asc' | 'id_desc' | 'favcount' | 'score' | 'score_asc' | 'rank' | 'downvotes' | 'upvotes'
+
   /**
    * Sets the order of the search results.
-   * @param {string} order - The order to set.
+   * @param {Order} order - The order to set.
    * @returns {Object} The builder object.
    * @example
    * builder.order('id')
@@ -258,7 +260,7 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
    * builder.order('downvotes')
    * builder.order('upvotes')
    */
-  const order = (order: string) => {
+  const order = (order: Order) => {
     tags.push('order:' + order)
     return self
   }
