@@ -57,6 +57,10 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
   }
 
   const toString = () => {
+    return tags.join(' ')
+  }
+
+  const toURI = () => {
     return encodeURIComponent(tags.join(' '))
   }
 
@@ -267,6 +271,7 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   const self = {
     toString,
+    toURI,
     tag,
     rating,
     idRange,
