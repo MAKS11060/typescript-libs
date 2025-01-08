@@ -61,7 +61,7 @@ export const userModel = createModel(kv, userSchema, {
 import {createHonoVar} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/hono/mod.ts'
 import {Hono} from 'hono'
 
-const var = createHonoVar(async (c) => {
+const vars = createHonoVar(async (c) => {
   return {
     data: 'text',
     foo(data: string) {
@@ -72,7 +72,7 @@ const var = createHonoVar(async (c) => {
 })
 
 const app = new Hono()
-  .get('/test', var, (c) => {
+  .get('/test', vars, (c) => {
     return c.text(c.var.foo('hello'))
   })
 
