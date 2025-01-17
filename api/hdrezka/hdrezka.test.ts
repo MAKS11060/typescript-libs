@@ -23,3 +23,14 @@ Deno.test('parse', async () => {
     console.log(data.title, data.titleOrig, data.score)
   }
 })
+
+Deno.test('parse rating', async () => {
+  const fetch = await createCachedFetch({
+    name: 'hdrezka',
+    ttl: 60 * 60 * 24 * 30,
+    log: true,
+  })
+
+  const data = await getContentPage('https://hdrezka.me/films/adventures/1171-nazad-v-buduschee-1985.html', {fetch})
+  console.log(data)
+})
