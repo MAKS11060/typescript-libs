@@ -85,6 +85,12 @@ export const parseContentPage = (text: string) => {
   // description
   const description = contentMain?.querySelector('.b-post__description_text')?.textContent?.trim() || null
 
+  // local rating
+  const ratingEl = contentMain?.querySelector('.b-post__rating')
+  const votes = ratingEl?.querySelector('.votes > span')?.textContent || null
+  const num = ratingEl?.querySelector('.num')?.textContent || null
+  if (votes && num) scoreEntries.push(['hdrezka', {score: +num, count: +votes}])
+
   // related content
   const related = Array.from(contentMain?.querySelectorAll('.b-post__partcontent_item:not(.current)')!, (e) => {
     return {
