@@ -1,12 +1,13 @@
+import {CustomFetch} from './types.ts'
+
 type ClientMethods = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
 type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` //
   ? P | ParsePath<Rest>
   : never
 
-interface ClientOptions {
+interface ClientOptions extends CustomFetch {
   basePath?: URL | string
-  fetch?(input: URL | Request | string, init?: RequestInit): Promise<Request>
 }
 
 interface ClientRequestOptions<P extends string> {
@@ -17,7 +18,7 @@ interface ClientRequestOptions<P extends string> {
 
 interface ClientMiddleware {
   onRequest?(req: Request): Request
-  onResponse?(res: Request): Request
+  onResponse?(res: Response): Response
 }
 
 export const createClient = (init?: ClientOptions) => {
