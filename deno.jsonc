@@ -1,5 +1,8 @@
 {
   "lock": false,
+  "tasks": {
+    "test": "deno test -A"
+  },
   "imports": {
     "@kv": "./deno/kvdb.ts",
     "@std/collections": "jsr:@std/collections@^1.0.9",

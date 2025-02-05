@@ -6,11 +6,10 @@ import {getContentPage, searchPage} from './hdrezka.ts'
 
 const proxyFetch = createProxyFetch({proxyUrl: 'https://no-cors.deno.dev'})
 const fetch = await createCachedFetch({
-  fetch: proxyFetch,
+  // fetch: proxyFetch,
   name: 'hdrezka',
-  // ttl: 60 * 60 * 24 * 30,
-  ttl: 1,
-  forceDelete: true,
+  ttl: 60 * 60 * 24 * 30,
+  deleteExpired: true,
   log: true,
 })
 

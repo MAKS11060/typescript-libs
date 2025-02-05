@@ -16,9 +16,9 @@ interface ClientRequestOptions<P extends string> {
   body?: unknown
 }
 
-interface ClientMiddleware {
-  onRequest?(req: Request): Request
-  onResponse?(res: Response): Response
+export interface ClientMiddleware {
+  onRequest?(req: Request): Request | Promise<Request>
+  onResponse?(res: Response): Response | Promise<Response>
 }
 
 export const createClient = (init?: ClientOptions) => {
@@ -46,7 +46,10 @@ export const createClient = (init?: ClientOptions) => {
     // Apply middleware for request
     for (const middleware of middlewares) {
       if (middleware.onRequest) {
-        request = middleware.onRequest(request)
+        request =
+          middleware.onRequest.constructor.name === 'AsyncFunction'
+            ? await middleware.onRequest(request)
+            : (middleware.onRequest(request) as any)
       }
     }
 
@@ -55,15 +58,20 @@ export const createClient = (init?: ClientOptions) => {
     // Apply middleware for response
     for (const middleware of middlewares) {
       if (middleware.onResponse) {
-        response = middleware.onResponse(response)
+        response =
+          middleware.onResponse.constructor.name === 'AsyncFunction'
+            ? await middleware.onResponse(response)
+            : (middleware.onResponse(response) as any)
       }
     }
 
     return {
       response,
-      get data() {
-        return response.json()
-      },
+      text: () => response.text(),
+      json: <T>() => response.json() as T,
+      blob: () => response.blob(),
+      bytes: () => response.bytes(),
+      formData: () => response.formData(),
     }
   }
 

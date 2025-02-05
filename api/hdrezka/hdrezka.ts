@@ -4,6 +4,7 @@ import {parseDateString} from '../utils.ts'
 
 type FetchOptions = CustomFetch & {
   skipOriginCheck?: boolean
+  headers?: HeadersInit
 }
 
 export const origin = ['https://hdrezka.me', 'https://hdrezka.ag']
@@ -176,8 +177,14 @@ export const getContentPage = async (uri: string, options?: FetchOptions) => {
       throw new Error(`Unknown media type: '${type}'`)
     }
 
-    const customFetch = options?.fetch ?? fetch
-    const response = await customFetch(uri)
+    const _fetch = options?.fetch ?? fetch
+    const response = await _fetch(uri, {
+      headers: {
+        'user-agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36 Edg/132.0.0.0',
+        ...options?.headers,
+      },
+    })
     if (!response.ok) {
       throw new Error(`Failed to fetch ${uri}: ${response.statusText}`)
     }
@@ -192,14 +199,13 @@ export const getContentPage = async (uri: string, options?: FetchOptions) => {
 
 export const search = async (
   query: string,
-  options?: {
+  options?: CustomFetch & {
     /**
      * @default hdrezka.me
      * - hdrezka.ag
      */
     host?: string
     skipOriginCheck?: boolean
-    fetch?: typeof fetch
   }
 ) => {
   const body = new FormData()
@@ -210,8 +216,8 @@ export const search = async (
   if (!options?.skipOriginCheck && isValidUrl(uri)) throw new Error('Invalid URI Origin')
 
   try {
-    const customFetch = options?.fetch ?? fetch
-    const response = await customFetch(uri, {method: 'POST', body})
+    const _fetch = options?.fetch ?? fetch
+    const response = await _fetch(uri, {method: 'POST', body})
     if (!response.ok) {
       throw new Error(`Failed to fetch ${uri}: ${response.statusText}`)
     }
@@ -300,7 +306,7 @@ export const searchPage = async (options: SearchPageOptions) => {
       }
     })
 
-    return {items}
+    return items
   } catch (error) {
     console.error('Error parsing page:', error)
     throw error

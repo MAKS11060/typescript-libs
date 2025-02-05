@@ -2,6 +2,7 @@
 
 import {Hono} from 'hono'
 import {createProxyFetch} from './proxy.ts'
+import {wrapFetch} from "./types.ts"
 
 const app = new Hono() //
   .use(async (c, next) => {
@@ -13,7 +14,7 @@ const app = new Hono() //
 
 const proxyFetch = createProxyFetch({
   proxyUrl: 'https://no-cors.deno.dev',
-  fetch: app.fetch,
+  fetch: wrapFetch(app.fetch),
   // param: 'uri',
 })
 
