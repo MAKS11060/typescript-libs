@@ -6,7 +6,7 @@ type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}
 
 interface ClientOptions {
   basePath?: URL | string
-  fetch?(input: URL | Request | string, init?: RequestInit): Promise<Response>
+  fetch?(input: URL | Request | string, init?: RequestInit): Promise<Request>
 }
 
 interface ClientRequestOptions<P extends string> {
@@ -17,13 +17,13 @@ interface ClientRequestOptions<P extends string> {
 
 interface ClientMiddleware {
   onRequest?(req: Request): Request
-  onResponse?(res: Response): Response
+  onResponse?(res: Request): Request
 }
 
 export const createClient = (init?: ClientOptions) => {
-  const middlewares: ClientMiddleware[] = []
+  let middlewares: ClientMiddleware[] = []
 
-  const makeFetch = init?.fetch ?? fetch
+  const _fetch = init?.fetch ?? fetch
 
   const makeRequest = async <P extends string>(method: ClientMethods, path: P, options: ClientRequestOptions<P>) => {
     const resolvedPath = path.replace(/{(\w+)}/g, (_, param) => {
@@ -49,7 +49,7 @@ export const createClient = (init?: ClientOptions) => {
       }
     }
 
-    let response = await makeFetch(request)
+    let response = await _fetch(request)
 
     // Apply middleware for response
     for (const middleware of middlewares) {
@@ -68,7 +68,7 @@ export const createClient = (init?: ClientOptions) => {
 
   const client = {
     use: (middleware: ClientMiddleware) => middlewares.push(middleware),
-    // off: (middleware: ClientMiddleware) => ,
+    eject: (middleware: ClientMiddleware) => (middlewares = middlewares.filter((v) => v !== middleware)),
     GET: <P extends string>(path: P, options: ClientRequestOptions<P>) => makeRequest('GET', path, options),
     PUT: <P extends string>(path: P, options: ClientRequestOptions<P>) => makeRequest('PUT', path, options),
     POST: <P extends string>(path: P, options: ClientRequestOptions<P>) => makeRequest('POST', path, options),

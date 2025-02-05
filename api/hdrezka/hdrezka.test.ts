@@ -1,15 +1,20 @@
 #!/usr/bin/env -S deno test -A --watch
 
 import {createCachedFetch} from '../../web/cache.ts'
-import {getContentPage} from './hdrezka.ts'
+import {createProxyFetch} from '../../web/proxy.ts'
+import {getContentPage, searchPage} from './hdrezka.ts'
+
+const proxyFetch = createProxyFetch({proxyUrl: 'https://no-cors.deno.dev'})
+const fetch = await createCachedFetch({
+  fetch: proxyFetch,
+  name: 'hdrezka',
+  // ttl: 60 * 60 * 24 * 30,
+  ttl: 1,
+  forceDelete: true,
+  log: true,
+})
 
 Deno.test('parse', async () => {
-  const fetch = await createCachedFetch({
-    name: 'hdrezka',
-    ttl: 60 * 60 * 24 * 30,
-    log: true,
-  })
-
   const links = [
     'https://hdrezka.me/films/adventures/1171-nazad-v-buduschee-1985.html',
     'https://hdrezka.me/series/fiction/1745-doktor-kto-2005.html',
@@ -25,12 +30,11 @@ Deno.test('parse', async () => {
 })
 
 Deno.test('parse rating', async () => {
-  const fetch = await createCachedFetch({
-    name: 'hdrezka',
-    ttl: 60 * 60 * 24 * 30,
-    log: true,
-  })
-
   const data = await getContentPage('https://hdrezka.me/films/adventures/1171-nazad-v-buduschee-1985.html', {fetch})
   console.log(data)
+})
+
+Deno.test('searchPage', async () => {
+  const list = await searchPage({fetch, type: 'new', filter: 'popular', page: 3})
+  console.log(list)
 })

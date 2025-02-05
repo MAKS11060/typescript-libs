@@ -1,6 +1,6 @@
-import {concat} from 'jsr:@std/bytes/concat'
-import {decodeHex, encodeHex} from 'jsr:@std/encoding/hex'
-import {createMiddleware} from 'npm:hono/factory'
+import { concat } from 'jsr:@std/bytes/concat'
+import { decodeHex, encodeHex } from 'jsr:@std/encoding/hex'
+import { createMiddleware } from 'npm:hono/factory'
 
 const encoder = new TextEncoder()
 
@@ -33,7 +33,7 @@ export const verifyRequestSignature = (key: CryptoKey) => {
 }
 
 /**
- * Add signature to {@linkcode Response}.
+ * Add signature to {@linkcode Request}.
  * - set header `X-Signature-Ed25519` (timestamp + body)
  * - set header `X-Signature-Timestamp`
  */

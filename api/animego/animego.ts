@@ -1,18 +1,15 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import { DOMParser, Element } from 'jsr:@b-fuze/deno-dom'
-import { createCachedFetch } from '../../web/cache.ts'
-import { parseDateString } from '../utils.ts'
+import {DOMParser, Element} from 'jsr:@b-fuze/deno-dom'
+import {createCachedFetch} from '../../web/cache.ts'
+import {parseDateString} from '../utils.ts'
 
 type FetchOptions = {
   fetch?: typeof fetch
   skipOriginCheck?: boolean
 }
 
-const origin = [
-  'https://animego.me',
-  'https://animego.ong',
-]
+const origin = ['https://animego.me', 'https://animego.ong']
 
 const getPage = await createCachedFetch({
   name: 'animego.org',

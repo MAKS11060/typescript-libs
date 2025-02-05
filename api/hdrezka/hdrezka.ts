@@ -1,8 +1,8 @@
 import {DOMParser, Element} from 'jsr:@b-fuze/deno-dom'
+import {CustomFetch} from '../../web/types.ts'
 import {parseDateString} from '../utils.ts'
 
-type FetchOptions = {
-  fetch?: typeof fetch
+type FetchOptions = CustomFetch & {
   skipOriginCheck?: boolean
 }
 
@@ -152,7 +152,7 @@ export const parseSearchPage = (text: string) => {
 /**
  * @example
  * ```ts
- * const fetch = await initFetchWithCache({
+ * const fetch = await createCachedFetch({
  *   name: 'hdrezka',
  *   ttl: 60 * 60 * 24 * 30,
  *   log: true,
@@ -218,6 +218,89 @@ export const search = async (
 
     const text = await response.text()
     return parseSearchPage(text)
+  } catch (error) {
+    console.error('Error parsing page:', error)
+    throw error
+  }
+}
+
+enum SearchGenre {
+  films = 1,
+  series = 2,
+  cartoons = 3,
+  anime = 82,
+}
+
+type SearchPageFilter =
+  | {
+      type: 'films' | 'series' | 'cartoons' | 'anime'
+      filter?: 'last' | 'popular' | 'soon' | 'watching'
+    }
+  | {
+      type: 'new'
+      filter?: 'last' | 'popular' | 'watching'
+      genre?: SearchGenre //'1' | '2' | '3' | '82'
+    }
+  | {
+      type: 'announce'
+    }
+
+type SearchPageOptions = CustomFetch &
+  SearchPageFilter & {
+    /** @default 1 */
+    page?: number
+  }
+
+export const searchPage = async (options: SearchPageOptions) => {
+  const uri = new URL(`/${options.type}/page/${options.page ?? 1}/`, 'https://hdrezka.me')
+  if (
+    options.type === 'films' ||
+    options.type === 'series' ||
+    options.type === 'cartoons' ||
+    options.type === 'anime'
+  ) {
+    if (options.filter) uri.searchParams.set('filter', options.filter)
+  }
+  if (options.type === 'new') {
+    if (options.filter) uri.searchParams.set('filter', options.filter)
+    if (options.genre) uri.searchParams.set('genre', SearchGenre[options.genre])
+  }
+
+  try {
+    const _fetch = options?.fetch ?? fetch
+    const response = await _fetch(uri)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${uri}: ${response.statusText}`)
+    }
+
+    const text = await response.text()
+    const doc = new DOMParser().parseFromString(text, 'text/html')
+
+    const itemsEl = doc.querySelector('.b-content__inline_items')
+    const items = Array.from(itemsEl?.querySelectorAll('.b-content__inline_item') ?? [], (el) => {
+      const id = el.getAttribute('data-id')
+      const url = el.getAttribute('data-url')
+
+      const img = el.querySelector('.b-content__inline_item-cover img')?.getAttribute('src') ?? null
+
+      const title = el.querySelector('.b-content__inline_item-link a')?.textContent
+      const linkText = el.querySelector('.b-content__inline_item-link div')?.textContent
+
+      const [yearRange, ...tags] = linkText?.split(',').map((v) => v.trim()) ?? []
+      const [yearStart, yearEnd = null] = yearRange.split('-').map((v) => (isNaN(parseInt(v)) ? null : parseInt(v)))
+
+      return {
+        id,
+        title,
+        tags,
+        yearStart,
+        yearEnd,
+        img,
+        url,
+      }
+    })
+
+    return {items}
   } catch (error) {
     console.error('Error parsing page:', error)
     throw error
