@@ -28,9 +28,6 @@ type ModelOptions<
   indexNameStyle?: 'kebab-case' | 'camelCase' | 'snake_case'
 }
 
-type A = undefined | 'abc'
-type B = NonNullable<A>
-
 type CreateOptions<Key> = {
   /** Set `Primary` key */
   key?: Key
@@ -398,9 +395,7 @@ export const createModel = <
     kv,
     schema,
     options: modelOptions,
-    atomics() {
-      return kv.atomic()
-    },
+    atomics: () => kv.atomic(),
     create,
     find,
     findMany,
