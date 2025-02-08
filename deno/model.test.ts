@@ -85,6 +85,9 @@ Deno.test('1', async (t) => {
   const users = await userModel.findByIndex('age', 18, {resolve: true})
   console.log({userId, usersIds, user, users})
 
+  userModel.update('user_1', {info: {test: false}})
+
+
   // printKV(kv)
   kv.close()
 })

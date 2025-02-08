@@ -180,11 +180,10 @@ export const createModelSource = (kv: Deno.Kv) => {
       >
     }
 
-    const findByIndex: FindByIndex = async (key, value, options) => {
-      const indexOption = modelOptions.index[key]
-      const indexKey = key
-
-      const secondaryKey = value
+    const findByIndex: FindByIndex = async (indexKey, secondaryKey, options): any => {
+      const indexOption = modelOptions.index[indexKey]
+      // const indexKey = key
+      // const secondaryKey = value
 
       if (!indexOption.relation || indexOption.relation === 'one') {
         const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey] // ['prefix-indexKey', 'indexVal']
@@ -193,24 +192,12 @@ export const createModelSource = (kv: Deno.Kv) => {
         if (!indexRes.value) throw new Error(`[KV|findByIndex] index: ${key} is undefined`)
         return options?.resolve ? find(indexRes.value) : indexRes.value
       } else if (indexOption.relation === 'many') {
-        // const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey] // ['prefix-indexKey', 'indexVal', 'primaryKey']
         const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey]
-
         const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(
           kv,
           key,
           options as KvPageOptions<PrimaryKeyType>
         )
-        // const ids = kvPage.map((v) => v.key.at(-1)! /* primaryKey */)
-
-        // if (options?.resolve) {
-        //   const res = chunk(ids, 10).flatMap((ids) => {
-        //     return kv.getMany<Output[]>(ids.map((id) => [modelOptions.prefix, id]))
-        //   })
-        //   return res
-        // }
-
-        // return ids
 
         if (options?.resolve) {
           // kvPage[30] => kvPage[10][3] => kvPage.map(page.key => [prefix, primaryKey]) => kv.getMany()
@@ -223,16 +210,38 @@ export const createModelSource = (kv: Deno.Kv) => {
               )
             })
           )
+
           return res
             .flat()
             .filter((v) => v.versionstamp)
             .map((v) => v.value)
         }
 
-        // ids
+        // kvPage.map(page.key => primaryKey)
         return kvPage.map((v) => v.key.at(-1)! /* primaryKey */)
       }
+
+      throw new Error('[KV|findByIndex] undefined behaver')
     }
+
+    // UPDATE
+    type Update = {
+      (key: PrimaryKeyType, input: Partial<InputWithoutKey>): Promise<Output>
+      (
+        key: PrimaryKeyType,
+        handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey>
+      ): Promise<Output>
+    }
+
+    const update: Update = async (key, handler) => {
+      const value = await find(key)
+      if (!value) return null
+
+      const newValue = typeof handler === 'function' ? await handler(value) : handler
+
+    }
+
+    const updateByIndex = () => {}
 
     return {
       create,
@@ -240,6 +249,9 @@ export const createModelSource = (kv: Deno.Kv) => {
       find,
       findMany,
       findByIndex,
+
+      update,
+      updateByIndex,
     }
   }
 
