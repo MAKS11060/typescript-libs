@@ -29,6 +29,27 @@ const smallID = (key: string, start = 0) => {
 //   id_null: z.null(),
 // })
 
+Deno.test('12', async (t) => {
+  const kv = await Deno.openKv(':memory:')
+  const factory = createKvInstance(kv)
+
+  const userSchema = z.object({
+    id: z.string(),
+    username: z.string(),
+  })
+  const model = factory.model(userSchema, {
+    prefix: 'test',
+    primaryKey: 'id',
+    index: {
+      name: {
+        key: v => v.username
+      }
+    }
+  })
+
+  model.findByIndex('')
+})
+
 Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
   const factory = createKvInstance(kv)
@@ -75,7 +96,7 @@ Deno.test('1', async (t) => {
   })
 
   // C
-  for (let i = 1; i < 3; i++) {
+  for (let i = 1; i < 4; i++) {
     await userModel.create({
       username: `user_${i}`,
       nickname: `nick_${i}`,
@@ -89,16 +110,76 @@ Deno.test('1', async (t) => {
   // await printKV(kv)
 
   // R
-  // console.log(await userModel.find('user_1'))
+  await t.step('find', async () => {
+    const user = await userModel.find('user_1')
+    expect(user).toBeDefined()
+    expect(user?.id).toBe('user_1')
+    expect(user?.username).toBe('user_1')
+    expect(user?.nickname).toBe('nick_1')
+    expect(user?.email).toBe('test@test1.com')
+    expect(user?.age).toBe(18)
+    expect(user?.info.test).toBe(true)
+  })
 
   // R many
-  // console.log(await userModel.findMany({}))
+  await t.step('findMany', async () => {
+    const users = await userModel.findMany({})
+    expect(users).toBeDefined()
+    expect(users.length).toBe(3)
+    if (users) {
+      const user = users.at(0)
+      expect(user?.id).toBe('user_1')
+      expect(user?.username).toBe('user_1')
+      expect(user?.nickname).toBe('nick_1')
+      expect(user?.email).toBe('test@test1.com')
+      expect(user?.age).toBe(18)
+      expect(user?.info.test).toBe(true)
+    }
+  })
 
   // R by index
-  // console.log(await userModel.findByIndex('age', 18, {}))
-  // console.log(await userModel.findByIndex('info_test', '', {resolve: true}))
+  await t.step('findByIndex', async () => {
+    const user_ids = await userModel.findByIndex('age', 18)
+    expect(user_ids).toEqual(['user_1', 'user_2', 'user_3'])
+  })
 
-  // const usernameId = await userModel.findByIndex('username', 'user_1')
+  await t.step('findByIndex resolve', async () => {
+    const users = await userModel.findByIndex('age', 18, {resolve: true})
+    expect(users).toEqual([
+      {
+        age: 18,
+        email: 'test@test1.com',
+        id: 'user_1',
+        info: {
+          test: true,
+        },
+        nickname: 'nick_1',
+        username: 'user_1',
+      },
+      {
+        age: 18,
+        email: 'test@test2.com',
+        id: 'user_2',
+        info: {
+          test: true,
+        },
+        nickname: 'nick_2',
+        username: 'user_2',
+      },
+      {
+        age: 18,
+        email: 'test@test3.com',
+        id: 'user_3',
+        info: {
+          test: true,
+        },
+        nickname: 'nick_3',
+        username: 'user_3',
+      },
+    ])
+  })
+
+  // const usernameId = await userModel.findByIndex()
   // const ageIds = await userModel.findByIndex('age', 18)
   // console.log({usernameId, ageIds})
 
@@ -121,14 +202,25 @@ Deno.test('1', async (t) => {
     expect(user.info.test).toBe(false)
   })
 
-  await t.step('update', async () => {
+  await t.step('update val', async () => {
     const user = await userModel.update('user_2', (val) => {
-      console.log({val})
       val.id = '1234'
       val.username = 'asdf'
     })
-    console.log({user})
+    expect(user.id).toBe('user_2')
+    expect(user.username).toBe('asdf')
   })
+
+  await t.step('update return', async () => {
+    const user = await userModel.update('user_2', () => {
+      return {
+        nickname: '3',
+      }
+    })
+    expect(user.nickname).toBe('3')
+  })
+
+  // userModel.findByIndex('')
 
   // printKV(kv)
   kv.close()

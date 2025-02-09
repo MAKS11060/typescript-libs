@@ -33,7 +33,7 @@ type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
 type ModelOptions<Schema extends StandardSchemaV1, Index extends string> = {
   prefix: string
   // primaryKey: keyof StandardSchemaV1.InferOutput<Schema> // alias for 'z.output'
-  primaryKey: keyof GetPrimaryKey<StandardSchemaV1.InferOutput<Schema>>
+  primaryKey: GetPrimaryKey<StandardSchemaV1.InferOutput<Schema>>
   /** @default ulid  */
   primaryKeyType?: PrimaryKeyType
   index: {
@@ -41,7 +41,6 @@ type ModelOptions<Schema extends StandardSchemaV1, Index extends string> = {
       /** @default one  */
       relation?: 'one' | 'many'
       key: (value: StandardSchemaV1.InferOutput<Schema>) => /* unknown */ Deno.KvKeyPart
-      // TODO: add post transform, before save
     }
   }
 }
@@ -53,7 +52,7 @@ type ModelOptionsToIndexRelationType<T extends ModelOptions<any, string>> = {
   [K in keyof T['index']]: T['index'][K]['relation'] extends 'many' ? 'many' : 'one'
 }
 
-interface CreateOptions<Key extends Deno.KvKeyPart> {
+interface CreateOptions<Key> {
   /** Set `Primary` key */
   key?: Key
   /** expireIn in `milliseconds` */
@@ -79,7 +78,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
     type Output = StandardSchemaV1.InferOutput<Schema> //& {[k in PrimaryKey]: Deno.KvKeyPart}
 
     type PrimaryKey = Options['primaryKey']
-    type PrimaryKeyType = Output[PrimaryKey] extends Deno.KvKeyPart ? Output[PrimaryKey] : never
+    type PrimaryKeyType = Output[PrimaryKey]
     type InputWithoutKey = Omit<Input, PrimaryKey>
 
     // PrimaryKey generator
@@ -175,9 +174,11 @@ export const createKvInstance = (kv: Deno.Kv) => {
           : never
       ): Promise<
         IndexRelationType[K] extends 'one'
-          ? IndexValueType[K]
+          ? /* IndexValueType[K] */ PrimaryKeyType
+          // ? IndexValueType[K]
           : IndexRelationType[K] extends 'many'
-          ? IndexValueType[K][]
+          ? /* IndexValueType[K][] */ PrimaryKeyType[]
+          // ? IndexValueType[K][]
           : never
       >
     }
@@ -241,22 +242,21 @@ export const createKvInstance = (kv: Deno.Kv) => {
       const value = await find(key)
       if (!value) return null
 
-      const op = options?.op ?? kv.atomic()
-      // const primaryKey = value[modelOptions.primaryKey] as Deno.KvKeyPart
-
       const {[modelOptions.primaryKey]: primaryKey, ...curValue} = value
       const {[modelOptions.primaryKey]: _, ...newValueRaw} =
-        typeof handler === 'function' ? await handler(value) : handler
+        typeof handler === 'function' ? (await handler(value)) ?? value : handler
 
       // make new obj
       const newValue = standardValidate(schema, {
         [modelOptions.primaryKey]: primaryKey,
-        ...value,
+        // ...value,
+        ...curValue,
         ...newValueRaw,
       })
 
       // primary
-      op.set([modelOptions.prefix, primaryKey as PrimaryKeyType], newValue, options) // ['prefix', 'primaryKey'] => object
+      const op = options?.op ?? kv.atomic()
+      op.set([modelOptions.prefix, primaryKey as Deno.KvKeyPart], newValue, options) // ['prefix', 'primaryKey'] => object
 
       // index
       for (const indexKey in modelOptions.index) {
@@ -271,7 +271,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
           op.set(key, primaryKey, options) // key => primaryKey
           if (!options?.force) op.check({key, versionstamp: null})
         } else if (indexOption.relation === 'many') {
-          const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey as PrimaryKeyType] // ['prefix-indexKey', 'indexVal', 'primaryKey']
+          const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey as Deno.KvKeyPart] // ['prefix-indexKey', 'indexVal', 'primaryKey']
           op.set(key, null, options) // key => null
           if (!options?.force) op.check({key, versionstamp: null})
         }
