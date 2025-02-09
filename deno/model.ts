@@ -2,7 +2,6 @@ import {chunk} from '@std/collections/chunk'
 import {ulid} from '@std/ulid/ulid'
 import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
 import {KvPageOptions, getKvPage} from './kvLib.ts'
-import { z } from "zod";
 
 const standardValidate = <T extends StandardSchemaV1>(
   schema: T,
@@ -21,22 +20,20 @@ const standardValidate = <T extends StandardSchemaV1>(
   return result.value
 }
 
-const schema = z.object({
-  id: z.string()
-})
+type GetPrimaryKey<TObject> = {
+  [K in keyof TObject as TObject[K] extends Deno.KvKeyPart
+    ? undefined extends TObject[K]
+      ? never
+      : K
+    : never]: TObject[K]
+}
 
-type A = typeof schema
-type B = StandardSchemaV1.InferInput<A>
-
-type C = Deno.KvKeyPart
-
-
-// MODEL
 type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
 
 type ModelOptions<Schema extends StandardSchemaV1, Index extends string> = {
-  prefix: string // model name
-  primaryKey: keyof StandardSchemaV1.InferOutput<Schema> // alias for 'z.output'
+  prefix: string
+  // primaryKey: keyof StandardSchemaV1.InferOutput<Schema> // alias for 'z.output'
+  primaryKey: keyof GetPrimaryKey<StandardSchemaV1.InferOutput<Schema>>
   /** @default ulid  */
   primaryKeyType?: PrimaryKeyType
   index: {
@@ -56,7 +53,7 @@ type ModelOptionsToIndexRelationType<T extends ModelOptions<any, string>> = {
   [K in keyof T['index']]: T['index'][K]['relation'] extends 'many' ? 'many' : 'one'
 }
 
-interface CreateOptions<Key> {
+interface CreateOptions<Key extends Deno.KvKeyPart> {
   /** Set `Primary` key */
   key?: Key
   /** expireIn in `milliseconds` */
@@ -78,11 +75,11 @@ export const createKvInstance = (kv: Deno.Kv) => {
     type IndexRelationType = ModelOptionsToIndexRelationType<Options>
 
     // IO
-    type Input = StandardSchemaV1.InferInput<Schema> & {[k in PrimaryKey]: Deno.KvKeyPart}
-    type Output = StandardSchemaV1.InferOutput<Schema> & {[k in PrimaryKey]: Deno.KvKeyPart}
+    type Input = StandardSchemaV1.InferInput<Schema> //& {[k in PrimaryKey]: Deno.KvKeyPart}
+    type Output = StandardSchemaV1.InferOutput<Schema> //& {[k in PrimaryKey]: Deno.KvKeyPart}
 
     type PrimaryKey = Options['primaryKey']
-    type PrimaryKeyType = Output[PrimaryKey]
+    type PrimaryKeyType = Output[PrimaryKey] extends Deno.KvKeyPart ? Output[PrimaryKey] : never
     type InputWithoutKey = Omit<Input, PrimaryKey>
 
     // PrimaryKey generator
@@ -235,7 +232,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
       (key: PrimaryKeyType, input: Partial<InputWithoutKey>, options?: UpdateOptions): Promise<Output>
       (
         key: PrimaryKeyType,
-        handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey> | void,
+        handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey> | Promise<void> | void,
         options?: UpdateOptions
       ): Promise<Output>
     }
@@ -254,17 +251,17 @@ export const createKvInstance = (kv: Deno.Kv) => {
       // make new obj
       const newValue = standardValidate(schema, {
         [modelOptions.primaryKey]: primaryKey,
-        ...curValue,
+        ...value,
         ...newValueRaw,
       })
 
       // primary
-      op.set([modelOptions.prefix, primaryKey], newValue, options) // ['prefix', 'primaryKey'] => object
+      op.set([modelOptions.prefix, primaryKey as PrimaryKeyType], newValue, options) // ['prefix', 'primaryKey'] => object
 
       // index
       for (const indexKey in modelOptions.index) {
         const indexOption = modelOptions.index[indexKey]
-        const secondaryKey = indexOption.key(/* newValueRaw */ newValue) // indexVal
+        const secondaryKey = indexOption.key(newValue) // indexVal
         // skip unchanged index
         if (secondaryKey === indexOption.key(value)) continue
 
@@ -274,7 +271,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
           op.set(key, primaryKey, options) // key => primaryKey
           if (!options?.force) op.check({key, versionstamp: null})
         } else if (indexOption.relation === 'many') {
-          const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey] // ['prefix-indexKey', 'indexVal', 'primaryKey']
+          const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey as PrimaryKeyType] // ['prefix-indexKey', 'indexVal', 'primaryKey']
           op.set(key, null, options) // key => null
           if (!options?.force) op.check({key, versionstamp: null})
         }

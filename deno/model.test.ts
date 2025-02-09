@@ -1,4 +1,4 @@
-import {expect} from "jsr:@std/expect/expect"
+import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
 import {createKvInstance} from './model.ts'
 
@@ -7,6 +7,27 @@ const smallID = (key: string, start = 0) => {
   idMap.set(key, (idMap.get(key) ?? start) + 1)
   return `${key}_` + idMap.get(key)
 }
+
+// const schema = z.object({
+//   id_Uint8Array: z.instanceof(Uint8Array),
+//   id_string: z.string(),
+//   id_number: z.number(),
+//   id_bigint: z.bigint(),
+//   id_boolean: z.boolean(),
+//   id_symbol: z.symbol(),
+
+//   id_maybe_Uint8Array: z.instanceof(Uint8Array).optional(),
+//   id_maybe_string: z.string().optional(),
+//   id_maybe_number: z.number().optional(),
+//   id_maybe_bigint: z.bigint().optional(),
+//   id_maybe_boolean: z.boolean().optional(),
+//   id_maybe_symbol: z.symbol().optional(),
+
+//   // id_union: z.union([z.string(), z.number()]),
+//   id_union: z.union([z.string(), z.number(), z.null()]),
+//   id_array: z.array(z.string(), z.number()),
+//   id_null: z.null(),
+// })
 
 Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
@@ -21,6 +42,9 @@ Deno.test('1', async (t) => {
     info: z.object({
       test: z.boolean(),
     }),
+    // array: z.array(z.string()).optional(),
+    // array_str: z.string().optional(),
+    // array_str: z.string(),
   })
 
   const userModel = factory.model(userSchema, {
@@ -98,11 +122,10 @@ Deno.test('1', async (t) => {
   })
 
   await t.step('update', async () => {
-    const user = await userModel.update('user_2', val => {
+    const user = await userModel.update('user_2', (val) => {
       console.log({val})
       val.id = '1234'
       val.username = 'asdf'
-      return {}
     })
     console.log({user})
   })
