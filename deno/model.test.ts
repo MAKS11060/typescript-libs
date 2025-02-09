@@ -1,6 +1,6 @@
+import {expect} from "jsr:@std/expect/expect"
 import {z} from 'zod'
-import {createModelSource} from './model.ts'
-import {printKV} from './kvLib.ts'
+import {createKvInstance} from './model.ts'
 
 const idMap = new Map<string, number>()
 const smallID = (key: string, start = 0) => {
@@ -10,7 +10,7 @@ const smallID = (key: string, start = 0) => {
 
 Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
-  const factory = createModelSource(kv)
+  const factory = createKvInstance(kv)
 
   const userSchema = z.object({
     id: z.string(),
@@ -78,15 +78,34 @@ Deno.test('1', async (t) => {
   // const ageIds = await userModel.findByIndex('age', 18)
   // console.log({usernameId, ageIds})
 
-  const userId = await userModel.findByIndex('username', 'user_1')
-  const usersIds = await userModel.findByIndex('age', 18)
+  // const userId = await userModel.findByIndex('username', 'user_1')
+  // const usersIds = await userModel.findByIndex('age', 18)
 
-  const user = await userModel.findByIndex('username', 'user_1', {resolve: true})
-  const users = await userModel.findByIndex('age', 18, {resolve: true})
-  console.log({userId, usersIds, user, users})
+  // const user = await userModel.findByIndex('username', 'user_1', {resolve: true})
+  // const users = await userModel.findByIndex('age', 18, {resolve: true})
+  // console.log({userId, usersIds, user, users})
 
-  userModel.update('user_1', {info: {test: false}})
+  await t.step('update', async () => {
+    const user = await userModel.update('user_1', {
+      age: 17,
+      info: {
+        test: false,
+      },
+    })
+    expect(user.id).toBe('user_1')
+    expect(user.age).toBe(17)
+    expect(user.info.test).toBe(false)
+  })
 
+  await t.step('update', async () => {
+    const user = await userModel.update('user_2', val => {
+      console.log({val})
+      val.id = '1234'
+      val.username = 'asdf'
+      return {}
+    })
+    console.log({user})
+  })
 
   // printKV(kv)
   kv.close()
