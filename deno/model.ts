@@ -107,7 +107,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
     }
 
     // CREATE
-    const create = async (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>) => {
+    const create = (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>) => {
       const key = options?.key ?? generateKey()
       const op = options?.op ?? kv.atomic()
 
@@ -156,36 +156,56 @@ export const createKvInstance = (kv: Deno.Kv) => {
     type FindNoResolve = {resolve?: false}
     type FindByIndex = {
       // Find primary keys
-      <K extends IndexKey>(
-        key: K,
-        value: IndexMap[K]['key'],
-        options?: IndexMap[K]['type'] extends 'one'
-          ? FindNoResolve
-          : IndexMap[K]['type'] extends 'many'
-          ? FindNoResolve & KvPageOptions<PrimaryKeyType>
-          : never
+      <Key extends IndexKey>(
+        key: Key,
+        value: IndexMap[Key]['key'],
+        // options?: IndexMap[K]['type'] extends 'one'
+        //   ? FindNoResolve
+        //   : IndexMap[K]['type'] extends 'many'
+        //   ? FindNoResolve & KvPageOptions<PrimaryKeyType>
+        //   : never
+        options?: ChoiceOption<
+          IndexMap[Key]['type'], //
+          FindNoResolve,
+          FindNoResolve & KvPageOptions<PrimaryKeyType>
+        >
       ): Promise<
-        IndexMap[K]['type'] extends 'one'
-          ? PrimaryKeyType
-          : IndexMap[K]['type'] extends 'many'
-          ? PrimaryKeyType[]
-          : never
+        // IndexMap[Key]['type'] extends 'one'
+        //   ? PrimaryKeyType
+        //   : IndexMap[Key]['type'] extends 'many'
+        //   ? PrimaryKeyType[]
+        //   : never
+        ChoiceOption<
+          IndexMap[Key]['type'], //
+          PrimaryKeyType,
+          PrimaryKeyType[]
+        >
       >
       // Find and resolve primary object
       <K extends IndexKey>(
         key: K,
         value: IndexMap[K]['key'],
-        options: IndexMap[K]['type'] extends 'one'
-          ? FindResolve
-          : IndexMap[K]['type'] extends 'many'
-          ? FindResolve & KvPageOptions<PrimaryKeyType>
-          : never
+        // options: IndexMap[K]['type'] extends 'one'
+        //   ? FindResolve
+        //   : IndexMap[K]['type'] extends 'many'
+        //   ? FindResolve & KvPageOptions<PrimaryKeyType>
+        //   : never
+        options: ChoiceOption<
+          IndexMap[K]['type'], //
+          FindResolve,
+          FindResolve & KvPageOptions<PrimaryKeyType>
+        >
       ): Promise<
-        IndexMap[K]['type'] extends 'one' //
-          ? Output
-          : IndexMap[K]['type'] extends 'many'
-          ? Output[]
-          : never
+        // IndexMap[K]['type'] extends 'one' //
+        //   ? Output
+        //   : IndexMap[K]['type'] extends 'many'
+        //   ? Output[]
+        //   : never
+        ChoiceOption<
+          IndexMap[K]['type'], //
+          Output,
+          Output[]
+        >
       >
     }
 
@@ -311,11 +331,9 @@ export const createKvInstance = (kv: Deno.Kv) => {
 
         if (!indexOption.relation || indexOption.relation === 'one') {
           const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
-          console.log({key})
           op.delete(key)
         } else if (indexOption.relation === 'many') {
           const key = [_prefixKey(indexKey), secondaryKey, primaryKey as Deno.KvKeyPart] // ['prefix-indexKey', 'indexVal', 'primaryKey']
-          console.log({key})
           op.delete(key)
         }
       }

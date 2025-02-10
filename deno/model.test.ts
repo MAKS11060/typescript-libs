@@ -1,7 +1,7 @@
 import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
 import {createKvInstance} from './model.ts'
-import { printKV } from "./kvLib.ts";
+import {printKV} from './kvLib.ts'
 
 const idMap = new Map<string, number>()
 const smallID = (key: string, start = 0) => {
@@ -246,21 +246,33 @@ Deno.test('3', async (t) => {
         relation: 'one',
         key: ({username}) => username.toLowerCase(),
       },
-      test: {
+      str: {
         relation: 'many',
         key: ({username}) => username.toLowerCase(),
+      },
+      num: {
+        relation: 'many',
+        key: ({username}) => 1,
+      },
+      id: {
+        key: ({username}) => 1,
       },
     },
   })
 
   const user = await userModel.create({
     username: '1',
-    nickname: '1'
+    nickname: '1',
   })
   console.log(user)
   console.log(await userModel.remove(user.id))
 
-  userModel.removeByIndex('test', '123')
+  // userModel.removeByIndex('test', '123')
+
+  // const a = await userModel.findByIndex('id', 1)
+  // const b = await userModel.findByIndex('num', 1)
+  // const c = await userModel.findByIndex('str', '1')
+  // const d = await userModel.findByIndex('username', 'u')
 
   await printKV(kv)
   kv.close()
