@@ -1,24 +1,8 @@
 import {chunk} from '@std/collections/chunk'
 import {ulid} from '@std/ulid/ulid'
 import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
+import {standardValidate} from '../lib/standardValidate.ts'
 import {KvPageOptions, getKvPage} from './kvLib.ts'
-
-const standardValidate = <T extends StandardSchemaV1>(
-  schema: T,
-  input: StandardSchemaV1.InferInput<T>
-): StandardSchemaV1.InferOutput<T> => {
-  const result = schema['~standard'].validate(input)
-  if (result instanceof Promise) {
-    throw new TypeError('Schema validation must be synchronous')
-  }
-
-  // if the `issues` field exists, the validation failed
-  if (result.issues) {
-    throw new Error(JSON.stringify(result.issues, null, 2))
-  }
-
-  return result.value
-}
 
 type GetPrimaryKey<TObject> = {
   [K in keyof TObject as TObject[K] extends Deno.KvKeyPart
@@ -33,7 +17,7 @@ type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
 type ModelOptions<Schema extends StandardSchemaV1, Index extends string> = {
   prefix: string
   // primaryKey: keyof StandardSchemaV1.InferOutput<Schema> // alias for 'z.output'
-  primaryKey: GetPrimaryKey<StandardSchemaV1.InferOutput<Schema>>
+  primaryKey: keyof GetPrimaryKey<StandardSchemaV1.InferOutput<Schema>>
   /** @default ulid  */
   primaryKeyType?: PrimaryKeyType
   index: {
@@ -70,6 +54,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
     schema: Schema,
     modelOptions: Options
   ) => {
+    type IndexKey = keyof IndexValueType /* Index */
     type IndexValueType = ModelOptionsToIndexValueType<Options>
     type IndexRelationType = ModelOptionsToIndexRelationType<Options>
 
@@ -148,7 +133,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
     // TODO: simplify types
     type FindByIndex = {
       // Find and resolve primary object
-      <K extends Index /* keyof IndexValueType */>(
+      <K extends IndexKey /* Index */ /* keyof IndexValueType */>(
         key: K,
         value: IndexValueType[K],
         options: IndexRelationType[K] extends 'one'
@@ -164,7 +149,7 @@ export const createKvInstance = (kv: Deno.Kv) => {
           : never
       >
       // Find primary ids
-      <K extends Index /* keyof IndexValueType */>(
+      <K extends IndexKey /* Index */ /* keyof IndexValueType */>(
         key: K,
         value: IndexValueType[K],
         options?: IndexRelationType[K] extends 'one'
@@ -175,15 +160,15 @@ export const createKvInstance = (kv: Deno.Kv) => {
       ): Promise<
         IndexRelationType[K] extends 'one'
           ? /* IndexValueType[K] */ PrimaryKeyType
-          // ? IndexValueType[K]
-          : IndexRelationType[K] extends 'many'
+          : // ? IndexValueType[K]
+          IndexRelationType[K] extends 'many'
           ? /* IndexValueType[K][] */ PrimaryKeyType[]
-          // ? IndexValueType[K][]
-          : never
+          : // ? IndexValueType[K][]
+            never
       >
     }
 
-    const findByIndex: FindByIndex = async (indexKey, secondaryKey, options): Promise<any> => {
+    const findByIndex: FindByIndex = async (indexKey: Index, secondaryKey, options): Promise<any> => {
       const indexOption = modelOptions.index[indexKey]
       // const indexKey = key
       // const secondaryKey = value

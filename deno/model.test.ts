@@ -47,7 +47,7 @@ Deno.test('12', async (t) => {
     }
   })
 
-  model.findByIndex('')
+  // model.findByIndex('name', '')
 })
 
 Deno.test('1', async (t) => {
@@ -220,7 +220,7 @@ Deno.test('1', async (t) => {
     expect(user.nickname).toBe('3')
   })
 
-  // userModel.findByIndex('')
+  userModel.findByIndex('')
 
   // printKV(kv)
   kv.close()
