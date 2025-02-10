@@ -1,7 +1,7 @@
 import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
-import {createKvInstance} from './model.ts'
 import {printKV} from './kvLib.ts'
+import {createKvInstance} from './kvModel2.ts'
 
 const idMap = new Map<string, number>()
 const smallID = (key: string, start = 0) => {
@@ -269,10 +269,59 @@ Deno.test('3', async (t) => {
 
   // userModel.removeByIndex('test', '123')
 
-  // const a = await userModel.findByIndex('id', 1)
-  // const b = await userModel.findByIndex('num', 1)
-  // const c = await userModel.findByIndex('str', '1')
-  // const d = await userModel.findByIndex('username', 'u')
+  const a = await userModel.findByIndex('id', 1)
+  const b = await userModel.findByIndex('num', 1)
+  const c = await userModel.findByIndex('str', '1')
+  const d = await userModel.findByIndex('username', 'u')
+
+  await printKV(kv)
+  kv.close()
+})
+
+Deno.test('4', async (t) => {
+  const kv = await Deno.openKv(':memory:')
+  const factory = createKvInstance(kv)
+
+  const userSchema = z.object({
+    id: z.string(),
+    text: z.string(),
+    flag: z.number(),
+  })
+  const userModel = factory.model(userSchema, {
+    prefix: 'post',
+    primaryKey: 'id',
+    primaryKeyType: () => smallID('post'),
+    index: {
+      text: {
+        key: ({text}) => text,
+      },
+      flag: {
+        relation: 'many',
+        key: ({flag}) => flag,
+      },
+    },
+  })
+
+  // const post_1 = await userModel.create({text: '1', flag: 1})
+  // const post_2 = await userModel.create({text: '2', flag: 1})
+  // for (let i = 3; i < 60+6; i++) {
+  //   await userModel.create({text: `${i}`, flag: 2})
+  // }
+  // for (let i = 6; i < 9; i++) {
+  //   await userModel.create({text: `${i}`, flag: 3})
+  // }
+
+  // console.log(await userModel.remove(post_1.id))
+  // console.log(await userModel.removeByIndex('text', post_2.text))
+  // console.log(await userModel.removeByIndex('flag', 2))
+
+  for (let i = 0; i < 55; i++) {
+    await userModel.create({text: `${i+1}`, flag: 2})
+  }
+  console.log(await userModel.removeByIndex('flag', 2))
+
+  await userModel.index.wipe()
+  await userModel.index.create()
 
   await printKV(kv)
   kv.close()

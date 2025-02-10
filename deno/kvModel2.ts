@@ -159,22 +159,12 @@ export const createKvInstance = (kv: Deno.Kv) => {
       <Key extends IndexKey>(
         key: Key,
         value: IndexMap[Key]['key'],
-        // options?: IndexMap[K]['type'] extends 'one'
-        //   ? FindNoResolve
-        //   : IndexMap[K]['type'] extends 'many'
-        //   ? FindNoResolve & KvPageOptions<PrimaryKeyType>
-        //   : never
         options?: ChoiceOption<
           IndexMap[Key]['type'], //
           FindNoResolve,
           FindNoResolve & KvPageOptions<PrimaryKeyType>
         >
       ): Promise<
-        // IndexMap[Key]['type'] extends 'one'
-        //   ? PrimaryKeyType
-        //   : IndexMap[Key]['type'] extends 'many'
-        //   ? PrimaryKeyType[]
-        //   : never
         ChoiceOption<
           IndexMap[Key]['type'], //
           PrimaryKeyType,
@@ -185,22 +175,12 @@ export const createKvInstance = (kv: Deno.Kv) => {
       <K extends IndexKey>(
         key: K,
         value: IndexMap[K]['key'],
-        // options: IndexMap[K]['type'] extends 'one'
-        //   ? FindResolve
-        //   : IndexMap[K]['type'] extends 'many'
-        //   ? FindResolve & KvPageOptions<PrimaryKeyType>
-        //   : never
         options: ChoiceOption<
           IndexMap[K]['type'], //
           FindResolve,
           FindResolve & KvPageOptions<PrimaryKeyType>
         >
       ): Promise<
-        // IndexMap[K]['type'] extends 'one' //
-        //   ? Output
-        //   : IndexMap[K]['type'] extends 'many'
-        //   ? Output[]
-        //   : never
         ChoiceOption<
           IndexMap[K]['type'], //
           Output,
@@ -344,11 +324,6 @@ export const createKvInstance = (kv: Deno.Kv) => {
     const removeByIndex = async <Key extends IndexKey>(
       key: Key,
       value: IndexMap[Key]['key'],
-      // options?: IndexMap[Key]['type'] extends 'one'
-      //   ? RemoveByIndexOptions
-      //   : IndexMap[Key]['type'] extends 'many'
-      //   ? RemoveByIndexOptions & KvPageOptions<PrimaryKeyType>
-      //   : never
       options?: ChoiceOption<
         IndexMap[Key]['type'],
         RemoveByIndexOptions,
@@ -371,15 +346,56 @@ export const createKvInstance = (kv: Deno.Kv) => {
       return options?.transaction ? true : _commit(op, true, 'removeByIndex')
     }
 
-    return {
-      create,
+    const index = {
+      wipe: async (key?: IndexKey) => {
+        for (const indexKey in modelOptions.index) {
+          const iter = kv.list({prefix: [_prefixKey(indexKey)]})
+          for await (const item of iter) {
+            if (key) {
+              if (_prefixKey(key as string) === item.key.at(0)) {
+                await kv.delete(item.key)
+              }
+            } else {
+              await kv.delete(item.key)
+            }
+          }
+        }
+      },
+      create: async (options?: CreateOptions<PrimaryKeyType>) => {
+        const iter = kv.list<Output>({prefix: [modelOptions.prefix]})
+        for await (const {key, value} of iter) {
+          const op = options?.op ?? kv.atomic()
+          const primaryKey = value[modelOptions.primaryKey] as Deno.KvKeyPart // primaryKey
 
+          // index
+          for (const indexKey in modelOptions.index) {
+            const indexOption = modelOptions.index[indexKey]
+            const secondaryKey = indexOption.key(value) // indexVal
+
+            if (!indexOption.relation || indexOption.relation === 'one') {
+              const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey] // ['prefix-indexKey', 'indexVal']
+              op.set(key, primaryKey, options) // key => primaryKey
+              if (!options?.force) op.check({key, versionstamp: null})
+            } else if (indexOption.relation === 'many') {
+              const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey] // ['prefix-indexKey', 'indexVal', 'primaryKey']
+              op.set(key, null, options) // key => null
+              if (!options?.force) op.check({key, versionstamp: null})
+            }
+          }
+
+          await _commit(op, null, 'index-create')
+        }
+      },
+    }
+
+    return {
+      index,
+      atomic: () => kv.atomic(),
+      create,
       find,
       findMany,
       findByIndex,
-
       update,
-
       remove,
       removeByIndex,
     }

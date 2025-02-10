@@ -1,5 +1,3 @@
-#!/usr/bin/env -S deno run -A --watch-hmr
-
 import {chunk} from '@std/collections/chunk'
 import {ulid} from '@std/ulid'
 import {z} from 'zod'
