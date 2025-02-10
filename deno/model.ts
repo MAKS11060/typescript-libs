@@ -4,7 +4,7 @@ import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
 import {standardValidate} from '../lib/standardValidate.ts'
 import {KvPageOptions, getKvPage} from './kvLib.ts'
 
-type GetPrimaryKey<TObject> = {
+type GetPrimitiveKey<TObject> = {
   [K in keyof TObject as TObject[K] extends Deno.KvKeyPart
     ? undefined extends TObject[K]
       ? never
@@ -14,26 +14,39 @@ type GetPrimaryKey<TObject> = {
 
 type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
 
-type ModelOptions<Schema extends StandardSchemaV1, Index extends string> = {
+type ModelOptions<
+  Schema extends StandardSchemaV1,
+  IndexKey extends string,
+  Output = StandardSchemaV1.InferOutput<Schema>
+> = {
   prefix: string
-  // primaryKey: keyof StandardSchemaV1.InferOutput<Schema> // alias for 'z.output'
-  primaryKey: keyof GetPrimaryKey<StandardSchemaV1.InferOutput<Schema>>
-  /** @default ulid  */
+  /**
+   * Available types for `primaryKey`:
+   * 1. {@linkcode Uint8Array}
+   * 2. {@linkcode String}
+   * 3. {@linkcode Number}
+   * 4. {@linkcode BigInt}
+   * 5. {@linkcode Boolean}
+   */
+  primaryKey: keyof GetPrimitiveKey<Output>
+  /** @default ulid */
   primaryKeyType?: PrimaryKeyType
-  index: {
-    [K in Index]: {
-      /** @default one  */
-      relation?: 'one' | 'many'
-      key: (value: StandardSchemaV1.InferOutput<Schema>) => /* unknown */ Deno.KvKeyPart
-    }
+  index: IndexOptions<IndexKey, Output>
+}
+
+type IndexOptions<IndexKey extends string, Output> = {
+  [K in IndexKey]: {
+    /** @default one */
+    relation?: 'one' | 'many'
+    key: (value: Output) => Deno.KvKeyPart
   }
 }
 
-type ModelOptionsToIndexValueType<T extends ModelOptions<any, string>> = {
-  [K in keyof T['index']]: ReturnType<T['index'][K]['key']>
-}
-type ModelOptionsToIndexRelationType<T extends ModelOptions<any, string>> = {
-  [K in keyof T['index']]: T['index'][K]['relation'] extends 'many' ? 'many' : 'one'
+type IndexOptionsResult<Index extends IndexOptions<any, any>> = {
+  [K in keyof Index]: {
+    type: Index[K]['relation'] extends 'many' ? 'many' : 'one'
+    key: ReturnType<Index[K]['key']>
+  }
 }
 
 interface CreateOptions<Key> {
@@ -50,13 +63,15 @@ interface CreateOptions<Key> {
 }
 
 export const createKvInstance = (kv: Deno.Kv) => {
-  const model = <Schema extends StandardSchemaV1, Index extends string, Options extends ModelOptions<Schema, Index>>(
+  const model = <
+    Schema extends StandardSchemaV1, //
+    Options extends ModelOptions<Schema, string>
+  >(
     schema: Schema,
     modelOptions: Options
   ) => {
-    type IndexKey = keyof IndexValueType /* Index */
-    type IndexValueType = ModelOptionsToIndexValueType<Options>
-    type IndexRelationType = ModelOptionsToIndexRelationType<Options>
+    type IndexMap = IndexOptionsResult<Options['index']> // {a: IndexOptions, b: IndexOptions}
+    type IndexKey = keyof Options['index'] // 'a' | 'b'
 
     // IO
     type Input = StandardSchemaV1.InferInput<Schema> //& {[k in PrimaryKey]: Deno.KvKeyPart}
@@ -73,6 +88,8 @@ export const createKvInstance = (kv: Deno.Kv) => {
     } else if (typeof modelOptions.primaryKeyType === 'function') {
       generateKey = modelOptions.primaryKeyType
     }
+
+    const _prefixKey = (indexKey: string) => `${modelOptions.prefix}-${indexKey}`
 
     // CREATE
     const create = async (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>) => {
@@ -130,45 +147,42 @@ export const createKvInstance = (kv: Deno.Kv) => {
     // FIND by index
     type FindResolve = {resolve: true}
     type FindNoResolve = {resolve?: false}
-    // TODO: simplify types
     type FindByIndex = {
-      // Find and resolve primary object
-      <K extends IndexKey /* Index */ /* keyof IndexValueType */>(
+      // Find primary keys
+      <K extends IndexKey>(
         key: K,
-        value: IndexValueType[K],
-        options: IndexRelationType[K] extends 'one'
-          ? FindResolve
-          : IndexRelationType[K] extends 'many'
-          ? FindResolve & KvPageOptions<PrimaryKeyType> // additional options for relation 'many'
+        value: IndexMap[K]['key'],
+        options?: IndexMap[K]['type'] extends 'one'
+          ? FindNoResolve
+          : IndexMap[K]['type'] extends 'many'
+          ? FindNoResolve & KvPageOptions<PrimaryKeyType>
           : never
       ): Promise<
-        IndexRelationType[K] extends 'one' //
+        IndexMap[K]['type'] extends 'one'
+          ? PrimaryKeyType
+          : IndexMap[K]['type'] extends 'many'
+          ? PrimaryKeyType[]
+          : never
+      >
+      // Find and resolve primary object
+      <K extends IndexKey>(
+        key: K,
+        value: IndexMap[K]['key'],
+        options: IndexMap[K]['type'] extends 'one'
+          ? FindResolve
+          : IndexMap[K]['type'] extends 'many'
+          ? FindResolve & KvPageOptions<PrimaryKeyType>
+          : never
+      ): Promise<
+        IndexMap[K]['type'] extends 'one' //
           ? Output
-          : IndexRelationType[K] extends 'many'
+          : IndexMap[K]['type'] extends 'many'
           ? Output[]
           : never
       >
-      // Find primary ids
-      <K extends IndexKey /* Index */ /* keyof IndexValueType */>(
-        key: K,
-        value: IndexValueType[K],
-        options?: IndexRelationType[K] extends 'one'
-          ? FindNoResolve
-          : IndexRelationType[K] extends 'many'
-          ? FindNoResolve & KvPageOptions<PrimaryKeyType> // additional options for relation 'many'
-          : never
-      ): Promise<
-        IndexRelationType[K] extends 'one'
-          ? /* IndexValueType[K] */ PrimaryKeyType
-          : // ? IndexValueType[K]
-          IndexRelationType[K] extends 'many'
-          ? /* IndexValueType[K][] */ PrimaryKeyType[]
-          : // ? IndexValueType[K][]
-            never
-      >
     }
 
-    const findByIndex: FindByIndex = async (indexKey: Index, secondaryKey, options): Promise<any> => {
+    const findByIndex: FindByIndex = async (indexKey: string, secondaryKey, options): Promise<any> => {
       const indexOption = modelOptions.index[indexKey]
       // const indexKey = key
       // const secondaryKey = value

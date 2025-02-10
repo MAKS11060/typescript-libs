@@ -47,16 +47,16 @@ type IndexOptionsResult<Index extends IndexOptions<any, any>> = {
   }
 }
 
-
 const model = <
   Schema extends StandardSchemaV1, //
   Options extends ModelOptions<Schema, string>
 >(
   schema: Schema,
-  options: Options
+  modelOptions: Options
 ) => {
   type IndexMap = IndexOptionsResult<Options['index']>
   type IndexKey = keyof Options['index']
+  // type IndexKey = keyof typeof modelOptions.index
 
   type PrimaryKey = Options['primaryKey']
   type PrimaryKeyType = Output[PrimaryKey]
@@ -69,7 +69,7 @@ const model = <
   type FindNoResolve = {resolve?: false}
   type FindByIndex = {
     // Find primary keys
-    <K extends keyof IndexMap>(
+    <K extends IndexKey>(
       key: K,
       value: IndexMap[K]['key'],
       options?: IndexMap[K]['type'] extends 'one'
@@ -78,10 +78,14 @@ const model = <
         ? FindNoResolve & KvPageOptions<PrimaryKeyType>
         : never
     ): Promise<
-      IndexMap[K]['type'] extends 'one' ? PrimaryKeyType : IndexMap[K]['type'] extends 'many' ? PrimaryKeyType[] : never
+      IndexMap[K]['type'] extends 'one' //
+        ? PrimaryKeyType
+        : IndexMap[K]['type'] extends 'many'
+        ? PrimaryKeyType[]
+        : never
     >
     // Find and resolve primary object
-    <K extends keyof IndexMap>(
+    <K extends IndexKey>(
       key: K,
       value: IndexMap[K]['key'],
       options: IndexMap[K]['type'] extends 'one'
@@ -98,10 +102,14 @@ const model = <
     >
   }
 
+  const findByIndex: FindByIndex = async (indexKey: string, secondaryKey, options): Promise<any> => {
+    const indexOption = modelOptions.index[indexKey]
+  }
+
   return {
     a: {} as IndexMap,
     b: {} as IndexKey,
-    findByIndex: {} as FindByIndex,
+    findByIndex,
   }
 }
 
@@ -128,4 +136,3 @@ const arr = factory.findByIndex('c', 1)
 const arrC = factory.findByIndex('c', 1, {resolve: true})
 
 factory.findByIndex('c', 1, {resolve: true})
-
