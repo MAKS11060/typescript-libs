@@ -1,7 +1,7 @@
 import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
 import {printKV} from './kvLib.ts'
-import {createKvInstance} from './kvModel2.ts'
+import {createKvModel} from './kvModel2.ts'
 
 const idMap = new Map<string, number>()
 const smallID = (key: string, start = 0) => {
@@ -11,7 +11,7 @@ const smallID = (key: string, start = 0) => {
 
 Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvInstance(kv)
+  const factory = createKvModel(kv)
 
   const schema = z.object({
     id_Uint8Array: z.instanceof(Uint8Array),
@@ -44,7 +44,7 @@ Deno.test('1', async (t) => {
 
 Deno.test('2', async (t) => {
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvInstance(kv)
+  const factory = createKvModel(kv)
 
   const userSchema = z.object({
     id: z.string(),
@@ -230,7 +230,7 @@ Deno.test('2', async (t) => {
 
 Deno.test('3', async (t) => {
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvInstance(kv)
+  const factory = createKvModel(kv)
 
   const userSchema = z.object({
     id: z.string(),
@@ -280,7 +280,7 @@ Deno.test('3', async (t) => {
 
 Deno.test('4', async (t) => {
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvInstance(kv)
+  const factory = createKvModel(kv)
 
   const userSchema = z.object({
     id: z.string(),

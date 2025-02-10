@@ -68,7 +68,7 @@ interface CreateOptions<Key> {
   transaction?: boolean
 }
 
-export const createKvInstance = (kv: Deno.Kv) => {
+export const createKvModel = (kv: Deno.Kv) => {
   const model = <
     Schema extends StandardSchemaV1, //
     Options extends ModelOptions<Schema, string>
