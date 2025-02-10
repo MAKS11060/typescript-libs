@@ -1,6 +1,7 @@
 import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
 import {createKvInstance} from './model.ts'
+import { printKV } from "./kvLib.ts";
 
 const idMap = new Map<string, number>()
 const smallID = (key: string, start = 0) => {
@@ -8,49 +9,40 @@ const smallID = (key: string, start = 0) => {
   return `${key}_` + idMap.get(key)
 }
 
-// const schema = z.object({
-//   id_Uint8Array: z.instanceof(Uint8Array),
-//   id_string: z.string(),
-//   id_number: z.number(),
-//   id_bigint: z.bigint(),
-//   id_boolean: z.boolean(),
-//   id_symbol: z.symbol(),
-
-//   id_maybe_Uint8Array: z.instanceof(Uint8Array).optional(),
-//   id_maybe_string: z.string().optional(),
-//   id_maybe_number: z.number().optional(),
-//   id_maybe_bigint: z.bigint().optional(),
-//   id_maybe_boolean: z.boolean().optional(),
-//   id_maybe_symbol: z.symbol().optional(),
-
-//   // id_union: z.union([z.string(), z.number()]),
-//   id_union: z.union([z.string(), z.number(), z.null()]),
-//   id_array: z.array(z.string(), z.number()),
-//   id_null: z.null(),
-// })
-
-Deno.test('12', async (t) => {
+Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
   const factory = createKvInstance(kv)
 
-  const userSchema = z.object({
-    id: z.string(),
-    username: z.string(),
-  })
-  const model = factory.model(userSchema, {
-    prefix: 'test',
-    primaryKey: 'id',
-    index: {
-      name: {
-        key: v => v.username
-      }
-    }
+  const schema = z.object({
+    id_Uint8Array: z.instanceof(Uint8Array),
+    id_string: z.string(),
+    id_number: z.number(),
+    id_bigint: z.bigint(),
+    id_boolean: z.boolean(),
+    id_symbol: z.symbol(),
+
+    id_maybe_Uint8Array: z.instanceof(Uint8Array).optional(),
+    id_maybe_string: z.string().optional(),
+    id_maybe_number: z.number().optional(),
+    id_maybe_bigint: z.bigint().optional(),
+    id_maybe_boolean: z.boolean().optional(),
+    id_maybe_symbol: z.symbol().optional(),
+
+    id_union: z.union([z.string(), z.number(), z.null()]),
+    id_array: z.array(z.string(), z.number()),
+    id_null: z.null(),
   })
 
-  // model.findByIndex('name', '')
+  const model = factory.model(schema, {
+    prefix: 'test',
+    primaryKey: 'id_bigint',
+    index: {},
+  })
+
+  kv.close()
 })
 
-Deno.test('1', async (t) => {
+Deno.test('2', async (t) => {
   const kv = await Deno.openKv(':memory:')
   const factory = createKvInstance(kv)
 
@@ -63,9 +55,6 @@ Deno.test('1', async (t) => {
     info: z.object({
       test: z.boolean(),
     }),
-    // array: z.array(z.string()).optional(),
-    // array_str: z.string().optional(),
-    // array_str: z.string(),
   })
 
   const userModel = factory.model(userSchema, {
@@ -220,8 +209,59 @@ Deno.test('1', async (t) => {
     expect(user.nickname).toBe('3')
   })
 
-  userModel.findByIndex('')
+  await t.step('updateByIndex', async () => {
+    const user_id = await userModel.findByIndex('username', 'user_1')
+    // userModel.update(user_id, {})
+  })
 
-  // printKV(kv)
+  await t.step('remove', async () => {
+    const isDelete = await userModel.remove('user_1')
+    expect(isDelete).toBe(true)
+  })
+
+  await t.step('removeByIndex', async () => {
+    const isDelete = await userModel.removeByIndex('age', 18)
+    expect(isDelete).toBe(true)
+  })
+
+  await printKV(kv)
+  kv.close()
+})
+
+Deno.test('3', async (t) => {
+  const kv = await Deno.openKv(':memory:')
+  const factory = createKvInstance(kv)
+
+  const userSchema = z.object({
+    id: z.string(),
+    username: z.string(),
+    nickname: z.string(),
+  })
+  const userModel = factory.model(userSchema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType: () => smallID('user'),
+    index: {
+      username: {
+        relation: 'one',
+        key: ({username}) => username.toLowerCase(),
+      },
+      test: {
+        relation: 'many',
+        key: ({username}) => username.toLowerCase(),
+      },
+    },
+  })
+
+  const user = await userModel.create({
+    username: '1',
+    nickname: '1'
+  })
+  console.log(user)
+  console.log(await userModel.remove(user.id))
+
+  userModel.removeByIndex('test', '123')
+
+  await printKV(kv)
   kv.close()
 })
