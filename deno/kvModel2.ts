@@ -287,11 +287,14 @@ export const createKvModel = (kv: Deno.Kv) => {
         }
 
         // TODO: Test u8array as index
-        // TODO: simplify code
+
+        const secondaryKeys = Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]
+        const prevSecondaryKeys = (Array.isArray(_prevSecondaryKey) ? _prevSecondaryKey : [_prevSecondaryKey]).filter(
+          (v) => !secondaryKeys.includes(v)
+        )
 
         // delete prev index
-        if (!Array.isArray(_prevSecondaryKey)) {
-          const curValue = _prevSecondaryKey
+        for (const curValue of prevSecondaryKeys) {
           if (!indexOption.relation || indexOption.relation === 'one') {
             const prevKey = [_prefixKey(indexKey), curValue]
             op.delete(prevKey)
@@ -299,21 +302,10 @@ export const createKvModel = (kv: Deno.Kv) => {
             const prevKey = [_prefixKey(indexKey), curValue, primaryKey as Deno.KvKeyPart]
             op.delete(prevKey)
           }
-        } else {
-          for (const curValue of _prevSecondaryKey) {
-            if (!indexOption.relation || indexOption.relation === 'one') {
-              const prevKey = [_prefixKey(indexKey), curValue]
-              op.delete(prevKey)
-            } else if (indexOption.relation === 'many') {
-              const prevKey = [_prefixKey(indexKey), curValue, primaryKey as Deno.KvKeyPart]
-              op.delete(prevKey)
-            }
-          }
         }
 
         // create new index
-        if (!Array.isArray(_secondaryKey)) {
-          const secondaryKey = _secondaryKey
+        for (const secondaryKey of secondaryKeys) {
           if (!indexOption.relation || indexOption.relation === 'one') {
             const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
             op.set(key, primaryKey, options) // key => primaryKey
@@ -322,18 +314,6 @@ export const createKvModel = (kv: Deno.Kv) => {
             const key = [_prefixKey(indexKey), secondaryKey, primaryKey as Deno.KvKeyPart] // ['prefix-indexKey', 'indexVal', 'primaryKey']
             op.set(key, null, options) // key => null
             if (!options?.force) op.check({key, versionstamp: null})
-          }
-        } else {
-          for (const secondaryKey of _secondaryKey) {
-            if (!indexOption.relation || indexOption.relation === 'one') {
-              const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
-              op.set(key, primaryKey, options) // key => primaryKey
-              if (!options?.force) op.check({key, versionstamp: null})
-            } else if (indexOption.relation === 'many') {
-              const key = [_prefixKey(indexKey), secondaryKey, primaryKey as Deno.KvKeyPart] // ['prefix-indexKey', 'indexVal', 'primaryKey']
-              op.set(key, null, options) // key => null
-              if (!options?.force) op.check({key, versionstamp: null})
-            }
           }
         }
       }
