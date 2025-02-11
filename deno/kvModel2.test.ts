@@ -3,10 +3,13 @@ import {z} from 'zod'
 import {printKV} from './kvLib.ts'
 import {createKvModel} from './kvModel2.ts'
 
-const idMap = new Map<string, number>()
-const smallID = (key: string, start = 0) => {
-  idMap.set(key, (idMap.get(key) ?? start) + 1)
-  return `${key}_` + idMap.get(key)
+const smallIdInit = () => {
+  const idMap = new Map<string, number>()
+  const smallID = (key: string, start = 0) => {
+    idMap.set(key, (idMap.get(key) ?? start) + 1)
+    return `${key}_` + idMap.get(key)
+  }
+  return {smallID}
 }
 
 Deno.test('1', async (t) => {
@@ -43,6 +46,7 @@ Deno.test('1', async (t) => {
 })
 
 Deno.test('2', async (t) => {
+  const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
   const factory = createKvModel(kv)
 
@@ -229,6 +233,7 @@ Deno.test('2', async (t) => {
 })
 
 Deno.test('3', async (t) => {
+  const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
   const factory = createKvModel(kv)
 
@@ -279,6 +284,7 @@ Deno.test('3', async (t) => {
 })
 
 Deno.test('4', async (t) => {
+  const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
   const factory = createKvModel(kv)
 
@@ -316,12 +322,52 @@ Deno.test('4', async (t) => {
   // console.log(await userModel.removeByIndex('flag', 2))
 
   for (let i = 0; i < 55; i++) {
-    await userModel.create({text: `${i+1}`, flag: 2})
+    await userModel.create({text: `${i + 1}`, flag: 2})
   }
   console.log(await userModel.removeByIndex('flag', 2))
 
   await userModel.index.wipe()
   await userModel.index.create()
+
+  await printKV(kv)
+  kv.close()
+})
+
+Deno.test('5', async (t) => {
+  const {smallID} = smallIdInit()
+  const kv = await Deno.openKv(':memory:')
+  const factory = createKvModel(kv)
+
+  const userSchema = z.object({
+    id: z.string(),
+    text: z.string(),
+    flag: z.number(),
+    role: z.array(z.string()),
+  })
+  const userModel = factory.model(userSchema, {
+    prefix: 'post',
+    primaryKey: 'id',
+    primaryKeyType: () => smallID('post'),
+    index: {
+      text: {
+        key: ({text}) => text,
+      },
+      flag: {
+        relation: 'many',
+        key: ({flag}) => flag,
+      },
+      role: {
+        relation: 'many',
+        key: (v) => v.role,
+      },
+    },
+  })
+
+  for (let i = 0; i < 1; i++) {
+    await userModel.create({text: `${i + 1}`, flag: 2, role: ['admin', 'user']})
+  }
+
+  await userModel.update('post_1', {role: ['mod', 'user']}, {force: true})
 
   await printKV(kv)
   kv.close()
