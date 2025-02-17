@@ -1,7 +1,26 @@
 import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
 import {printKV} from './kv_lib.ts'
-import {createKvModel} from './kv_model.ts'
+import {kvProvider} from './mod.ts'
+
+{
+  const kv = await Deno.openKv(':memory:')
+  const factory = kvProvider(kv)
+
+  const schema = z.object({
+    id: z.string(),
+    test: z.string(),
+  })
+
+  const testModel = factory.model(schema, {
+    prefix: 'test',
+    primaryKey: 'id',
+    index: {
+      test: {key: (v) => v.test},
+    },
+  })
+  testModel.findByIndex('test', '')
+}
 
 const smallIdInit = () => {
   const idMap = new Map<string, number>()
@@ -14,7 +33,7 @@ const smallIdInit = () => {
 
 Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvModel(kv)
+  const factory = kvProvider(kv)
 
   const schema = z.object({
     id_Uint8Array: z.instanceof(Uint8Array),
@@ -48,7 +67,7 @@ Deno.test('1', async (t) => {
 Deno.test('2', async (t) => {
   const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvModel(kv)
+  const factory = kvProvider(kv)
 
   const userSchema = z.object({
     id: z.string(),
@@ -235,7 +254,7 @@ Deno.test('2', async (t) => {
 Deno.test('3', async (t) => {
   const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvModel(kv)
+  const factory = kvProvider(kv)
 
   const userSchema = z.object({
     id: z.string(),
@@ -286,7 +305,7 @@ Deno.test('3', async (t) => {
 Deno.test('4', async (t) => {
   const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvModel(kv)
+  const factory = kvProvider(kv)
 
   const userSchema = z.object({
     id: z.string(),
@@ -336,7 +355,7 @@ Deno.test('4', async (t) => {
 Deno.test('5', async (t) => {
   const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
-  const factory = createKvModel(kv)
+  const factory = kvProvider(kv)
 
   const userSchema = z.object({
     id: z.string(),
