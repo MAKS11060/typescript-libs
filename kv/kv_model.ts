@@ -1,8 +1,8 @@
-import {chunk, zip} from '@std/collections'
+import type {StandardSchemaV1} from '@standard-schema/spec'
+import {chunk} from '@std/collections'
 import {ulid} from '@std/ulid/ulid'
-import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
 import {standardValidate} from '../_utils/standardValidate.ts'
-import {KvPageOptions, getKvPage} from './kvLib.ts'
+import {type KvPageOptions, getKvPage} from './kv_lib.ts'
 
 type Array2Union<T> = T extends Array<infer O> ? O : T
 
@@ -75,7 +75,17 @@ interface CreateOptions<Key> {
 
 const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((el, index) => el === b[index])
 
-export const createKvModel = (kv: Deno.Kv) => {
+type KvModelResult = {
+  model: <
+    Schema extends StandardSchemaV1, //
+    Options extends ModelOptions<Schema, string>
+  >(
+    schema: Schema,
+    modelOptions: Options
+  ) => void
+}
+
+export const createKvModel = (kv: Deno.Kv): KvModelResult => {
   const model = <
     Schema extends StandardSchemaV1, //
     Options extends ModelOptions<Schema, string>

@@ -1,7 +1,7 @@
 import {expect} from 'jsr:@std/expect/expect'
 import {z} from 'zod'
-import {printKV} from './kvLib.ts'
-import {createKvModel} from './kvModel2.ts'
+import {printKV} from './kv_lib.ts'
+import {createKvModel} from './kv_model.ts'
 
 const smallIdInit = () => {
   const idMap = new Map<string, number>()

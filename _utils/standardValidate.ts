@@ -1,4 +1,4 @@
-import {StandardSchemaV1} from 'npm:@standard-schema/spec'
+import {StandardSchemaV1} from '@standard-schema/spec'
 
 export const standardValidate = <T extends StandardSchemaV1>(
   schema: T,

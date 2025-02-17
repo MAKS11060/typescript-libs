@@ -1,0 +1,5 @@
+{
+  "name": "@maks11060/kv",
+  "version": "0.0.1",
+  "exports": "./mod.ts"
+}
