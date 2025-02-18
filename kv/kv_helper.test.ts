@@ -1,7 +1,30 @@
 #!/usr/bin/env -S deno run -A --watch
 
 import {expect} from 'jsr:@std/expect/expect'
-import {getKvPage} from './kv_helper.ts'
+import {fromKvIterator, getKvPage} from './kv_helper.ts'
+
+Deno.test('kvLib', async (t) => {
+  const kv = await Deno.openKv(':memory:')
+
+  for (let i = -5; i < 5; i++) {
+    await kv.set(['key', i], i + 5)
+  }
+  // [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4] key
+  // [ 0,  1,  2,  3,  4, 5, 6, 7, 8, 9] val
+
+  await t.step('fromKvIterator', async () => {
+    const iter = kv.list<number>({prefix: ['key']})
+    const keys = await fromKvIterator(iter, {
+      limit: 10,
+      filter(val, key) {
+        return val % 2
+      },
+    })
+    expect(keys.length).toEqual(5)
+  })
+
+  kv.close()
+})
 
 const kv = await Deno.openKv(':memory:')
 
