@@ -2,7 +2,8 @@
   "lock": false,
   "tasks": {
     "test": "deno test -A",
-    "check": "deno publish --allow-slow-types --allow-dirty --dry-run"
+    "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
+    "publish": "deno publish --allow-slow-types"
   },
   "imports": {
     "@kv": "./deno/kvdb.ts",
