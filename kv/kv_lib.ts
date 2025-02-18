@@ -75,9 +75,11 @@ export const kvEntries = async <T>(
   selector: Deno.KvListSelector,
   options?: Deno.KvListOptions
 ): Promise<Record<string, T>> => {
-  return (await Array.fromAsync(kv.list<T>(selector, options), (item) => [item.key.join(' '), item.value]).then(
-    Object.fromEntries
-  )) as Record<string, T>
+  const iter = kv.list<T>(selector, options)
+  return (await Array.fromAsync(iter, (item) => [item.key.join(' '), item.value]).then(Object.fromEntries)) as Record<
+    string,
+    T
+  >
 }
 
 export const dropKV = async (kv: Deno.Kv): Promise<void> => {
