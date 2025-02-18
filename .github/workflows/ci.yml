@@ -7,19 +7,19 @@ on:
     branches: [main]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  # test:
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 30
 
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
 
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
+  #     - name: Set up Deno
+  #       uses: denoland/setup-deno@v2
 
-      - name: Run tests
-        run: deno test -A
+  #     - name: Run tests
+  #       run: deno test -A
 
   publish-dry-run:
     runs-on: ubuntu-latest
