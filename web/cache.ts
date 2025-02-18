@@ -1,4 +1,4 @@
-import {CustomFetch} from './types.ts'
+import type {CustomFetch} from './types.ts'
 
 export interface CacheOptions extends CustomFetch {
   /**
@@ -32,16 +32,18 @@ export interface CacheOptions extends CustomFetch {
  * @returns A function that can be used as a replacement for the global `fetch` function.
  *
  * @example
+ * ```ts
  * const cachedFetch = await createCachedFetch({
  *   name: 'my-cache',
  *   ttl: 300,
  *   log: true,
  *   deleteExpired: true,
- * });
+ * })
  *
- * const response = await cachedFetch('https://example.com');
+ * const response = await cachedFetch('https://example.com')
+ * ```
  */
-export const createCachedFetch = async (options: CacheOptions) => {
+export const createCachedFetch = async (options: CacheOptions): Promise<typeof fetch> => {
   const ttl = options.ttl ?? 60
 
   const _fetch = options?.fetch ?? fetch

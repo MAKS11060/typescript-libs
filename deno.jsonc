@@ -1,7 +1,8 @@
 {
   "lock": false,
   "tasks": {
-    "test": "deno test -A"
+    "test": "deno test -A",
+    "check": "deno publish --allow-slow-types --allow-dirty --dry-run"
   },
   "imports": {
     "@kv": "./deno/kvdb.ts",
@@ -12,7 +13,8 @@
     "zod": "npm:zod"
   },
   "workspace": [
-    "./kv"
+    "./kv",
+    "./web"
   ],
   "unstable": [
     "kv"

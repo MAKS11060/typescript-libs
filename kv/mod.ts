@@ -4,7 +4,7 @@
  * Useful utilities for Deno KV
  *
  * @example
- *  ```ts
+ * ```ts
  * import {kvProvider} from '@maks11060/kv'
  * import {z} from 'zod'
  *
