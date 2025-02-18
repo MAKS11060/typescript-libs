@@ -1,7 +1,7 @@
 import {chunk, zip} from '@std/collections'
 import {ulid} from '@std/ulid/ulid'
 import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
-import {standardValidate} from '../_utils/standardValidate.ts'
+import {standardValidate} from '../kv/_standardValidate.ts'
 import {KvPageOptions, getKvPage} from './kvLib.ts'
 
 type Array2Union<T> = T extends Array<infer O> ? O : T

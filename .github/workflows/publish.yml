@@ -23,5 +23,5 @@ jobs:
       - name: Publish to JSR
         run: deno publish --allow-dirty
 
-      - name: Release
-        uses: softprops/action-gh-release@v2
+      # - name: Release
+      #   uses: softprops/action-gh-release@v2
