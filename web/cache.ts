@@ -1,3 +1,10 @@
+/**
+ * @module
+ *
+ * A wrapper for fetch using the Web Cache Api. Works with Deno Deploy
+ *
+ */
+
 import type {CustomFetch} from './types.ts'
 
 export interface CacheOptions extends CustomFetch {
