@@ -10,6 +10,6 @@
     ".": "./mod.ts",
     "./base": "./kv_base.ts",
     "./model": "./kv_model.ts",
-    "./helper": "./kv_lib.ts",
+    "./helper": "./kv_helper.ts"
   }
 }

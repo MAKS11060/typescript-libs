@@ -1,5 +1,30 @@
 /**
+ * @module
+ *
+ * kvMap
+ * kvSet
+ */
+
+/**
+ * KvMap interface
+ */
+export interface KvMap<K extends Deno.KvKeyPart, V> {
+  set(key: K, value: V, options?: {expireIn?: number}): Promise<boolean>
+  get(key: K): Promise<V | null>
+  has(key: K): Promise<boolean>
+  clear(): Promise<void>
+  delete(key: K): Promise<boolean>
+  entries(options?: {limit?: number; reverse?: boolean}): Promise<[K, V][]>
+  keys(options?: {limit?: number; reverse?: boolean}): Promise<K[]>
+  values(options?: {limit?: number; reverse?: boolean}): Promise<V[]>
+  [Symbol.asyncIterator](): AsyncIterator<[K, V]>
+}
+
+/**
+ * A simple implementation of the {@linkcode Map} structure
+ *
  * @example
+ * ```ts
  * import {kvMap} from '@maks11060/kv'
  *
  * const kv = await Deno.openKv()
@@ -17,15 +42,16 @@
  * for await (const [key, val] of kvMap) {
  *   console.log({key, val})
  * }
+ * ```
  */
-export const kvMap = <K extends Deno.KvKeyPart, V>(kv: Deno.Kv, prefix: Deno.KvKeyPart) => {
+export const kvMap = <K extends Deno.KvKeyPart, V>(kv: Deno.Kv, prefix: Deno.KvKeyPart): KvMap<K, V> => {
   return {
-    async set(key: K, value: V, options?: {expireIn?: number}) {
+    async set(key: K, value: V, options?: {expireIn?: number}): Promise<boolean> {
       const res = await kv.set([prefix, key], value, options)
       return res.ok
     },
 
-    async get(key: K) {
+    async get(key: K): Promise<V | null> {
       const res = await kv.get<V>([prefix, key])
       return res.value
     },
@@ -70,8 +96,26 @@ export const kvMap = <K extends Deno.KvKeyPart, V>(kv: Deno.Kv, prefix: Deno.KvK
     },
   }
 }
+
 /**
+ * KvSet interface
+ */
+export interface KvSet<T extends Deno.KvKeyPart> {
+  add(value: T, options?: {expireIn?: number}): Promise<boolean>
+  has(value: T): Promise<boolean>
+  clear(): Promise<void>
+  delete(value: T): Promise<boolean>
+  entries(options?: {limit?: number; reverse?: boolean}): Promise<[T, T][]>
+  keys(options?: {limit?: number; reverse?: boolean}): Promise<T[]>
+  values(options?: {limit?: number; reverse?: boolean}): Promise<T[]>
+  [Symbol.asyncIterator](): AsyncIterator<T>
+}
+
+/**
+ * A simple implementation of the {@linkcode Set} structure
+ *
  * @example
+ * ```ts
  * import {kvSet} from '@maks11060/kv'
  *
  * const kv = await Deno.openKv()
@@ -88,8 +132,9 @@ export const kvMap = <K extends Deno.KvKeyPart, V>(kv: Deno.Kv, prefix: Deno.KvK
  * for await (const val of kvSet) {
  *   console.log({val})
  * }
+ * ```
  */
-export const kvSet = <T extends Deno.KvKeyPart>(kv: Deno.Kv, prefix: Deno.KvKeyPart) => {
+export const kvSet = <T extends Deno.KvKeyPart>(kv: Deno.Kv, prefix: Deno.KvKeyPart): KvSet<T> => {
   return {
     async add(value: T, options?: {expireIn?: number}): Promise<boolean> {
       const res = await kv.set([prefix, value], null, options)

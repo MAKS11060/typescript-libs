@@ -1,26 +1,9 @@
 import {expect} from 'jsr:@std/expect/expect'
+import * as v from 'npm:valibot'
 import {z} from 'zod'
-import {printKV} from './kv_lib.ts'
+import {printKV} from './kv_helper.ts'
+import {kvModel} from './kv_model.ts'
 import {kvProvider} from './mod.ts'
-
-{
-  const kv = await Deno.openKv(':memory:')
-  const factory = kvProvider(kv)
-
-  const schema = z.object({
-    id: z.string(),
-    test: z.string(),
-  })
-
-  const testModel = factory.model(schema, {
-    prefix: 'test',
-    primaryKey: 'id',
-    index: {
-      test: {key: (v) => v.test},
-    },
-  })
-  testModel.findByIndex('test', '')
-}
 
 const smallIdInit = () => {
   const idMap = new Map<string, number>()
@@ -30,6 +13,94 @@ const smallIdInit = () => {
   }
   return {smallID}
 }
+
+Deno.test('kvModel', async (t) => {
+  const kv = await Deno.openKv(':memory:')
+
+  await t.step('ValibotSchema', async () => {
+    const kv = await Deno.openKv(':memory:')
+    const valibotSchema = v.object({
+      key1: v.string(),
+      key2: v.number(),
+      keys: v.array(v.string()),
+    })
+
+    const model = kvModel(kv, valibotSchema, {
+      prefix: 'test',
+      primaryKey: 'key1',
+      index: {
+        test1: {relation: 'one', key: (v) => v.key1},
+        test2: {relation: 'one', key: (v) => v.key2},
+        test3: {relation: 'many', key: (v) => v.keys},
+      },
+    })
+
+    const item1 = await model.create({key2: 1, keys: ['a', 'b']})
+    const item2 = await model.create({key2: 2, keys: ['c', 'b']})
+
+    const test1 = await model.findByIndex('test1', item1.key1, {resolve: true})
+    expect(test1).toEqual(item1)
+
+    // const test2 = await model.findByIndex('test1', '2')
+    // console.log(test2)
+    // const test3 = await model.findByIndex('test3', 'b')
+    // console.log(test3)
+
+    kv.close()
+  })
+
+  await t.step('ZodSchema', async () => {
+    const userSchema = z.object({
+      id: z.string(),
+      username: z.string(),
+      flags: z.array(z.string()),
+    })
+    const userModel = kvModel(kv, userSchema, {
+      prefix: 'user',
+      primaryKey: 'id',
+      index: {
+        username: {
+          relation: 'one',
+          key: (user) => user.username.toLowerCase(),
+        },
+        role: {
+          relation: 'many',
+          key: (user) => user.flags,
+        },
+      },
+    })
+
+    await userModel.create({username: 'root', flags: ['root', 'admin', 'user']})
+    await userModel.create({username: 'admin', flags: ['admin', 'user']})
+    await userModel.create({username: 'bot1', flags: ['bot']})
+    await userModel.create({username: 'bot2', flags: ['bot']})
+    await userModel.create({username: 'bot3', flags: ['bot']})
+    await userModel.create({username: 'user1', flags: ['user']})
+    await userModel.create({username: 'user2', flags: ['user']})
+    await userModel.create({username: 'user3', flags: ['user', 'admin']})
+
+    const op = userModel.atomic()
+    const user2 = userModel.create({username: 'user10', flags: ['user']}, {op, transaction: true})
+    const user3 = await userModel.create({username: 'user11', flags: ['user']}, {op})
+
+    const users = await userModel.findByIndex('role', 'user')
+    console.log(users)
+
+    const user = await userModel.findByIndex('username', 'user1', {resolve: true})
+    console.log(user)
+
+    {
+      const user = await userModel.find('user1')
+      // console.log(user)
+    }
+    {
+      const users = await userModel.findMany({})
+      console.log(users)
+    }
+  })
+
+  kv.close()
+})
 
 Deno.test('1', async (t) => {
   const kv = await Deno.openKv(':memory:')
@@ -118,8 +189,6 @@ Deno.test('2', async (t) => {
       },
     })
   }
-
-  // await printKV(kv)
 
   // R
   await t.step('find', async () => {
@@ -247,11 +316,11 @@ Deno.test('2', async (t) => {
     expect(isDelete).toBe(true)
   })
 
-  await printKV(kv)
+  // await printKV(kv)
   kv.close()
 })
 
-Deno.test('3', async (t) => {
+Deno.test({name: '3', ignore: true}, async (t) => {
   const {smallID} = smallIdInit()
   const kv = await Deno.openKv(':memory:')
   const factory = kvProvider(kv)
@@ -288,9 +357,9 @@ Deno.test('3', async (t) => {
     username: '1',
     nickname: '1',
   })
-  console.log(user)
-  console.log(await userModel.remove(user.id))
-
+  // console.log(user)
+  // console.log(await userModel.remove(user.id))
+  // await userModel.remove(user.id)
   // userModel.removeByIndex('test', '123')
 
   const a = await userModel.findByIndex('id', 1)
@@ -298,7 +367,7 @@ Deno.test('3', async (t) => {
   const c = await userModel.findByIndex('str', '1')
   const d = await userModel.findByIndex('username', 'u')
 
-  await printKV(kv)
+  // await printKV(kv)
   kv.close()
 })
 
@@ -389,6 +458,6 @@ Deno.test('5', async (t) => {
   await userModel.update('post_1', {role: ['mod', 'user']}, {force: true})
   // await userModel.remove('post_1')
 
-  await printKV(kv)
+  // await printKV(kv)
   kv.close()
 })

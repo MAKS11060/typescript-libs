@@ -2,7 +2,7 @@ import type {StandardSchemaV1} from '@standard-schema/spec'
 import {chunk} from '@std/collections'
 import {ulid} from '@std/ulid/ulid'
 import {standardValidate} from '../_utils/standardValidate.ts'
-import {type KvPageOptions, getKvPage} from './kv_lib.ts'
+import {type KvPageOptions, getKvPage} from './kv_helper.ts'
 
 type Array2Union<T> = T extends Array<infer O> ? O : T
 
@@ -57,7 +57,7 @@ type ChoiceOption<T extends 'one' | 'many', One, Many> = T extends 'one' //
   ? Many
   : never
 
-interface CreateOptions<Key> {
+type CreateOptions<Key> = {
   /** Set `Primary` key */
   key?: Key
   /** expireIn in `milliseconds` */
@@ -73,10 +73,22 @@ interface CreateOptions<Key> {
   transaction?: boolean
 }
 
+type TransactionOption = {
+  /** override `AtomicOperation` for one transaction */
+  op: Deno.AtomicOperation
+  /** Prevents saves. To combine into one transaction */
+  transaction: true
+}
+
 const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((el, index) => el === b[index])
 
 /**
+ *
+ * Allows you to create a {@linkcode kvModel} for {@linkcode Deno.Kv} using your favorite validation library that supports the
+ * {@link https://github.com/standard-schema/standard-schema#what-schema-libraries-implement-the-spec Standard schema}
+ *
  * @example
+ * ```ts
  * import {z} from 'zod'
  * import {kvModel} from '@maks11060/kv'
  *
@@ -85,19 +97,24 @@ const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a
  * const userSchema = z.object({
  *   id: z.string(),
  *   username: z.string(),
- *   age: z.number().default(18),
- *   role: z.array(z.string()),
+ *   flags: z.array(z.string()),
  * })
  *
  * const userModel = kvModel(kv, userSchema, {
  *   prefix: 'user',
  *   primaryKey: 'id',
  *   index: {
- *     username: {key: (user) => user.username.toLowerCase()},
- *     age: {relation: 'many', key: (user) => user.age},
- *     role: {relation: 'many', key: (user) => user.role},
+ *     username: {
+ *       relation: 'one',
+ *       key: (user) => user.username.toLowerCase(),
+ *     },
+ *     role: {
+ *       relation: 'many',
+ *       key: (user) => user.flags,
+ *     },
  *   },
  * })
+ * ```
  */
 export const kvModel = <
   Schema extends StandardSchemaV1, //
@@ -138,7 +155,29 @@ export const kvModel = <
   }
 
   // CREATE
-  const create = (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>) => {
+  type Create = {
+    /**
+     * Create transaction
+     * @example
+     * ```ts
+     * const op = userModel.atomic()
+     *
+     * const user2 = userModel.create({username: 'user2', flags: ['user']}, {op, transaction: true})
+     * const user3 = await userModel.create({username: 'user3', flags: ['user']}, {op})
+     * ```
+     */
+    (input: InputWithoutKey, options: CreateOptions<PrimaryKeyType> & TransactionOption): Output
+    /**
+     * Create one record
+     * @example
+     * ```ts
+     * const user1 = userModel.create({username: 'user1', flags: ['user']})
+     * ```
+     */
+    (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>): Promise<Output>
+  }
+
+  const create: Create = (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>): any => {
     const key = options?.key ?? generateKey()
     const op = options?.op ?? kv.atomic()
 
@@ -173,15 +212,33 @@ export const kvModel = <
   }
 
   // FIND
+  /**
+   * Find object by primary key
+   *
+   * @example
+   * ```ts
+   * const user = await userModel.find('user1')
+   * // {id: "01JMBM2B8EAQS0JNH44GT1TYEK", username: "user1", flags: ["user"]}
+   * ```
+   */
   const find = async (key: PrimaryKeyType) => {
     const _key = [modelOptions.prefix, key] as Deno.KvKey
     const res = await kv.get<Output>(_key)
     return res.value
   }
 
+  /**
+   * Find object by primary key
+   *
+   * @example
+   * ```ts
+   * const users = await userModel.findMany({})
+   * // [ {id: "01JMBM2B8EAQS0JNH44GT1TYEK", username: "user1", flags: ["user"]} ]
+   * ```
+   */
   const findMany = async (options: KvPageOptions<PrimaryKeyType>) => {
     const kvPage = await getKvPage<Output, PrimaryKeyType>(kv, [modelOptions.prefix], options)
-    return kvPage.map((v) => v.value)
+    return kvPage.values()
   }
 
   // FIND by index
@@ -189,6 +246,21 @@ export const kvModel = <
   type FindNoResolve = {resolve?: false}
   type FindByIndex = {
     // Find primary keys
+    /**
+     * Relation `one`
+     * @example
+     * ```ts
+     * const userId = await userModel.findByIndex('username', 'user1')
+     * // 01JMBH8DSKHC48VWE2VXMMRQNP
+     * ```
+     *
+     * Relation `many`
+     * @example
+     * ```ts
+     * const userIds = await userModel.findByIndex('role', 'user')
+     * // [ "01JMBH8DSKHC48VWE2VXMMRQNP" ]
+     * ```
+     */
     <Key extends IndexKey>(
       key: Key,
       value: Array2Union<IndexMap[Key]['key']>,
@@ -200,11 +272,26 @@ export const kvModel = <
     ): Promise<
       ChoiceOption<
         IndexMap[Key]['type'], //
-        PrimaryKeyType,
+        PrimaryKeyType | null, //
         PrimaryKeyType[]
       >
     >
     // Find and resolve primary object
+    /**
+     * Relation `one`
+     * @example
+     * ```ts
+     * const user = await userModel.findByIndex('username', 'user1', {resolve: true})
+     * // {id: "01JMBH8DSKHC48VWE2VXMMRQNP", username: "user1", flags: [ "user" ]}
+     * ```
+     *
+     * Relation `many`
+     * @example
+     * ```ts
+     * const users = await userModel.findByIndex('role', 'user', {resolve: true})
+     * // [ {id: "01JMBH8DSKHC48VWE2VXMMRQNP", username: "user1", flags: [ "user" ]} ]
+     * ```
+     */
     <Key extends IndexKey>(
       key: Key,
       value: Array2Union<IndexMap[Key]['key']>,
@@ -231,7 +318,8 @@ export const kvModel = <
     if (!indexOption.relation || indexOption.relation === 'one') {
       const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
       const indexRes = await kv.get<PrimaryKeyType>(key)
-      if (!indexRes.value) throw new Error(`[KV|findByIndex] index: ${key} is undefined`)
+      // if (!indexRes.value) throw new Error(`[KV|findByIndex] index: ${key} is undefined`)
+      if (!indexRes.value) return indexRes.value
       return options?.resolve ? find(indexRes.value) : indexRes.value
     } else if (indexOption.relation === 'many') {
       const key = [_prefixKey(indexKey), secondaryKey]
@@ -240,7 +328,7 @@ export const kvModel = <
       if (options?.resolve) {
         // kvPage[30] => kvPage[10][3] => kvPage.map(page.key => [prefix, primaryKey]) => kv.getMany()
         const res = await Promise.all(
-          chunk(kvPage, 10).map((page) => {
+          chunk(await kvPage.kvEntries(), 10).map((page) => {
             return kv.getMany<Output[]>(
               page.map(({key}) => {
                 return [modelOptions.prefix, key.at(-1)!]
@@ -256,7 +344,8 @@ export const kvModel = <
       }
 
       // kvPage.map(page.key => primaryKey)
-      return kvPage.map((v) => v.key.at(-1)! /* primaryKey */)
+      // return kvPage.map((v) => v.key.at(-1)! /* primaryKey */)
+      return (await kvPage.keys()).map((v) => v.at(-1)! /* primaryKey */)
     }
 
     throw new Error('[KV|findByIndex] undefined behaver')

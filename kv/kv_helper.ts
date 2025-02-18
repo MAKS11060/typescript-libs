@@ -6,12 +6,14 @@ export type KvPageOptions<Offset = Deno.KvKeyPart> = {
 
 /**
  * @example
+ * ```ts
  * const kv = await Deno.openKv(':memory:')
  *
  * await kv.set(['post', 1], '1')
  *
  * const kvPage = await getKvPage(kv, ['post'], {})
  * console.log(await kvPage.entries()) // [ [[ "post", 1 ], "1" ] ]
+ * ```
  */
 export const getKvPage = async <T, Offset = Deno.KvKeyPart>(
   kv: Deno.Kv,

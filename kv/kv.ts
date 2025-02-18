@@ -4,15 +4,56 @@ import {type ModelOptions, kvModel} from './kv_model.ts'
 
 /**
  * @example
+ * ```ts
+ * // db.ts
  * import {kvProvider} from '@maks11060/kv'
  *
- * const kv = await Deno.openKv()
- * const kvLib = kvProvider(kv)
+ * export const kv = await Deno.openKv()
+ * export const kvLib = kvProvider(kv)
+ *
+ * // model.ts
+ * import {kvLib} from './db.ts'
+ *
+ * const map = kvLib.map()
+ *
+ * await map.set('1', 'a')
+ * await map.get('1') // 'a'
+ * ```
+ *
+ * @example
+ * ```ts
+ * // db.ts
+ * import {kvProvider} from '@maks11060/kv'
+ *
+ * export const kv = await Deno.openKv()
+ * export const kvLib = kvProvider(kv)
+ *
+ * // model.ts
+ * import {kvLib} from './db.ts'
+ *
+ * const set = kvLib.set()
+ *
+ * await set.add('1')
+ * await set.has('1') // true
+ * ```
  */
-export const kvProvider = (kv: Deno.Kv) => {
+export const kvProvider = (
+  kv: Deno.Kv
+): {
+  model: <
+    Schema extends StandardSchemaV1, //
+    Options extends ModelOptions<Schema, string>
+  >(
+    schema: Schema,
+    modelOptions: Options
+  ) => ReturnType<typeof kvModel<Schema, Options>>
+  map: <K extends Deno.KvKeyPart, V>(prefix: Deno.KvKeyPart) => ReturnType<typeof kvMap<K, V>>
+  set: <T extends Deno.KvKeyPart>(prefix: Deno.KvKeyPart) => ReturnType<typeof kvSet<T>>
+} => {
   return {
     /**
      * @example
+     * ```ts
      * import {z} from 'zod'
      * import {kvProvider} from '@maks11060/kv'
      *
@@ -35,6 +76,7 @@ export const kvProvider = (kv: Deno.Kv) => {
      *     role: {relation: 'many', key: (user) => user.role},
      *   },
      * })
+     * ```
      */
     model: <
       Schema extends StandardSchemaV1, //
@@ -48,6 +90,7 @@ export const kvProvider = (kv: Deno.Kv) => {
 
     /**
      * @example
+     * ```ts
      * import {kvProvider} from '@maks11060/kv'
      *
      * const kv = await Deno.openKv()
@@ -67,6 +110,7 @@ export const kvProvider = (kv: Deno.Kv) => {
      * for await (const [key, val] of kvMap) {
      *   console.log({key, val})
      * }
+     * ```
      */
     map: <K extends Deno.KvKeyPart, V>(prefix: Deno.KvKeyPart) => {
       return kvMap<K, V>(kv, prefix)
@@ -74,6 +118,7 @@ export const kvProvider = (kv: Deno.Kv) => {
 
     /**
      * @example
+     * ```ts
      * import {kvProvider} from '@maks11060/kv'
      *
      * const kv = await Deno.openKv()
@@ -92,6 +137,7 @@ export const kvProvider = (kv: Deno.Kv) => {
      * for await (const val of kvSet) {
      *   console.log({val})
      * }
+     * ```
      */
     set: <T extends Deno.KvKeyPart>(prefix: Deno.KvKeyPart) => {
       return kvSet<T>(kv, prefix)
