@@ -1,11 +1,4 @@
 /**
- * @module
- *
- * kvMap
- * kvSet
- */
-
-/**
  * KvMap interface
  */
 export interface KvMap<K extends Deno.KvKeyPart, V> {

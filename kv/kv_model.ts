@@ -228,7 +228,7 @@ export const kvModel = <
   }
 
   /**
-   * Find object by primary key
+   * Find many objects by primary key
    *
    * @example
    * ```ts

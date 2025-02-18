@@ -11,5 +11,10 @@
     "./base": "./kv_base.ts",
     "./model": "./kv_model.ts",
     "./helper": "./kv_helper.ts"
+  },
+  "publish": {
+    "exclude": [
+      "*.test.ts"
+    ]
   }
 }
