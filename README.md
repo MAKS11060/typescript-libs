@@ -123,6 +123,18 @@ const fetch = await createCachedFetch({
 
 ## wip/dev
 ```ts
+// OAuth2
+import {createGithubOauth2, oauth2Authorize, oauth2ExchangeCode} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/oauth2/mod.ts'
+
+const config = createGithubOauth2({
+  clientId: Deno.env.get('GITHUB_CLIENT_ID')!,
+  clientSecret: Deno.env.get('GITHUB_CLIENT_SECRET')!,
+  redirectUri: Deno.env.get('OAUTH2_REDIRECT')!,
+})
+const authorizeUri = oauth2Authorize(config, 'state-12345')
+console.log(authorizeUri.toString())
+
+
 // Hono helper
 import {createHonoVar} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/hono/mod.ts'
 import {Hono} from 'hono'
