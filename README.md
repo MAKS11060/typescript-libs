@@ -18,7 +18,7 @@
 
 ### Deno
 ```ps
-deno add @maks11060/kv
+deno add jsr:@maks11060/web
 ```
 ### Other runtimes
 ```ps
