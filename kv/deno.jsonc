@@ -1,6 +1,6 @@
 {
   "name": "@maks11060/kv",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "imports": {
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
     "@std/collections": "jsr:@std/collections@^1.0.9",

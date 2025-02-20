@@ -1,4 +1,4 @@
-import {CustomFetch} from './types.ts'
+import type {CustomFetch} from './types.ts'
 
 type ClientMethods = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 

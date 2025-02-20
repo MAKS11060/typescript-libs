@@ -1,4 +1,14 @@
 /**
+ * This module contains simple structures for storing in {@linkcode Deno.Kv}
+ *
+ * - {@linkcode kvMap} is similar to {@linkcode Map}
+ * - {@linkcode kvSet} is similar to {@linkcode Set}
+ *
+ * @module kvBase
+ */
+
+
+/**
  * KvMap interface
  */
 export interface KvMap<K extends Deno.KvKeyPart, V> {

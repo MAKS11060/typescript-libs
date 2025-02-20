@@ -1,8 +1,20 @@
-export type KvPageOptions<Offset = Deno.KvKeyPart> = {
+/**
+ * This module contains useful functions for working with {@linkcode Deno.Kv}
+ *
+ * - {@linkcode getKvPage} allows you to get a slice of the data. useful for creating pagination
+ * - {@linkcode fromKvIterator} works as an 'Array.fromAsync' only for {@linkcode Deno.KvListIterator}
+ *
+ * @module
+ */
+
+/**
+ * Represents options for {@linkcode getKvPage}
+ */
+export type KvPageOptions<Offset = Deno.KvKeyPart> = Omit<Deno.KvListOptions, 'cursor'> & {
   offset?: Offset
   /** @default 50 */
   limit?: number
-} & Omit<Deno.KvListOptions, 'cursor'>
+}
 
 /**
  * @example
@@ -83,7 +95,7 @@ export const fromKvIterator = async <T>(
 }
 
 /**
- * Wipe KV
+ * Wipe {@linkcode Deno.Kv}
  */
 export const dropKV = async (kv: Deno.Kv): Promise<void> => {
   for await (const item of kv.list({prefix: []})) {
@@ -92,7 +104,14 @@ export const dropKV = async (kv: Deno.Kv): Promise<void> => {
 }
 
 /**
- * Print KV data
+ * Print {@linkcode Deno.Kv} data
+ *
+ * @example
+ * ```ts
+ * await printKV(kv)
+ * // ['key', '1'] 1
+ * // ['key', '2'] 2
+ * ```
  */
 export const printKV = async (kv: Deno.Kv, key: Deno.KvKey = []): Promise<void> => {
   for await (const item of kv.list({prefix: key})) {

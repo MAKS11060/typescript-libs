@@ -1,12 +1,14 @@
 /**
+ * A wrapper for {@linkcode fetch} using the {@link https://developer.mozilla.org/docs/Web/API/Cache Web Cache Api}
+ * Works with {@link https://deno.com/deploy Deno Deploy}
  * @module
- *
- * A wrapper for fetch using the Web Cache Api. Works with Deno Deploy
- *
  */
 
 import type {CustomFetch} from './types.ts'
 
+/**
+ * Represents options for configuring a cache system
+ */
 export interface CacheOptions extends CustomFetch {
   /**
    * The name of the cache.
@@ -33,18 +35,19 @@ export interface CacheOptions extends CustomFetch {
 }
 
 /**
- * Creates a cached fetch function that intercepts network requests and serves responses from a cache when possible.
+ * Creates a cached {@linkcode fetch} function that intercepts network requests and serves responses from a cache when possible
  *
- * @param options - Configuration options for the cache.
- * @returns A function that can be used as a replacement for the global `fetch` function.
+ * @param options - Configuration options for the cache
+ * @returns A function that can be used as a replacement for the global {@linkcode fetch} function
  *
  * @example
  * ```ts
+ * import {createCachedFetch} from '@maks11060/web/cache'
+ *
  * const cachedFetch = await createCachedFetch({
  *   name: 'my-cache',
- *   ttl: 300,
+ *   ttl: 60,
  *   log: true,
- *   deleteExpired: true,
  * })
  *
  * const response = await cachedFetch('https://example.com')
@@ -57,7 +60,7 @@ export const createCachedFetch = async (options: CacheOptions): Promise<typeof f
   const cache = await caches.open(options.name)
 
   /**
-   * A wrapper around the fetch function that checks the cache before making a network request.
+   * A wrapper around the fetch function that checks the cache before making a network request
    *
    * @param input - The URL or Request object to fetch.
    * @param init - Optional initialization settings for the request.

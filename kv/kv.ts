@@ -54,8 +54,8 @@ export const kvProvider = (
     /**
      * @example
      * ```ts
-     * import {z} from 'zod'
      * import {kvProvider} from '@maks11060/kv'
+     * import {z} from 'zod'
      *
      * const kv = await Deno.openKv()
      * const kvLib = kvProvider(kv)

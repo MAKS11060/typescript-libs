@@ -1,5 +1,5 @@
 /**
- * @module
+ * Useful wrappers around the {@link https://developer.mozilla.org/docs/Web/API Web Api}.
  *
  * @example
  * ```ts
@@ -12,7 +12,10 @@
  *   deleteExpired: true,
  * })
  *
- * const res = cachedFetch('https://example.com')
+ * const res = await cachedFetch('https://example.com')
  * ```
+ * @module
  */
+
 export * from './cache.ts'
+export * from './types.ts'

@@ -1,7 +1,5 @@
 /**
- * @module
- *
- * Useful utilities for Deno KV
+ * Useful utilities for {@linkcode Deno.Kv}
  *
  * @example
  * ```ts
@@ -32,6 +30,7 @@
  *   },
  * })
  * ```
+ * @module
  */
 
 export * from './kv.ts'

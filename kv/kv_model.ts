@@ -1,3 +1,14 @@
+/**
+ * The {@linkcode kvModel model} creates an abstract layer for storing typed objects inside {@linkcode Deno.Kv}
+ *
+ * - CRUD operations are strongly typed
+ * - To create a {@linkcode kvModel}, you can select any library that supports the
+ *  {@link https://github.com/standard-schema/standard-schema#what-schema-libraries-implement-the-spec Standard schema}
+ * - Index support for object search
+ *
+ * @module model
+ */
+
 import type {StandardSchemaV1} from '@standard-schema/spec'
 import {chunk} from '@std/collections'
 import {ulid} from '@std/ulid/ulid'
