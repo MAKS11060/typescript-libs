@@ -1,5 +1,5 @@
 /**
- * A wrapper for {@linkcode fetch} using the {@link https://developer.mozilla.org/docs/Web/API/Cache Web Cache Api}
+ * A wrapper for {@linkcode fetch} using the {@link https://developer.mozilla.org/docs/Web/API/Cache Web Cache Api}.
  * Works with {@link https://deno.com/deploy Deno Deploy}
  * @module
  */
@@ -11,24 +11,24 @@ import type {CustomFetch} from './types.ts'
  */
 export interface CacheOptions extends CustomFetch {
   /**
-   * The name of the cache.
+   * The `name` of the cache
    */
   name: string
 
   /**
-   * The maximum time-to-live (TTL) for cached items in seconds.
+   * The maximum time-to-live (TTL) for cached items in seconds
    * @default 60
    */
   ttl?: number
 
   /**
-   * Whether to automatically delete expired cache entries.
+   * Whether to automatically delete expired cache entries
    * @default false
    */
   deleteExpired?: boolean
 
   /**
-   * Whether to log cache operations to the console.
+   * Whether to log cache operations to the console
    * @default false
    */
   log?: boolean
@@ -62,9 +62,9 @@ export const createCachedFetch = async (options: CacheOptions): Promise<typeof f
   /**
    * A wrapper around the fetch function that checks the cache before making a network request
    *
-   * @param input - The URL or Request object to fetch.
-   * @param init - Optional initialization settings for the request.
-   * @returns A promise that resolves to the fetched Response object.
+   * @param input - The URL or Request object to fetch
+   * @param init - Optional initialization settings for the request
+   * @returns A promise that resolves to the fetched Response object
    */
   return async (input: URL | Request | string, init?: RequestInit) => {
     const reqInit = new Request(input, init)
