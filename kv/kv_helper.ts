@@ -4,7 +4,7 @@
  * - {@linkcode getKvPage} allows you to get a slice of the data. useful for creating pagination
  * - {@linkcode fromKvIterator} works as an 'Array.fromAsync' only for {@linkcode Deno.KvListIterator}
  *
- * @module
+ * @module kvHelper
  */
 
 /**

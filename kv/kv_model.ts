@@ -6,7 +6,7 @@
  *  {@link https://github.com/standard-schema/standard-schema#what-schema-libraries-implement-the-spec Standard schema}
  * - Index support for object search
  *
- * @module model
+ * @module kvModel
  */
 
 import type {StandardSchemaV1} from '@standard-schema/spec'
