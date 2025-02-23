@@ -1,6 +1,6 @@
 {
   "name": "@maks11060/web",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "exports": {
     ".": "./mod.ts",
     "./cache": "./cache.ts"
