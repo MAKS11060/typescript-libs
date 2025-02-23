@@ -10,7 +10,7 @@
  */
 
 import type {StandardSchemaV1} from '@standard-schema/spec'
-import {chunk} from '@std/collections'
+import {chunk} from '@std/collections/chunk'
 import {ulid} from '@std/ulid/ulid'
 import {standardValidate} from './_standardValidate.ts'
 import {type KvPageOptions, getKvPage} from './kv_helper.ts'
@@ -32,6 +32,7 @@ export type ModelOptions<
   IndexKey extends string,
   Output = StandardSchemaV1.InferOutput<Schema>
 > = {
+  /** A unique name for the `model` */
   prefix: string
   /**
    * Available types for `primaryKey`:
@@ -42,8 +43,20 @@ export type ModelOptions<
    * 5. {@linkcode Boolean}
    */
   primaryKey: keyof GetPrimitiveKey<Output>
-  /** @default ulid */
+  /** @default 'ulid' */
   primaryKeyType?: PrimaryKeyType
+  /**
+   * Mapping data to create an `index`
+   *
+   * @example
+   * ```ts
+   * {
+   *   username: {
+   *     key: (user) => user.username.toLowerCase()
+   *   }
+   * }
+   * ```
+   */
   index: IndexOptions<IndexKey, Output>
 }
 
@@ -225,7 +238,6 @@ export const kvModel = <
   // FIND
   /**
    * Find object by primary key
-   *
    * @example
    * ```ts
    * const user = await userModel.find('user1')
@@ -240,7 +252,6 @@ export const kvModel = <
 
   /**
    * Find many objects by primary key
-   *
    * @example
    * ```ts
    * const users = await userModel.findMany({})
@@ -283,7 +294,7 @@ export const kvModel = <
     ): Promise<
       ChoiceOption<
         IndexMap[Key]['type'], //
-        PrimaryKeyType | null, //
+        PrimaryKeyType | null,
         PrimaryKeyType[]
       >
     >
@@ -314,7 +325,7 @@ export const kvModel = <
     ): Promise<
       ChoiceOption<
         IndexMap[Key]['type'], //
-        Output,
+        Output | null,
         Output[]
       >
     >
@@ -323,8 +334,6 @@ export const kvModel = <
   // TODO: add cache for resolver
   const findByIndex: FindByIndex = async (indexKey: string, secondaryKey, options): Promise<any> => {
     const indexOption = modelOptions.index[indexKey]
-    // const indexKey = key
-    // const secondaryKey = value
 
     if (!indexOption.relation || indexOption.relation === 'one') {
       const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
@@ -365,7 +374,25 @@ export const kvModel = <
   // UPDATE
   type UpdateOptions = Omit<CreateOptions<never>, 'key'>
   type Update = {
+    /**
+     * @example
+     * ```ts
+     * const user1 = await userModel.findByIndex('username', 'user1')
+     * if (user1) await userModel.update(user1, {role: ['abc', 'admin']})
+     * ```
+     */
     (key: PrimaryKeyType, input: Partial<InputWithoutKey>, options?: UpdateOptions): Promise<Output>
+    /**
+     * @example
+     * ```ts
+     * const user1 = await userModel.findByIndex('username', 'user1')
+     * if (user1) {
+     *   await userModel.update(user1, () => {
+     *     return {role: ['abc', 'admin']}
+     *   })
+     * }
+     * ```
+     */
     (
       key: PrimaryKeyType,
       handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey> | Promise<void> | void,
@@ -440,6 +467,7 @@ export const kvModel = <
 
     return options?.transaction ? newValue : _commit(op, newValue, 'update')
   }
+
   // DELETE
   type RemoveOptions = Pick<CreateOptions<never>, 'op' | 'transaction'>
   type RemoveByIndexOptions = RemoveOptions

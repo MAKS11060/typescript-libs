@@ -461,3 +461,53 @@ Deno.test('5', async (t) => {
   // await printKV(kv)
   kv.close()
 })
+
+Deno.test('kvModel 2', async (t) => {
+  const kv = await Deno.openKv(':memory:')
+  const userSchema = z.object({
+    id: z.string(),
+    username: z.string(),
+    nickname: z.string(),
+    email: z.string().email().optional(),
+    role: z.array(z.string()).default([]),
+  })
+
+  const userModel = kvModel(kv, userSchema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    index: {
+      username: {
+        key: (v) => v.username.toLowerCase(),
+      },
+      email: {
+        key: (v) => {
+          if (!v.email) return []
+          const [name, domain] = v?.email?.split('@', 2)!
+          return [name, domain.toLowerCase()].join('@')
+        },
+      },
+      role: {
+        relation: 'many',
+        key: (v) => v.role,
+      },
+    },
+  })
+
+  await t.step('Create', async () => {
+    await userModel.create({username: `admin`, nickname: `admin`, role: ['admin', 'user']})
+    for (let i = 0; i < 5; i++) {
+      await userModel.create({username: `user${i}`, nickname: `user${i}`, role: ['user']})
+    }
+  })
+
+  const user1 = await userModel.findByIndex('username', 'user1')
+  // if (user1) await userModel.update(user1, {role: ['abc', 'admin']})
+  if (user1) {
+    await userModel.update(user1, () => {
+      return {role: ['abc', 'admin']}
+    })
+  }
+
+  // await printKV(kv)
+  kv.close()
+})
