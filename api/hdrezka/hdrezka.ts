@@ -23,6 +23,8 @@ export const isValidUrl = (url: string | URL): boolean => {
   }
 }
 
+const trim = (v: string) => v.trim()
+
 export const parseContentPage = (text: string) => {
   const doc = new DOMParser().parseFromString(text, 'text/html')
   const contentMain = doc.body.querySelector('.b-content__main')
@@ -46,7 +48,7 @@ export const parseContentPage = (text: string) => {
   const post = Object.fromEntries(postEntries) as Record<string, Element>
 
   // score
-  const scoreEntries = Array.from(post['Рейтинги'].querySelectorAll('.b-post__info_rates'), (e) => {
+  const scoreEntries = Array.from(post['Рейтинги']?.querySelectorAll('.b-post__info_rates'), (e) => {
     return [
       e.querySelector('a')?.textContent!,
       {
@@ -62,16 +64,16 @@ export const parseContentPage = (text: string) => {
   // release date
   const releaseDate = parseDateString(post['Дата выхода']?.querySelector('td:nth-child(2)')?.textContent)
 
-  // country
-  const country = post['Страна']?.querySelector('td:nth-child(2)')?.textContent || null
+  // countries
+  const countries = post['Страна']?.querySelector('td:nth-child(2)')?.textContent?.split(',').map(trim) || null
 
   // genres
   const genreStr = post['Жанр']?.querySelector('td:nth-child(2)')?.textContent || ''
-  const genres = genreStr?.split(',').map((v) => v.trim())
+  const genres = genreStr?.split(',').map(trim)
 
   // dubs
   const dubsStr = post['В переводе']?.querySelector('td:nth-child(2)')?.textContent
-  const dubs = dubsStr?.split(',').map((v) => v.trim()) || []
+  const dubs = dubsStr?.split(',').map(trim) || []
 
   // duration in min
   const durationStr = post['Время']?.querySelector('td:nth-child(2)')?.textContent || ''
@@ -126,7 +128,7 @@ export const parseContentPage = (text: string) => {
     score: Object.fromEntries(scoreEntries),
     slogan,
     releaseDate,
-    country,
+    countries,
     genres,
     dubs,
     duration,
