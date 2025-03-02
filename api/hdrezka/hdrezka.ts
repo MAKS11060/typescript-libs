@@ -65,7 +65,7 @@ export const parseContentPage = (text: string) => {
   const releaseDate = parseDateString(post['Дата выхода']?.querySelector('td:nth-child(2)')?.textContent)
 
   // countries
-  const countries = post['Страна']?.querySelector('td:nth-child(2)')?.textContent?.split(',').map(trim) || null
+  const countries = post['Страна']?.querySelector('td:nth-child(2)')?.textContent?.split(',').map(trim) || []
 
   // genres
   const genreStr = post['Жанр']?.querySelector('td:nth-child(2)')?.textContent || ''
