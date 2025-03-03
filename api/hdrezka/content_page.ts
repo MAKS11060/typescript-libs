@@ -1,5 +1,7 @@
+import {DOMParser, Element} from "jsr:@b-fuze/deno-dom"
 import {CustomFetch} from '../../web/types.ts'
 import {getURI, GetURI, ua} from './_utils.ts'
+import { parseDateString } from "../utils.ts";
 
 type ContentPageOptions = CustomFetch & {
   headers?: HeadersInit
