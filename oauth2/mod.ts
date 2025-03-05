@@ -1,10 +1,16 @@
 /**
- * # OAuth2 Client
+ * # OAuth2
+ *
+ * Client library for the `OAuth2`
  *
  * ## Features
- * - Flow
+ * - Flows
  *   - Authorization Code Grant
- * - Supported `PKCE` (Proof Key for Code Exchange)
+ * - Supported `PKCE` [(Proof Key for Code Exchange)](https://datatracker.ietf.org/doc/html/rfc7636)
+ * - Helpers for working with tokens
+ *   - {@linkcode isTokenExpired}
+ *   - {@linkcode normalizeOAuth2Token}
+ * - Error handling
  *
  * @example
  * Create authorization link
@@ -30,52 +36,6 @@
  * const code = '12365467890' // from query params
  * const token = await oauth2ExchangeCode(config, {code})
  * console.log(token)
- * ```
- *
- *  @example
- * Create config helper
- * ```ts
- * // providers/example.ts
- * import {CreateOAuth2Config} from '@maks11060/oauth2'
- *
- * const createExampleConfig: CreateOAuth2Config<{
- *   clientId: string
- *   clientSecret: string
- *   redirectUri: string | URL
- *   scope: string | string[]
- * }> = (config) => ({
- *   clientId: config.clientId,
- *   clientSecret: config.clientSecret,
- *   redirectUri: config.redirectUri.toString(),
- *   authorizeUri: 'https://example.com/oauth2/authorize',
- *   tokenUri: 'https://example.com/api/oauth2/token',
- *   scope: config.scope,
- * })
- * ```
- *
- * @example
- * Helpers
- * ```ts
- * import {isTokenExpired, normalizeOAuth2Token} from '@maks11060/oauth2'
- *
- * const rawTokenResponse = {
- *   access_token: 'abc123',
- *   token_type: 'Bearer',
- *   expires_in: 3600,
- *   refresh_token: 'xyz789',
- *   scope: 'read  write, user:read',
- * }
- *
- * const oauth2Token = normalizeOAuth2Token(token)
- * // {
- * //   tokenType: "Bearer",
- * //   expiresIn: 3600,
- * //   accessToken: "abc123",
- * //   refreshToken: "xyz789",
- * //   scope: [ "read", "write", "user:read" ]
- * // }
- *
- * isTokenExpired(oauth2Token) // false
  * ```
  *
  * @example
@@ -135,6 +95,52 @@
  * Deno.serve(app.fetch)
  * ```
  *
+ * @example
+ * Helper for creating configurations
+ * ```ts
+ * // providers/example.ts
+ * import {CreateOAuth2Config} from '@maks11060/oauth2'
+ *
+ * const createExampleConfig: CreateOAuth2Config<{
+ *   clientId: string
+ *   clientSecret: string
+ *   redirectUri: string | URL
+ *   scope: string | string[]
+ * }> = (config) => ({
+ *   clientId: config.clientId,
+ *   clientSecret: config.clientSecret,
+ *   redirectUri: config.redirectUri.toString(),
+ *   authorizeUri: 'https://example.com/oauth2/authorize',
+ *   tokenUri: 'https://example.com/api/oauth2/token',
+ *   scope: config.scope,
+ * })
+ * ```
+ *
+ * @example
+ * Helpers
+ * ```ts
+ * import {isTokenExpired, normalizeOAuth2Token} from '@maks11060/oauth2'
+ *
+ * const rawTokenResponse = {
+ *   access_token: 'abc123',
+ *   token_type: 'Bearer',
+ *   expires_in: 3600,
+ *   refresh_token: 'xyz789',
+ *   scope: 'read  write, user:read',
+ * }
+ *
+ * const oauth2Token = normalizeOAuth2Token(token)
+ * // {
+ * //   tokenType: "Bearer",
+ * //   expiresIn: 3600,
+ * //   accessToken: "abc123",
+ * //   refreshToken: "xyz789",
+ * //   scope: [ "read", "write", "user:read" ]
+ * // }
+ *
+ * isTokenExpired(oauth2Token) // false
+ * ```
+ *
  * @module
  */
 
@@ -147,3 +153,4 @@ export * from './providers/discord.ts'
 export * from './providers/github.ts'
 export * from './providers/google.ts'
 export * from './providers/shikimori.ts'
+

@@ -1,7 +1,7 @@
 import {encodeBase64Url} from '@std/encoding/base64url'
 
 /**
- * Represents a `PKCE` (Proof Key for Code Exchange) challenge.
+ * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.
  * @interface PkceChallenge
  * @property {string} codeVerifier - A high-entropy cryptographic random string used as the code verifier.
  * @property {string} codeChallenge - The transformed code verifier sent to the authorization server.
@@ -54,8 +54,8 @@ export const createPkceChallenge = async (
  * and `code_challenge_method` parameters to the authorization `URL`.
  *
  * @param {URL} uri - The authorization `URL` to which `PKCE` parameters will be added.
- * @param {'S256' | 'plain'} [method='S256'] - The method to use for transforming the code verifier.
- * @returns {Promise<{ uri: URL codeVerifier: string }>} A Promise that resolves with the updated `URL` and the code verifier.
+ * @param {'S256'|'plain'} [method='S256'] - The method to use for transforming the code verifier.
+ * @returns {Promise<{uri: URL; codeVerifier: string}>} A Promise that resolves with the updated `URL` and the code verifier.
  * @example
  * ```ts
  * const {uri, codeVerifier} = await usePKCE(oauth2Authorize(config, state))
@@ -63,7 +63,10 @@ export const createPkceChallenge = async (
  * console.log(codeVerifier) // Example: "abcdef1234567890"
  * ```
  */
-export const usePKCE = async (uri: URL, method?: PkceChallenge['codeChallengeMethod']) => {
+export const usePKCE = async (
+  uri: URL,
+  method?: PkceChallenge['codeChallengeMethod']
+): Promise<{uri: URL; codeVerifier: string}> => {
   const {codeChallenge, codeChallengeMethod, codeVerifier} = await createPkceChallenge(method)
   uri.searchParams.set('code_challenge', codeChallenge)
   uri.searchParams.set('code_challenge_method', codeChallengeMethod)
