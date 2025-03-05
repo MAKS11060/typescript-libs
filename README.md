@@ -2,16 +2,19 @@
 
 [![JSR Score](https://jsr.io/badges/@maks11060)](https://jsr.io/@maks11060)
 
-| Package                          |                      Link                      |
-| -------------------------------- | :--------------------------------------------: |
-| [@maks11060/web][@maks11060/web] | [![JSR][@maks11060/web badge]][@maks11060/web] |
-| [@maks11060/kv][@maks11060/kv]   |  [![JSR][@maks11060/kv badge]][@maks11060/kv]  |
+| Package                            |                         Link                         |
+| ---------------------------------- | :--------------------------------------------------: |
+| [@maks11060/kv][@maks11060/kv]     |     [![JSR][@maks11060/kv badge]][@maks11060/kv]     |
+| [@maks11060/web][@maks11060/web]   |    [![JSR][@maks11060/web badge]][@maks11060/web]    |
+| [@maks11060/oauth2][@maks11060/kv] | [![JSR][@maks11060/oauth2 badge]][@maks11060/oauth2] |
 
-[@maks11060/web]: https://jsr.io/@maks11060/web
 [@maks11060/kv]: https://jsr.io/@maks11060/kv
+[@maks11060/web]: https://jsr.io/@maks11060/web
+[@maks11060/oauth2]: https://jsr.io/@maks11060/oauth2
 
-[@maks11060/web badge]: https://jsr.io/badges/@maks11060/web
 [@maks11060/kv badge]: https://jsr.io/badges/@maks11060/kv
+[@maks11060/web badge]: https://jsr.io/badges/@maks11060/web
+[@maks11060/oauth2 badge]: https://jsr.io/badges/@maks11060/oauth2
 
 
 ## Install
