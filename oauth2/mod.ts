@@ -45,7 +45,7 @@
  *
  * import {Hono} from 'hono'
  * import {logger} from 'hono/logger'
- * import {OAuth2Exception, createGithubOauth2, oauth2Authorize, oauth2ExchangeCode, usePKCE} from './mod.ts'
+ * import {OAuth2Exception, createGithubOauth2, oauth2Authorize, oauth2ExchangeCode, usePKCE} from '@maks11060/oauth2'
  *
  * const stateStore = new Map<string, {codeVerifier?: string}>()
  * const config = createGithubOauth2({
