@@ -2,14 +2,21 @@ import {encodeBase64Url} from '@std/encoding/base64url'
 
 /**
  * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.
- * @interface PkceChallenge
- * @property {string} codeVerifier - A high-entropy cryptographic random string used as the code verifier.
- * @property {string} codeChallenge - The transformed code verifier sent to the authorization server.
- * @property {'S256' | 'plain'} codeChallengeMethod - The method used to transform the code verifier into the code challenge.
  */
 export interface PkceChallenge {
+  /**
+   * A high-entropy cryptographic random string used as the code verifier.
+   */
   codeVerifier: string
+
+  /**
+   * The transformed code verifier sent to the authorization server.
+   */
   codeChallenge: string
+
+  /**
+   * The method used to transform the code verifier into the code challenge.
+   */
   codeChallengeMethod: 'S256' | 'plain'
 }
 
@@ -23,7 +30,6 @@ const sha256 = (data: string) => crypto.subtle.digest('SHA-256', encoder.encode(
  * This function generates a `codeVerifier` and transforms it into a `codeChallenge`
  * using either the S256 or plain method.
  *
- * @public
  * @param {'S256' | 'plain'} [method='S256'] - The method to use for transforming the code verifier.
  * @returns {Promise<PkceChallenge>} A Promise that resolves with the generated PKCE challenge.
  * @example
