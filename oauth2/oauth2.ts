@@ -1,4 +1,4 @@
-import {OAuth2Error, OAuth2Exception} from './error.ts'
+import {type OAuth2Error, OAuth2Exception} from './error.ts'
 
 interface OAuth2RequestOptions {
   /** Additional URI Params */
@@ -8,19 +8,24 @@ interface OAuth2RequestOptions {
 }
 
 export interface OAuth2ClientConfig {
+  /** The `client ID` */
   clientId: string
+  /** The `Client Secret` */
   clientSecret?: string
-  /** @example https://localhost/api/oauth2/callback */
+  /**
+   * The `URL` in your application where users will be sent after authorization
+   * @example https://localhost/api/oauth2/callback
+   */
   redirectUri?: string
   authorizeUri: string
   tokenUri: string
   revokeUri?: string
-  pkce?: boolean
   scope?: string | string[]
+  pkce?: boolean
   options?: OAuth2RequestOptions
 }
 
-export interface OAuth2TokenResponse {
+export type OAuth2TokenResponse<T = unknown> = T & {
   access_token: string
   token_type: 'Bearer' | string
   expires_in?: number
@@ -31,12 +36,12 @@ export interface OAuth2TokenResponse {
 export interface OAuth2ExchangeCodeOptions {
   /** OAuth2 callback `code` */
   code: string
-  /** PKCE verify code */
+  /** `PKCE` verify code */
   codeVerifier?: string
 }
 
 /**
- * Template for creating oauth2 configuration
+ * Template for creating OAuth2 configuration
  *
  * @example
  * ```ts
@@ -87,7 +92,7 @@ export const oauth2Authorize = (config: OAuth2ClientConfig, state?: string) => {
   return uri
 }
 
-const handleOauth2Response = async (response: Response): Promise<OAuth2TokenResponse> => {
+const handleOauth2Response = async <T>(response: Response): Promise<OAuth2TokenResponse<T>> => {
   const data: Record<string, any> = await response.json()
 
   // Check for errors in the response
@@ -98,21 +103,11 @@ const handleOauth2Response = async (response: Response): Promise<OAuth2TokenResp
       error_uri: data.error_uri,
     }
 
-    // const errorMessage = `OAuth2 Error (${response.status}): ${errorData.error}`
-    // const detailedMessage = errorData.error_description
-    //   ? `${errorMessage} - ${errorData.error_description}`
-    //   : errorMessage
-
-    // throw new Error(detailedMessage)
-    throw new OAuth2Exception(
-      errorData.error,
-      errorData.error_description,
-      errorData.error_uri
-    );
+    throw new OAuth2Exception(errorData.error, errorData.error_description, errorData.error_uri)
   }
 
   // Return the parsed token response
-  return data as OAuth2TokenResponse
+  return data as OAuth2TokenResponse<T>
 }
 
 /**
@@ -121,10 +116,10 @@ const handleOauth2Response = async (response: Response): Promise<OAuth2TokenResp
  * @param options - Exchange `code` options.
  * @returns Token response.
  */
-export const oauth2ExchangeCode = async (
+export const oauth2ExchangeCode = async <T>(
   config: OAuth2ClientConfig,
   options: OAuth2ExchangeCodeOptions
-): Promise<OAuth2TokenResponse> => {
+): Promise<OAuth2TokenResponse<T>> => {
   if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
 
   const headers = new Headers({

@@ -1,0 +1,15 @@
+{
+  "name": "@maks11060/oauth2",
+  "version": "0.0.1",
+  "imports": {
+    "@std/encoding": "jsr:@std/encoding@^1.0.7"
+  },
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "publish": {
+    "exclude": [
+      "*.test.ts"
+    ]
+  }
+}

@@ -1,4 +1,4 @@
-import {type CreateOAuth2Config} from '../oauth2.ts'
+import type {CreateOAuth2Config} from '../oauth2.ts'
 
 /**
  * Returns the OAuth configuration for `Github`
@@ -18,9 +18,9 @@ export const createGithubOauth2: CreateOAuth2Config<{
    *
    * GitHub during the OAuth flow. The default is `true`. Use `false` when a policy prohibits signups.
    *
-   * @default 'true'
+   * @default true
    */
-  allowSignup?: 'true' | 'false'
+  allowSignup?: boolean
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
@@ -30,7 +30,7 @@ export const createGithubOauth2: CreateOAuth2Config<{
   scope: config.scope,
   options: {
     params: {
-      ...(config.allowSignup && {allow_signup: config.allowSignup}),
+      ...(config.allowSignup === false && {allow_signup: 'false'}),
     },
   },
 })

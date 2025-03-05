@@ -1,5 +1,5 @@
 export interface OAuth2Error {
-  error: string // ('invalid_request', 'invalid_client')
+  error: string
   error_description?: string
   error_uri?: string
 }
