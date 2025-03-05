@@ -15,7 +15,8 @@
   },
   "workspace": [
     "./kv",
-    "./web"
+    "./web",
+    "./oauth2",
   ],
   "unstable": [
     "kv"
