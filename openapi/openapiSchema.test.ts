@@ -1,13 +1,21 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {o} from "./openapiSchema.ts"
+import {o} from './openapiSchema.ts'
 
-const schema = o.string()
-  .optional()
+// const schema = o.string().optional()
 
-console.log(schema.getSchema())
+// console.log(schema)
+// console.log(schema.getSchema())
 
+const userSchema = o.object({
+  id: o.integer(),
+  name: o.string().min(3),
+  age: o.number().optional(),
+  tags: o.array(o.string()).optional(),
+})
 
+console.log()
+console.log(userSchema.getSchema())
 
 /* import {YAML} from './_deps.ts'
 import {o} from './openapiSchema.ts'

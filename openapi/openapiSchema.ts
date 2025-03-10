@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {SchemaObject, SchemaObjectType} from 'npm:openapi3-ts/oas31'
+import {SchemaObject} from 'npm:openapi3-ts/oas31'
 
 const is30 = (ver: string): ver is '3.0' => ver.startsWith('3.0')
 const is31 = (ver: string): ver is '3.1' => ver.startsWith('3.1')
@@ -8,9 +8,17 @@ const is31 = (ver: string): ver is '3.1' => ver.startsWith('3.1')
 // Базовый класс для всех типов
 abstract class BaseSchema<T extends SchemaObject> {
   protected schema: T
+  protected fieldName?: string // Имя текущего поля
 
-  constructor(schema: T) {
+  constructor(schema: T, fieldName?: string) {
     this.schema = schema
+    this.fieldName = fieldName
+  }
+
+  // Метод для получения имени текущего поля
+  protected getCurrentFieldName(): string | undefined {
+    console.log(this.fieldName)
+    return this.fieldName
   }
 
   // Метод для добавления nullable
@@ -32,8 +40,8 @@ abstract class BaseSchema<T extends SchemaObject> {
 
 // Класс для строк
 class StringSchema extends BaseSchema<SchemaObject> {
-  constructor() {
-    super({type: 'string'})
+  constructor(fieldName?: string) {
+    super({type: 'string'}, fieldName)
   }
 
   min(length: number): this {
@@ -47,7 +55,11 @@ class StringSchema extends BaseSchema<SchemaObject> {
   }
 
   optional(): this {
-    this.schema.required = false
+    // Убедимся, что this.schema.required существует и является массивом
+    if (Array.isArray(this.schema.required)) {
+      // Удаляем текущее поле из массива required
+      this.schema.required = this.schema.required.filter((field) => field !== this.getCurrentFieldName())
+    }
     return this
   }
 }
@@ -69,7 +81,11 @@ class NumberSchema extends BaseSchema<SchemaObject> {
   }
 
   optional(): this {
-    this.schema.required = false
+    // Убедимся, что this.schema.required существует и является массивом
+    if (Array.isArray(this.schema.required)) {
+      // Удаляем текущее поле из массива required
+      this.schema.required = this.schema.required.filter((field) => field !== this.getCurrentFieldName())
+    }
     return this
   }
 }
@@ -81,7 +97,11 @@ class ArraySchema extends BaseSchema<SchemaObject> {
   }
 
   optional(): this {
-    this.schema.required = false
+    // Убедимся, что this.schema.required существует и является массивом
+    if (Array.isArray(this.schema.required)) {
+      // Удаляем текущее поле из массива required
+      this.schema.required = this.schema.required.filter((field) => field !== this.getCurrentFieldName())
+    }
     return this
   }
 }
