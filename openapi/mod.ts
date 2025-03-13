@@ -2,12 +2,12 @@
 
 import {Hono} from 'hono'
 import {cors} from 'hono/cors'
-import {o} from "./openapi-schema.ts"
+import {o} from './openapi-schema.ts'
 import {createOpenApiDoc} from './openapi.ts'
 
 export const openApiDoc = createOpenApiDoc({
   info: {
-    title: '',
+    title: 'Test',
     version: '0.0.1',
   },
 })
@@ -20,20 +20,20 @@ const app = new Hono() //
 
 Deno.serve(app.fetch)
 
+const UserSchema = openApiDoc.addSchema(
+  'Users',
+  o.object({}).oneOf(o.object({a: o.string()}), o.object({b: o.string()}))
+)
+const UsersResponse = openApiDoc.addResponses('Users', (t) => {
+  // t.headers({})
+  t.content('application/json', UserSchema)
+})
+
 openApiDoc //
   .addPath('/users')
   .get((t) => {
     t.describe('123')
-    t.response(200) //
-      .headers({})
-      .content('application/json', {})
-    t.response('4XX') //
-      .content('application/json', {})
-      .headers({
-        test: {
-          schema: o.string().toSchema(),
-        },
-      })
+    t.response(200, UsersResponse)
   })
 
 // const userSchema = o.object({

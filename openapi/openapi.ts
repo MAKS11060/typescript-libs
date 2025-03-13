@@ -3,16 +3,18 @@ import {
   ExampleObject,
   ExamplesObject,
   ExternalDocumentationObject,
-  HeaderObject,
   HeadersObject,
   MediaTypeObject,
   OpenAPIObject,
   OperationObject,
   ParameterObject,
   PathItemObject,
+  PathsObject,
   ReferenceObject,
   ResponseObject,
   SchemaObject,
+  SecurityRequirementObject,
+  ServerObject,
 } from 'npm:openapi3-ts/oas31'
 import {YAML} from './_deps.ts'
 import {extractParams, ParsePath} from './_utils.ts'
@@ -37,7 +39,13 @@ type CreateOpenApiDoc = {
     title: string
     version: string
   }
+  servers?: ServerObject[]
   components?: ComponentsObject
+  paths?: PathsObject
+  security?: SecurityRequirementObject[]
+  externalDocs?: ExternalDocumentationObject
+  webhooks?: PathsObject
+  // tags?: TagObject[];
   tags?: Record<string, {description?: string; externalDocs?: ExternalDocumentationObject}>
 }
 
@@ -102,20 +110,34 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
   const components = new Set<string>()
   const operationIdSet = new Set<string>()
 
-  const addPath = <T extends string>(
-    path: T,
-    options?: {
-      tags?: TagKeys | TagKeys[]
-      params?: {
-        [K in ParsePath<T>]: {
-          schema?: SchemaObject | ReferenceObject | SchemaBuilder
-          examples?: {
-            [param: string]: ExampleObject | ReferenceObject
-          }
+  const _describe = (obj: {description?: string}, description: string) => {
+    obj.description = description
+  }
+  const _summary = (obj: {summary?: string}, summary: string) => {
+    obj.summary = summary
+  }
+  const _examples = (obj: {examples?: Record<string, ExamplesObject>}, examples: Record<string, ExamplesObject>) => {
+    obj.examples = examples
+  }
+  const _operationId = (obj: {operationId?: string}, id: string) => {
+    if (operationIdSet.has(id)) throw new Error("The 'operationId' has already been registered")
+    else operationIdSet.add(id)
+    obj.operationId = id
+  }
+
+  type AddPathOptions<T extends string> = {
+    tags?: TagKeys | TagKeys[]
+    params?: {
+      [K in ParsePath<T>]: {
+        schema?: SchemaObject | ReferenceObject | SchemaBuilder
+        examples?: {
+          [param: string]: ExampleObject | ReferenceObject
         }
       }
     }
-  ) => {
+  }
+
+  const addPath = <T extends string>(path: T, options?: AddPathOptions<T>) => {
     const pathItem = {} as PathItemObject
     const pathParams = extractParams(path).map((name) => {
       const params = options?.params?.[name as ParsePath<T>]
@@ -132,21 +154,6 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
 
     pathItem.parameters ??= []
     pathItem.parameters?.push(...pathParams)
-
-    const _describe = (obj: {description?: string}, description: string) => {
-      obj.description = description
-    }
-    const _summary = (obj: {summary?: string}, summary: string) => {
-      obj.summary = summary
-    }
-    const _examples = (obj: {examples?: Record<string, ExamplesObject>}, examples: Record<string, ExamplesObject>) => {
-      obj.examples = examples
-    }
-    const _operationId = (obj: {operationId?: string}, id: string) => {
-      if (operationIdSet.has(id)) throw new Error("The 'operationId' has already been registered")
-      else operationIdSet.add(id)
-      obj.operationId = id
-    }
 
     // register responses
     const _response: _Response = (target: OperationObject, status: Status = 'default', ref?: ReferenceObject): any => {
@@ -196,6 +203,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
               return responseContentContext
             },
           }
+
           return responseContentContext
         },
       }
@@ -282,7 +290,54 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
   const addSchema = (name: string, schema: SchemaInput) => _addComponent('schemas', name, toSchema(schema))
 
   const addResponses = (name: string, handler: (t: ResponseContext) => void) => {
-    return _addComponent('responses', name, {})
+    const response: ResponseObject = {description: `Response`}
+    const responseCtx: ResponseContext = {
+      describe: (data: string) => {
+        _describe(response, data)
+        return responseCtx
+      },
+      headers: (headers: HeadersObject) => {
+        response.headers = headers
+        return responseCtx
+      },
+      content: (contentType, schema) => {
+        const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
+
+        response.content ??= {}
+        response.content[contentType] = mediaTypeObject
+
+        const responseContentContext: ResponseContentContext = {
+          headers: (headers: HeadersObject) => {
+            // for (const key in headers) {
+            //   const header = headers[key] as HeaderObject
+            //   header.schema = toSchema(header.schema)
+            // }
+            response.headers = headers
+            return responseContentContext
+          },
+          examples: (name, examples) => {
+            if (mediaTypeObject.example) {
+              throw new Error("The 'examples' and 'example' properties are mutually exclusive")
+            }
+            mediaTypeObject.examples ??= {}
+            mediaTypeObject.examples[name] = examples
+            return responseContentContext
+          },
+          example: (value: unknown) => {
+            if (mediaTypeObject.examples) {
+              throw new Error("The 'example' and 'examples' properties are mutually exclusive")
+            }
+            mediaTypeObject.example = value
+            return responseContentContext
+          },
+        }
+
+        return responseContentContext
+      },
+    }
+
+    handler(responseCtx)
+    return _addComponent('responses', name, response)
   }
   const addParameters = (name: string) => _addComponent('parameters', name, {})
   const addExamples = (name: string) => _addComponent('examples', name, {})
