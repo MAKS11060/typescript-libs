@@ -1,161 +1,312 @@
 import {
-  ContentObject,
+  ComponentsObject,
   ExampleObject,
-  OpenApiBuilder,
+  ExamplesObject,
+  ExternalDocumentationObject,
+  HeaderObject,
+  HeadersObject,
+  MediaTypeObject,
   OpenAPIObject,
   OperationObject,
   ParameterObject,
-  ParameterStyle,
+  PathItemObject,
   ReferenceObject,
+  ResponseObject,
   SchemaObject,
 } from 'npm:openapi3-ts/oas31'
+import {YAML} from './_deps.ts'
+import {extractParams, ParsePath} from './_utils.ts'
 import {SchemaBuilder} from './openapi-schema.ts'
 
-type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` ? P | ParsePath<Rest> : never
+SchemaBuilder
 
-class MyOpenApi {
-  private builder: OpenApiBuilder
+export type ContentType = 'application/json' | 'text/plain'
 
-  constructor(doc: OpenAPIObject) {
-    this.builder = OpenApiBuilder.create(doc)
+type SchemaInput = SchemaObject | SchemaBuilder | ReferenceObject
+
+const toSchema = (schema?: SchemaObject | SchemaBuilder | ReferenceObject) =>
+  schema instanceof SchemaBuilder ? schema.toSchema() : schema
+
+export const tagsRegistry = <T extends string>(
+  tags: Record<T, {description?: string; externalDocs?: ExternalDocumentationObject}>
+) => tags
+
+type CreateOpenApiDoc = {
+  openapi?: `3.1.${number}`
+  info: {
+    title: string
+    version: string
+  }
+  components?: ComponentsObject
+  tags?: Record<string, {description?: string; externalDocs?: ExternalDocumentationObject}>
+}
+
+type ComponentType =
+  | 'schemas'
+  | 'responses'
+  | 'parameters'
+  | 'examples'
+  | 'requestBodies'
+  | 'headers'
+  | 'securitySchemes'
+  | 'links'
+  | 'callbacks'
+type OperationMethod = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
+type Status = number | `${1 | 2 | 3 | 4 | 5}XX` | 'default'
+
+type Operation = {
+  // tags?: (tags: TagKeys) => void
+  summary: (summary: string) => void
+  describe: (description: string) => void
+  operationId: (id: string) => void
+  deprecated: () => void
+
+  response: {
+    (status: Status): ResponseContext
+    (status: Status, ref: ReferenceObject): void
+  }
+}
+
+type ResponseContext = {
+  describe: (description: string) => ResponseContext
+  headers: (headers: HeadersObject) => ResponseContext
+  content: {
+    (contentType: ContentType, schema: SchemaInput): ResponseContentContext
+    (contentType: string, schema: SchemaInput): ResponseContentContext
+  }
+}
+
+type ResponseContentContext = {
+  headers: (headers: HeadersObject) => ResponseContentContext
+  examples: (name: string, examples: ExampleObject) => ResponseContentContext
+  /** @deprecated */
+  example: (value: unknown) => ResponseContentContext
+}
+
+type OperationHandler = (t: Operation) => void
+
+type _Response = {
+  (obj: OperationObject, status: Status): ResponseContext
+  (obj: OperationObject, status: Status, ref: ReferenceObject): void
+}
+
+export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
+  type TagKeys = keyof Doc['tags']
+
+  const openapi: OpenAPIObject = {
+    openapi: doc.openapi ?? '3.1.0',
+    info: doc.info,
+    paths: {},
   }
 
-  addSchema(name: string, schema: SchemaObject|SchemaBuilder): ReferenceObject {
-    this.builder.addSchema(name, schema instanceof SchemaBuilder ? schema.toSchema() : schema)
-    return {$ref: `#/components/schemas/${name}`}
-  }
+  const components = new Set<string>()
+  const operationIdSet = new Set<string>()
 
-  addPath<T extends string>(
+  const addPath = <T extends string>(
     path: T,
-    pathItem: {
+    options?: {
+      tags?: TagKeys | TagKeys[]
       params?: {
         [K in ParsePath<T>]: {
-          description?: string
-          required?: boolean
-          deprecated?: boolean
-          allowEmptyValue?: boolean
-          style?: ParameterStyle
-          explode?: boolean
-          allowReserved?: boolean
           schema?: SchemaObject | ReferenceObject | SchemaBuilder
           examples?: {
             [param: string]: ExampleObject | ReferenceObject
           }
-          example?: any
-          content?: ContentObject
         }
       }
-    } = {}
-  ): PathBuilder {
-    const paramNames = path.match(/\{(\w+)\}/g)?.map((m) => m.slice(1, -1)) || []
-    const parameters = paramNames.map((name) => {
-      const schema = pathItem.params?.[name as ParsePath<T>]?.schema
-      return ({
-        ...pathItem.params?.[name as ParsePath<T>],
-        name,
-        in: 'path',
-        schema: schema instanceof SchemaBuilder ? schema.toSchema() : schema,
-        required: pathItem.params?.[name as ParsePath<T>]?.required ?? true,
-        // required: pathItem.params?.[name as ParsePath<T>]?.required ?? true,
-        // schema: pathItem.params?.[name as ParsePath<T>]?.schema,
-        // description: pathItem.params?.[name as ParsePath<T>]?.description,
-        // deprecated: pathItem.params?.[name as ParsePath<T>]?.deprecated,
-        // allowEmptyValue: pathItem.params?.[name as ParsePath<T>]?.allowEmptyValue,
-        // style: pathItem.params?.[name as ParsePath<T>]?.style,
-        // explode: pathItem.params?.[name as ParsePath<T>]?.explode,
-        // allowReserved: pathItem.params?.[name as ParsePath<T>]?.allowReserved,
-        // example: pathItem.params?.[name as ParsePath<T>]?.example,
-        // examples: pathItem.params?.[name as ParsePath<T>]?.examples,
-        // content: pathItem.params?.[name as ParsePath<T>]?.content,
-      });
-    }) satisfies ParameterObject[]
-
-    this.builder.addPath(path, {parameters})
-
-    return new PathBuilder(this.builder, path)
-  }
-
-  getDocument(): OpenAPIObject {
-    return this.builder.getSpec()
-  }
-
-  getDocumentYAML(): string {
-    return this.builder.getSpecAsYaml()
-  }
-}
-
-/**
- * Класс для построения операций внутри пути.
- */
-class PathBuilder {
-  private builder: OpenApiBuilder
-  private path: string
-
-  get!: (operation: Partial<OperationObject>) => OperationBuilder
-  post!: (operation: Partial<OperationObject>) => OperationBuilder
-  put!: (operation: Partial<OperationObject>) => OperationBuilder
-  delete!: (operation: Partial<OperationObject>) => OperationBuilder
-  patch!: (operation: Partial<OperationObject>) => OperationBuilder
-  head!: (operation: Partial<OperationObject>) => OperationBuilder
-  options!: (operation: Partial<OperationObject>) => OperationBuilder
-
-  constructor(builder: OpenApiBuilder, path: string) {
-    this.builder = builder
-    this.path = path
-
-    const methods = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] as const
-    for (const method of methods) {
-      this[method] = (operation: Partial<OperationObject> = {}): OperationBuilder => {
-        return new OperationBuilder(this.builder, this.path, 'get', operation)
-      }
     }
-  }
-}
+  ) => {
+    const pathItem = {} as PathItemObject
+    const pathParams = extractParams(path).map((name) => {
+      const params = options?.params?.[name as ParsePath<T>]
+      return {
+        in: 'path',
+        name,
+        examples: params?.examples,
+        schema: toSchema(params?.schema),
+      } satisfies ParameterObject
+    })
 
-type ContentType = 'application/json' | 'text/plain' | 'text/html'
+    openapi.paths ??= {}
+    openapi.paths[path] = pathItem
 
-/**
- * Класс для построения ответов операции.
- */
-class OperationBuilder {
-  private builder: OpenApiBuilder
-  private path: string
-  private method: string
-  private operation: OperationObject
+    pathItem.parameters ??= []
+    pathItem.parameters?.push(...pathParams)
 
-  constructor(builder: OpenApiBuilder, path: string, method: string, operation: Partial<OperationObject>) {
-    this.builder = builder
-    this.path = path
-    this.method = method
-    this.operation = {...operation, responses: operation.responses || {}}
-  }
+    const _describe = (obj: {description?: string}, description: string) => {
+      obj.description = description
+    }
+    const _summary = (obj: {summary?: string}, summary: string) => {
+      obj.summary = summary
+    }
+    const _examples = (obj: {examples?: Record<string, ExamplesObject>}, examples: Record<string, ExamplesObject>) => {
+      obj.examples = examples
+    }
+    const _operationId = (obj: {operationId?: string}, id: string) => {
+      if (operationIdSet.has(id)) throw new Error("The 'operationId' has already been registered")
+      else operationIdSet.add(id)
+      obj.operationId = id
+    }
 
-  /**
-   * Добавляет ответ.
-   * @param statusCode Код статуса HTTP.
-   * @param contentType Тип контента (например, `application/json`).
-   * @param schema Схема ответа.
-   * @returns Экземпляр OperationBuilder для цепочки вызовов.
-   */
-  response(
-    statusCode: number,
-    contentType: ContentType,
-    schema: SchemaObject | ReferenceObject | SchemaBuilder
-  ): OperationBuilder {
-    this.operation.responses ??= {}
-    this.operation.responses[statusCode] = {
-      description: this.operation.responses[statusCode]?.description || `Response ${statusCode}`,
-      content: {
-        [contentType]: {
-          schema: schema instanceof SchemaBuilder ? schema.toSchema() : schema,
+    // register responses
+    const _response: _Response = (target: OperationObject, status: Status = 'default', ref?: ReferenceObject): any => {
+      const response: ResponseObject = target.responses?.[status] ?? {description: `Response ${status}`}
+
+      target.responses ??= {}
+      target.responses[status] = ref ?? response
+      if (ref) return
+
+      const responseCtx: ResponseContext = {
+        describe: (data: string) => {
+          _describe(response, data)
+          return responseCtx
         },
+        headers: (headers: HeadersObject) => {
+          response.headers = headers
+          return responseCtx
+        },
+        content: (contentType, schema) => {
+          const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
+
+          response.content ??= {}
+          response.content[contentType] = mediaTypeObject
+
+          const responseContentContext: ResponseContentContext = {
+            headers: (headers: HeadersObject) => {
+              // for (const key in headers) {
+              //   const header = headers[key] as HeaderObject
+              //   header.schema = toSchema(header.schema)
+              // }
+              response.headers = headers
+              return responseContentContext
+            },
+            examples: (name, examples) => {
+              if (mediaTypeObject.example) {
+                throw new Error("The 'examples' and 'example' properties are mutually exclusive")
+              }
+              mediaTypeObject.examples ??= {}
+              mediaTypeObject.examples[name] = examples
+              return responseContentContext
+            },
+            example: (value: unknown) => {
+              if (mediaTypeObject.examples) {
+                throw new Error("The 'example' and 'examples' properties are mutually exclusive")
+              }
+              mediaTypeObject.example = value
+              return responseContentContext
+            },
+          }
+          return responseContentContext
+        },
+      }
+
+      return responseCtx
+    }
+
+    const registerOperation = (method: OperationMethod, cb: OperationHandler) => {
+      const operation: OperationObject = {}
+      pathItem[method] = operation
+
+      cb({
+        describe: (...args) => _describe(operation, ...args),
+        summary: (...args) => _summary(operation, ...args),
+        operationId: (...args) => _operationId(operation, ...args),
+        deprecated: () => {
+          operation.deprecated = true
+        },
+        response: (status, ref?: ReferenceObject) => {
+          return _response(operation, status, ref as any) as any
+        },
+      })
+    }
+
+    const pathHandler = {
+      describe: (description: string) => {
+        _describe(pathItem, description)
+        return pathHandler
+      },
+      summary: (summary: string) => {
+        _summary(pathItem, summary)
+        return pathHandler
+      },
+
+      get: (operation: OperationHandler) => {
+        registerOperation('get', operation)
+        return pathHandler
+      },
+      put: (operation: OperationHandler) => {
+        registerOperation('put', operation)
+        return pathHandler
+      },
+      post: (operation: OperationHandler) => {
+        registerOperation('post', operation)
+        return pathHandler
+      },
+      delete: (operation: OperationHandler) => {
+        registerOperation('delete', operation)
+        return pathHandler
+      },
+      options: (operation: OperationHandler) => {
+        registerOperation('options', operation)
+        return pathHandler
+      },
+      head: (operation: OperationHandler) => {
+        registerOperation('head', operation)
+        return pathHandler
+      },
+      patch: (operation: OperationHandler) => {
+        registerOperation('patch', operation)
+        return pathHandler
+      },
+      trace: (operation: OperationHandler) => {
+        registerOperation('trace', operation)
+        return pathHandler
       },
     }
-    this.builder.addPath(this.path, {
-      [this.method]: this.operation,
-    })
-    return this
+
+    return pathHandler
+  }
+
+  const _addComponent = (type: ComponentType, name: string, data: unknown) => {
+    const $ref = `#/components/${type}/${name}`
+    if (components.has($ref)) throw new Error(`The '${$ref}' has already been registered`)
+    else components.add($ref)
+
+    openapi.components ??= {}
+    openapi.components[type] ??= {}
+    openapi.components[type][name] = data!
+
+    return {$ref}
+  }
+
+  const addSchema = (name: string, schema: SchemaInput) => _addComponent('schemas', name, toSchema(schema))
+
+  const addResponses = (name: string, handler: (t: ResponseContext) => void) => {
+    return _addComponent('responses', name, {})
+  }
+  const addParameters = (name: string) => _addComponent('parameters', name, {})
+  const addExamples = (name: string) => _addComponent('examples', name, {})
+  const addHeaders = (name: string) => _addComponent('headers', name, {})
+  const addLinks = (name: string) => _addComponent('links', name, {})
+  const addCallbacks = (name: string) => _addComponent('callbacks', name, {})
+  const addRequestBodies = (name: string) => _addComponent('requestBodies', name, {})
+  const addSecuritySchemes = (name: string) => _addComponent('securitySchemes', name, {})
+
+  return {
+    openapi,
+    addPath,
+
+    addSchema,
+    addResponses,
+    addParameters,
+    addExamples,
+    addRequestBodies,
+    addHeaders,
+    addSecuritySchemes,
+    addLinks,
+    addCallbacks,
+
+    toJSON: (pretty?: boolean) => JSON.stringify(openapi, null, pretty ? 2 : undefined),
+    toYAML: (options?: YAML.StringifyOptions) => YAML.stringify(openapi, options),
   }
 }
-
-export const createMyOpenApi = (doc: OpenAPIObject) => new MyOpenApi(doc)

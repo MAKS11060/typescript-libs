@@ -3,7 +3,7 @@
 import {Hono} from 'hono'
 import {cors} from 'hono/cors'
 import {YAML} from './_deps.ts'
-import {openApiDoc} from './openapi2.ts'
+import {openApiDoc} from './openapi.ts'
 
 const app = new Hono() //
   .use(cors())

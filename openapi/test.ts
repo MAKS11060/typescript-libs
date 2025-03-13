@@ -4,7 +4,7 @@ import {Hono} from 'hono'
 import {cors} from 'hono/cors'
 import {YAML} from './_deps.ts'
 import {o} from './openapi-schema.ts'
-import {createMyOpenApi} from './openapi.ts'
+import {createMyOpenApi} from './openapi0.ts'
 
 const myOpenapi = createMyOpenApi({
   openapi: '3.1.0',

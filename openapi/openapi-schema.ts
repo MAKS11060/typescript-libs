@@ -98,51 +98,40 @@ export class SchemaBuilder {
     return this
   }
 
-  allOf(...schemas: (SchemaBuilder | SchemaObject | { $ref: string })[]): this {
-    this.schema.allOf = schemas.map((s) =>
-      s instanceof SchemaBuilder ? s.toSchema() : s
-    );
-    return this;
+  allOf(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
+    this.schema.allOf = schemas.map((s) => (s instanceof SchemaBuilder ? s.toSchema() : s))
+    return this
   }
 
-  anyOf(...schemas: (SchemaBuilder | SchemaObject | { $ref: string })[]): this {
-    this.schema.anyOf = schemas.map((s) =>
-      s instanceof SchemaBuilder ? s.toSchema() : s
-    );
-    return this;
+  anyOf(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
+    this.schema.anyOf = schemas.map((s) => (s instanceof SchemaBuilder ? s.toSchema() : s))
+    return this
   }
 
-  oneOf(...schemas: (SchemaBuilder | SchemaObject | { $ref: string })[]): this {
-    this.schema.oneOf = schemas.map((s) =>
-      s instanceof SchemaBuilder ? s.toSchema() : s
-    );
-    return this;
+  oneOf(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
+    this.schema.oneOf = schemas.map((s) => (s instanceof SchemaBuilder ? s.toSchema() : s))
+    return this
   }
 
-  not(schema: SchemaBuilder | SchemaObject | { $ref: string }): this {
-    this.schema.not =
-      schema instanceof SchemaBuilder ? schema.toSchema() : schema;
-    return this;
+  not(schema: SchemaBuilder | SchemaObject | {$ref: string}): this {
+    this.schema.not = schema instanceof SchemaBuilder ? schema.toSchema() : schema
+    return this
   }
 
   // Дополнительные свойства
-  additionalProperties(
-    value: boolean | SchemaBuilder | SchemaObject | { $ref: string }
-  ): this {
+  additionalProperties(value: boolean | SchemaBuilder | SchemaObject | {$ref: string}): this {
     if (value instanceof SchemaBuilder) {
-      this.schema.additionalProperties = value.toSchema();
+      this.schema.additionalProperties = value.toSchema()
     } else {
-      this.schema.additionalProperties = value;
+      this.schema.additionalProperties = value
     }
-    return this;
+    return this
   }
 
-  propertyNames(schema: SchemaBuilder | SchemaObject | { $ref: string }): this {
-    this.schema.propertyNames =
-      schema instanceof SchemaBuilder ? schema.toSchema() : schema;
-    return this;
+  propertyNames(schema: SchemaBuilder | SchemaObject | {$ref: string}): this {
+    this.schema.propertyNames = schema instanceof SchemaBuilder ? schema.toSchema() : schema
+    return this
   }
-
 
   minProperties(value: number): this {
     this.schema.minProperties = value
@@ -173,30 +162,24 @@ export class SchemaBuilder {
 }
 
 export const o = {
-  object: (
-    properties: Record<string, SchemaBuilder | SchemaObject | { $ref: string }>
-  ): SchemaBuilder => {
+  object: (properties: Record<string, SchemaBuilder | SchemaObject | {$ref: string}>): SchemaBuilder => {
     const required = Object.entries(properties)
-      .filter(
-        ([, value]) =>
-          value instanceof SchemaBuilder ? value.isRequired() : false
-      )
-      .map(([key]) => key);
+      .filter(([, value]) => (value instanceof SchemaBuilder ? value.isRequired() : false))
+      .map(([key]) => key)
     const schema: SchemaObject = {
-      type: "object",
+      type: 'object',
       properties: Object.fromEntries(
         Object.entries(properties).map(([key, value]) => [
           key,
           value instanceof SchemaBuilder ? value.toSchema() : value,
         ])
       ),
-      required: required.length > 0 ? required : undefined,
-    };
-    const builder = new SchemaBuilder("object");
-    builder.schema = schema;
-    return builder;
+      ...(required.length && {required}),
+    }
+    const builder = new SchemaBuilder('object')
+    builder.schema = schema
+    return builder
   },
-
 
   integer: (): SchemaBuilder => new SchemaBuilder('integer'),
   number: (): SchemaBuilder => new SchemaBuilder('number'),

@@ -1,65 +1,98 @@
-#!/usr/bin/env -S deno run -A --watch-hmr
+#!/usr/bin/env -S deno run -A --watch
 
-import type {StandardSchemaV1} from '@standard-schema/spec'
-import {z} from 'zod'
-import {} from 'npm:openapi3-ts/oas31'
+import {Hono} from 'hono'
+import {cors} from 'hono/cors'
+import {o} from "./openapi-schema.ts"
+import {createOpenApiDoc} from './openapi.ts'
 
+export const openApiDoc = createOpenApiDoc({
+  info: {
+    title: '',
+    version: '0.0.1',
+  },
+})
+setTimeout(() => console.log(openApiDoc.toYAML()))
+// setTimeout(() => console.log(openApiDoc.toJSON(true)))
 
-z
+const app = new Hono() //
+  .use(cors())
+  .get('/openapi.yml', (c) => c.text(openApiDoc.toYAML()))
 
-interface OpenApiConfig {
-  version: string
-}
+Deno.serve(app.fetch)
 
-const createOpenApiSchema = <S extends StandardSchemaV1>(config: OpenApiConfig) => {
-  config.version
+openApiDoc //
+  .addPath('/users')
+  .get((t) => {
+    t.describe('123')
+    t.response(200) //
+      .headers({})
+      .content('application/json', {})
+    t.response('4XX') //
+      .content('application/json', {})
+      .headers({
+        test: {
+          schema: o.string().toSchema(),
+        },
+      })
+  })
 
-  const registerResponse = () => {}
+// const userSchema = o.object({
+//   id: o.string(),
+//   name: o.string(),
+//   email: o.string().format('email').optional(),
+//   isActive: o.boolean().optional(),
+//   createdAt: o.string().format('date-time').optional(),
+// })
+// const errorSchema = o.object({
+//   code: o.integer().optional(),
+//   message: o.string().optional(),
+// })
 
-  type RequestOptions = {
-    body?: any
-    query?: any
-    params?: any
-    cookies?: any
-    headers?: any
-  }
+// const UserSchema = openApiDoc.addSchema('User', userSchema)
+// const UsersSchema = openApiDoc.addSchema('Users', o.array(UserSchema))
+// const ErrorSchema = openApiDoc.addSchema('Error', errorSchema)
 
-  type ResponseType = 'application/json'
-  type ResponseOptions = {
-    description: string
-    schema?: any
-  }
+// const NotFoundResponse = openApiDoc.addResponses('NotFound', (t) => {
+//   t.content('application/json', ErrorSchema)
+//   // t.describe('l')
+// })
 
-  const methodsHandler = {
-    request: (options?: RequestOptions) => {
-      return methodsHandler
-    },
-    response: (status: number, type: ResponseType, options?: ResponseOptions) => {
-      return methodsHandler
-    },
-  }
+// openApiDoc //
+//   .addPath('/users')
+//   .describe('test')
+//   .get((t) => {
+//     t.summary('List all users')
+//     t.operationId('listUsers')
+//     t.response(200) //
+//       .describe('OK')
+//       .content('application/json', UsersSchema)
+//       // .examples('example 1', {
+//       //   description: 'Example 1',
+//       //   value: {
+//       //     id: '1',
+//       //     name: 'admin',
+//       //   },
+//       // })
 
-  type MethodOptions = {
-    tags?: string[]
-  }
+//     t.response(400, NotFoundResponse)
+//   })
+//   .post((t) => {
+//     t.summary('Create a new user')
+//     t.operationId('createUser')
+//   })
 
-  return {
-    paths: {
-      get: (path: string, options?: MethodOptions) => {
-        return methodsHandler
-      },
-      post: (path: string, options?: MethodOptions) => {
-        return methodsHandler
-      },
-    },
-  }
-}
-
-//
-const openApiSchema = createOpenApiSchema({version: '3.1.0'})
-
-openApiSchema.paths //
-  .get('/posts')
-  .request({})
-  .response(200, 'application/json', {description: 'Show posts'})
-  .response(400, 'application/json', {description: 'Error'})
+// openApiDoc //
+//   .addPath('/users/{id}', {
+//     params: {
+//       id: {
+//         schema: o.string().toSchema(),
+//         examples: {},
+//       },
+//     },
+//   })
+//   .describe('test')
+//   .get((t) => {
+//     t.summary('List all users')
+//     t.response(200).content('application/json')
+//   .post((t) => {})
+//   })
