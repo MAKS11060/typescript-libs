@@ -7,8 +7,9 @@ import {
   ParameterObject,
   ParameterStyle,
   ReferenceObject,
-  SchemaObject
+  SchemaObject,
 } from 'npm:openapi3-ts/oas31'
+import {SchemaBuilder} from './openapi-schema.ts'
 
 type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` ? P | ParsePath<Rest> : never
 
@@ -19,8 +20,8 @@ class MyOpenApi {
     this.builder = OpenApiBuilder.create(doc)
   }
 
-  addSchema(name: string, schema: SchemaObject): ReferenceObject {
-    this.builder.addSchema(name, schema)
+  addSchema(name: string, schema: SchemaObject|SchemaBuilder): ReferenceObject {
+    this.builder.addSchema(name, schema instanceof SchemaBuilder ? schema.toSchema() : schema)
     return {$ref: `#/components/schemas/${name}`}
   }
 
@@ -36,7 +37,7 @@ class MyOpenApi {
           style?: ParameterStyle
           explode?: boolean
           allowReserved?: boolean
-          schema?: SchemaObject | ReferenceObject
+          schema?: SchemaObject | ReferenceObject | SchemaBuilder
           examples?: {
             [param: string]: ExampleObject | ReferenceObject
           }
@@ -47,25 +48,27 @@ class MyOpenApi {
     } = {}
   ): PathBuilder {
     const paramNames = path.match(/\{(\w+)\}/g)?.map((m) => m.slice(1, -1)) || []
-    const parameters = paramNames.map((name) => ({
-      ...pathItem.params?.[name as ParsePath<T>],
-      name,
-      in: 'path',
-      schema: pathItem.params?.[name as ParsePath<T>]?.schema,
-      required: pathItem.params?.[name as ParsePath<T>]?.required ?? true,
-
-      // required: pathItem.params?.[name as ParsePath<T>]?.required ?? true,
-      // schema: pathItem.params?.[name as ParsePath<T>]?.schema,
-      // description: pathItem.params?.[name as ParsePath<T>]?.description,
-      // deprecated: pathItem.params?.[name as ParsePath<T>]?.deprecated,
-      // allowEmptyValue: pathItem.params?.[name as ParsePath<T>]?.allowEmptyValue,
-      // style: pathItem.params?.[name as ParsePath<T>]?.style,
-      // explode: pathItem.params?.[name as ParsePath<T>]?.explode,
-      // allowReserved: pathItem.params?.[name as ParsePath<T>]?.allowReserved,
-      // example: pathItem.params?.[name as ParsePath<T>]?.example,
-      // examples: pathItem.params?.[name as ParsePath<T>]?.examples,
-      // content: pathItem.params?.[name as ParsePath<T>]?.content,
-    })) satisfies ParameterObject[]
+    const parameters = paramNames.map((name) => {
+      const schema = pathItem.params?.[name as ParsePath<T>]?.schema
+      return ({
+        ...pathItem.params?.[name as ParsePath<T>],
+        name,
+        in: 'path',
+        schema: schema instanceof SchemaBuilder ? schema.toSchema() : schema,
+        required: pathItem.params?.[name as ParsePath<T>]?.required ?? true,
+        // required: pathItem.params?.[name as ParsePath<T>]?.required ?? true,
+        // schema: pathItem.params?.[name as ParsePath<T>]?.schema,
+        // description: pathItem.params?.[name as ParsePath<T>]?.description,
+        // deprecated: pathItem.params?.[name as ParsePath<T>]?.deprecated,
+        // allowEmptyValue: pathItem.params?.[name as ParsePath<T>]?.allowEmptyValue,
+        // style: pathItem.params?.[name as ParsePath<T>]?.style,
+        // explode: pathItem.params?.[name as ParsePath<T>]?.explode,
+        // allowReserved: pathItem.params?.[name as ParsePath<T>]?.allowReserved,
+        // example: pathItem.params?.[name as ParsePath<T>]?.example,
+        // examples: pathItem.params?.[name as ParsePath<T>]?.examples,
+        // content: pathItem.params?.[name as ParsePath<T>]?.content,
+      });
+    }) satisfies ParameterObject[]
 
     this.builder.addPath(path, {parameters})
 
@@ -109,6 +112,8 @@ class PathBuilder {
   }
 }
 
+type ContentType = 'application/json' | 'text/plain' | 'text/html'
+
 /**
  * Класс для построения ответов операции.
  */
@@ -132,13 +137,17 @@ class OperationBuilder {
    * @param schema Схема ответа.
    * @returns Экземпляр OperationBuilder для цепочки вызовов.
    */
-  response(statusCode: number, contentType: string, schema: SchemaObject | ReferenceObject): OperationBuilder {
+  response(
+    statusCode: number,
+    contentType: ContentType,
+    schema: SchemaObject | ReferenceObject | SchemaBuilder
+  ): OperationBuilder {
     this.operation.responses ??= {}
     this.operation.responses[statusCode] = {
       description: this.operation.responses[statusCode]?.description || `Response ${statusCode}`,
       content: {
         [contentType]: {
-          schema,
+          schema: schema instanceof SchemaBuilder ? schema.toSchema() : schema,
         },
       },
     }
