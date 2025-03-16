@@ -98,6 +98,11 @@ export class SchemaBuilder {
     return this
   }
 
+  default(value: any): this {
+    this.schema.default = value // Установка значения по умолчанию
+    return this
+  }
+
   allOf(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
     this.schema.allOf = schemas.map((s) => (s instanceof SchemaBuilder ? s.toSchema() : s))
     return this

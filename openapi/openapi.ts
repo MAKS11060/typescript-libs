@@ -3,10 +3,12 @@ import {
   ExampleObject,
   ExamplesObject,
   ExternalDocumentationObject,
+  HeaderObject,
   HeadersObject,
   MediaTypeObject,
   OpenAPIObject,
   OperationObject,
+  ParameterLocation,
   ParameterObject,
   PathItemObject,
   PathsObject,
@@ -98,6 +100,37 @@ type _Response = {
   (obj: OperationObject, status: Status, ref: ReferenceObject): void
 }
 
+// SecuritySchemas
+type ApiKeyOptions = {type: 'apiKey'; option: {name: string; in: 'header' | 'query' | 'cookie'}}
+
+type HttpOptions =
+  | {type: 'http'; option: {scheme: 'basic'}}
+  | {type: 'http'; option: {scheme: 'bearer'; bearerFormat?: string}}
+
+type OAuth2Options = {
+  type: 'oauth2'
+  option: {
+    flows:
+      | {
+          authorizationCode: {
+            authorizationUrl: string
+            tokenUrl: string
+            refreshUrl?: string
+            scopes: Record<string, string>
+          }
+        }
+      | {implicit: {authorizationUrl: string; scopes: Record<string, string>}}
+      | {password: {tokenUrl: string; scopes: Record<string, string>}}
+      | {clientCredentials: {tokenUrl: string; scopes: Record<string, string>}}
+  }
+}
+
+type OpenIdConnectOptions = {type: 'openIdConnect'; option: {openIdConnectUrl: string}}
+
+type MutualTLSOptions = {type: 'mutualTLS'; option: {}}
+
+type SecuritySchemeOptions = ApiKeyOptions | HttpOptions | OAuth2Options | OpenIdConnectOptions | MutualTLSOptions
+
 export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
   type TagKeys = keyof Doc['tags']
 
@@ -118,11 +151,6 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
   }
   const _examples = (obj: {examples?: Record<string, ExamplesObject>}, examples: Record<string, ExamplesObject>) => {
     obj.examples = examples
-  }
-  const _operationId = (obj: {operationId?: string}, id: string) => {
-    if (operationIdSet.has(id)) throw new Error("The 'operationId' has already been registered")
-    else operationIdSet.add(id)
-    obj.operationId = id
   }
 
   type AddPathOptions<T extends string> = {
@@ -149,11 +177,11 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
       } satisfies ParameterObject
     })
 
-    openapi.paths ??= {}
-    openapi.paths[path] = pathItem
-
     pathItem.parameters ??= []
     pathItem.parameters?.push(...pathParams)
+
+    openapi.paths ??= {}
+    openapi.paths[path] = pathItem
 
     // register responses
     const _response: _Response = (target: OperationObject, status: Status = 'default', ref?: ReferenceObject): any => {
@@ -218,7 +246,11 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
       cb({
         describe: (...args) => _describe(operation, ...args),
         summary: (...args) => _summary(operation, ...args),
-        operationId: (...args) => _operationId(operation, ...args),
+        operationId: (id) => {
+          if (operationIdSet.has(id)) throw new Error(`The 'operationId(${id})' has already been registered`)
+          else operationIdSet.add(id)
+          operation.operationId = id
+        },
         deprecated: () => {
           operation.deprecated = true
         },
@@ -339,28 +371,83 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     handler(responseCtx)
     return _addComponent('responses', name, response)
   }
-  const addParameters = (name: string) => _addComponent('parameters', name, {})
-  const addExamples = (name: string) => _addComponent('examples', name, {})
-  const addHeaders = (name: string) => _addComponent('headers', name, {})
-  const addLinks = (name: string) => _addComponent('links', name, {})
-  const addCallbacks = (name: string) => _addComponent('callbacks', name, {})
-  const addRequestBodies = (name: string) => _addComponent('requestBodies', name, {})
-  const addSecuritySchemes = (name: string) => _addComponent('securitySchemes', name, {})
+
+  const addParameters = (
+    name: string,
+    type: ParameterLocation,
+    options: {schema: SchemaInput} & Omit<ParameterObject, 'in' | 'name' | 'schema'>
+  ) => {
+    return _addComponent('parameters', name, {
+      in: type,
+      name,
+      schema: toSchema(options.schema),
+      ...(type === 'path' && {required: options.required ?? true}),
+    } satisfies ParameterObject)
+  }
+  const addExamples = (name: string, examples: ExampleObject) => {
+    return _addComponent('examples', name, examples)
+  }
+  const addHeaders = (name: string, header: {schema: SchemaInput} & Omit<HeaderObject, 'schema'>) => {
+    if (header.schema) header.schema = toSchema(header.schema)!
+    return _addComponent('headers', name, header)
+  }
+  const addRequestBodies = (name: string) => {
+    return _addComponent('requestBodies', name, {})
+  }
+
+  const addSecuritySchemes = <T extends SecuritySchemeOptions['type']>(
+    name: string,
+    type: T,
+    option: Extract<SecuritySchemeOptions, {type: typeof type}>['option']
+  ) => {
+    if (type === 'apiKey') {
+      if (!('in' in option || 'name' in option)) {
+        throw new Error('Invalid apiKey options')
+      }
+      return _addComponent('securitySchemes', name, {type, ...option})
+    }
+
+    if (type === 'http') {
+      if (!('scheme' in option)) {
+        throw new Error('Invalid http options')
+      }
+      return _addComponent('securitySchemes', name, {type, ...option})
+    }
+
+    if (type === 'oauth2') {
+      if (!('flows' in option)) {
+        throw new Error('Invalid oauth2 options')
+      }
+      return _addComponent('securitySchemes', name, {type, ...option})
+    }
+
+    if (type === 'openIdConnect') {
+      if (!('openIdConnectUrl' in option)) {
+        throw new Error('Invalid openIdConnect options')
+      }
+      return _addComponent('securitySchemes', name, {type, ...option})
+    }
+
+    if (type === 'mutualTLS') {
+      return _addComponent('securitySchemes', name, {type, ...option})
+    }
+  }
+  // const addLinks = (name: string) => _addComponent('links', name, {})
+  // const addCallbacks = (name: string) => _addComponent('callbacks', name, {})
 
   return {
-    openapi,
     addPath,
-
     addSchema,
     addResponses,
     addParameters,
     addExamples,
-    addRequestBodies,
     addHeaders,
-    addSecuritySchemes,
-    addLinks,
-    addCallbacks,
+    addRequestBodies,
+    addSecuritySchemes: addSecuritySchemes,
+    // addLinks,
+    // addCallbacks,
 
+    openapi,
     toJSON: (pretty?: boolean) => JSON.stringify(openapi, null, pretty ? 2 : undefined),
     toYAML: (options?: YAML.StringifyOptions) => YAML.stringify(openapi, options),
   }

@@ -20,14 +20,41 @@ const app = new Hono() //
 
 Deno.serve(app.fetch)
 
+//
 const UserSchema = openApiDoc.addSchema(
   'Users',
   o.object({}).oneOf(o.object({a: o.string()}), o.object({b: o.string()}))
 )
 const UsersResponse = openApiDoc.addResponses('Users', (t) => {
-  // t.headers({})
   t.content('application/json', UserSchema)
 })
+
+openApiDoc.addParameters('userId', 'path', {
+  schema: o.integer().default(1),
+  description: 'ID of the user',
+})
+openApiDoc.addParameters('page', 'query', {
+  schema: o.integer().default(1),
+})
+
+const UserExample = openApiDoc.addExamples('UserExample', {
+  value: {
+    id: 1,
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    isActive: true,
+    createdAt: '2023-01-01T00:00:00Z',
+  },
+})
+
+openApiDoc.addHeaders('X-RateLimit-Limit', {
+  description: 'The number of allowed requests in the current period',
+  schema: o.integer(),
+})
+
+openApiDoc.addSecuritySchemes('ApiKeyAuth', 'apiKey', {in: 'header', name: 'X-API-Key'})
+
+// openApiDoc.addParameters('page', 'query')
 
 openApiDoc //
   .addPath('/users')
