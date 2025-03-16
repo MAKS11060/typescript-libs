@@ -1,10 +1,12 @@
 import {
   ComponentsObject,
+  ContentObject,
   ExampleObject,
   ExamplesObject,
   ExternalDocumentationObject,
   HeaderObject,
   HeadersObject,
+  InfoObject,
   MediaTypeObject,
   OpenAPIObject,
   OperationObject,
@@ -13,6 +15,7 @@ import {
   PathItemObject,
   PathsObject,
   ReferenceObject,
+  RequestBodyObject,
   ResponseObject,
   SchemaObject,
   SecurityRequirementObject,
@@ -37,10 +40,7 @@ export const tagsRegistry = <T extends string>(
 
 type CreateOpenApiDoc = {
   openapi?: `3.1.${number}`
-  info: {
-    title: string
-    version: string
-  }
+  info: InfoObject
   servers?: ServerObject[]
   components?: ComponentsObject
   paths?: PathsObject
@@ -93,6 +93,15 @@ type ResponseContentContext = {
   example: (value: unknown) => ResponseContentContext
 }
 
+type RequestBodyContext = {
+  describe: (description: string) => RequestBodyContext
+  required: () => RequestBodyContext
+  content: {
+    (contentType: ContentType, schema: SchemaInput): RequestBodyContext
+    (contentType: string, schema: SchemaInput): RequestBodyContext
+  }
+}
+
 type OperationHandler = (t: Operation) => void
 
 type _Response = {
@@ -143,14 +152,30 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
   const components = new Set<string>()
   const operationIdSet = new Set<string>()
 
+  const _addComponent = (type: ComponentType, name: string, data: unknown) => {
+    const $ref = `#/components/${type}/${name}`
+    if (components.has($ref)) throw new Error(`The '${$ref}' has already been registered`)
+    else components.add($ref)
+
+    openapi.components ??= {}
+    openapi.components[type] ??= {}
+    openapi.components[type][name] = data!
+
+    return {$ref}
+  }
+
   const _describe = (obj: {description?: string}, description: string) => {
     obj.description = description
   }
   const _summary = (obj: {summary?: string}, summary: string) => {
     obj.summary = summary
   }
-  const _examples = (obj: {examples?: Record<string, ExamplesObject>}, examples: Record<string, ExamplesObject>) => {
-    obj.examples = examples
+
+  const _content = (target: {content?: ContentObject}, contentType: string, schema: SchemaInput) => {
+    const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
+    target.content ??= {}
+    target.content[contentType] = mediaTypeObject
+    return mediaTypeObject
   }
 
   type AddPathOptions<T extends string> = {
@@ -307,18 +332,6 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     return pathHandler
   }
 
-  const _addComponent = (type: ComponentType, name: string, data: unknown) => {
-    const $ref = `#/components/${type}/${name}`
-    if (components.has($ref)) throw new Error(`The '${$ref}' has already been registered`)
-    else components.add($ref)
-
-    openapi.components ??= {}
-    openapi.components[type] ??= {}
-    openapi.components[type][name] = data!
-
-    return {$ref}
-  }
-
   const addSchema = (name: string, schema: SchemaInput) => _addComponent('schemas', name, toSchema(schema))
 
   const addResponses = (name: string, handler: (t: ResponseContext) => void) => {
@@ -332,12 +345,8 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         response.headers = headers
         return responseCtx
       },
-      content: (contentType, schema) => {
-        const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
-
-        response.content ??= {}
-        response.content[contentType] = mediaTypeObject
-
+      content: (contentType , schema) => {
+        const mediaTypeObject = _content(response, contentType, schema)
         const responseContentContext: ResponseContentContext = {
           headers: (headers: HeadersObject) => {
             // for (const key in headers) {
@@ -391,8 +400,26 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     if (header.schema) header.schema = toSchema(header.schema)!
     return _addComponent('headers', name, header)
   }
-  const addRequestBodies = (name: string) => {
-    return _addComponent('requestBodies', name, {})
+  const addRequestBodies = (name: string, handler: (t: RequestBodyContext) => void) => {
+    const requestBody: RequestBodyObject = {content: {}}
+
+    const ctx: RequestBodyContext = {
+      describe: (data: string) => {
+        _describe(requestBody, data)
+        return ctx
+      },
+      content: (contentType, schema) => {
+        _content(requestBody, contentType, schema)
+        return ctx
+      },
+      required: () => {
+        requestBody.required = true
+        return ctx
+      },
+    }
+
+    handler(ctx)
+    return _addComponent('requestBodies', name, requestBody)
   }
 
   const addSecuritySchemes = <T extends SecuritySchemeOptions['type']>(
