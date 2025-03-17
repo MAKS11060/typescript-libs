@@ -102,10 +102,44 @@ const UserExample = doc.addExamples('UserExample', {
 })
 
 //
-doc.addRequestBodies('CreateUser', t => {
+const CreateUserBody = doc.addRequestBodies('CreateUser', (t) => {
   t.describe('User data to create a new user')
   t.required()
   t.content('application/json', UserSchema)
 })
 
-doc.addPath('/')
+// Headers
+const xRateLimitHeader = doc.addHeaders('X-RateLimit-Limit', {
+  description: 'The number of allowed requests in the current period',
+  schema: o.integer().optional(),
+})
+
+// SecuritySchemes
+const apiKey = doc.addSecuritySchemes('apiKey', 'apiKey', {in: 'header', name: 'X-API-Key'})
+doc.addSecuritySchemes('oauth2', 'oauth2', {
+  flows: {
+    authorizationCode: {
+      authorizationUrl: 'https://example.com/oauth/authorize',
+      tokenUrl: 'https://example.com/oauth/token',
+      scopes: {
+        read: 'Grants read access',
+        write: 'Grants write access',
+      },
+    },
+  },
+})
+
+// Paths
+doc.addPath('/users')
+  .parameters(pageInQuery)
+
+  .get(t => {
+    t.summary('List all users')
+    t.operationId('listUsers')
+    t.parameters(pageInQuery)
+
+    t.response(200).content('application/json', o.array(UserSchema))
+    t.response(401, UnauthorizedResponse)
+
+    t.security(apiKey)
+  })

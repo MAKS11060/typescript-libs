@@ -29,6 +29,8 @@ SchemaBuilder
 
 export type ContentType = 'application/json' | 'text/plain'
 
+const isRef = (obj: {}): obj is ReferenceObject => '$ref' in obj
+
 type SchemaInput = SchemaObject | SchemaBuilder | ReferenceObject
 
 const toSchema = (schema?: SchemaObject | SchemaBuilder | ReferenceObject) =>
@@ -70,7 +72,8 @@ type Operation = {
   describe: (description: string) => void
   operationId: (id: string) => void
   deprecated: () => void
-
+  parameters(parameter: ParameterObject | ReferenceObject): void
+  security: (name: string | {name: string}, scope?: string[]) => void
   response: {
     (status: Status): ResponseContext
     (status: Status, ref: ReferenceObject): void
@@ -111,11 +114,9 @@ type _Response = {
 
 // SecuritySchemas
 type ApiKeyOptions = {type: 'apiKey'; option: {name: string; in: 'header' | 'query' | 'cookie'}}
-
 type HttpOptions =
   | {type: 'http'; option: {scheme: 'basic'}}
   | {type: 'http'; option: {scheme: 'bearer'; bearerFormat?: string}}
-
 type OAuth2Options = {
   type: 'oauth2'
   option: {
@@ -133,11 +134,8 @@ type OAuth2Options = {
       | {clientCredentials: {tokenUrl: string; scopes: Record<string, string>}}
   }
 }
-
 type OpenIdConnectOptions = {type: 'openIdConnect'; option: {openIdConnectUrl: string}}
-
 type MutualTLSOptions = {type: 'mutualTLS'; option: {}}
-
 type SecuritySchemeOptions = ApiKeyOptions | HttpOptions | OAuth2Options | OpenIdConnectOptions | MutualTLSOptions
 
 export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
@@ -178,8 +176,22 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     return mediaTypeObject
   }
 
+  const _examples = (target: {examples?: ExamplesObject; example?: any}, name: string, examples: ExampleObject) => {
+    if (target.example) {
+      throw new Error("The 'examples' and 'example' properties are mutually exclusive")
+    }
+    target.examples ??= {}
+    target.examples[name] = examples
+  }
+  const _example = (target: {examples?: ExamplesObject; example?: any}, value: unknown) => {
+    if (target.examples) {
+      throw new Error("The 'example' and 'examples' properties are mutually exclusive")
+    }
+    target.example = value
+  }
+
   type AddPathOptions<T extends string> = {
-    tags?: TagKeys | TagKeys[]
+    // tags?: TagKeys | TagKeys[]
     params?: {
       [K in ParsePath<T>]: {
         schema?: SchemaObject | ReferenceObject | SchemaBuilder
@@ -226,10 +238,11 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
           return responseCtx
         },
         content: (contentType, schema) => {
-          const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
+          const mediaTypeObject = _content(response, contentType, schema)
+          // const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
 
-          response.content ??= {}
-          response.content[contentType] = mediaTypeObject
+          // response.content ??= {}
+          // response.content[contentType] = mediaTypeObject
 
           const responseContentContext: ResponseContentContext = {
             headers: (headers: HeadersObject) => {
@@ -279,8 +292,24 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         deprecated: () => {
           operation.deprecated = true
         },
+        parameters: (parameter) => {
+          operation.parameters ??= []
+          if (isRef(parameter)) {
+            operation.parameters.push(parameter)
+          } else {
+            operation.parameters.push(parameter)
+          }
+        },
         response: (status, ref?: ReferenceObject) => {
           return _response(operation, status, ref as any) as any
+        },
+        security: (name, scope = []) => {
+          operation.security ??= []
+          if (typeof name === 'string') {
+            operation.security?.push({[name]: scope})
+          } else {
+            operation.security?.push({[name.name]: scope})
+          }
         },
       })
     }
@@ -295,6 +324,18 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         return pathHandler
       },
 
+      /** Parameters that are applicable for all the operations described under this path */
+      parameters: (parameter: ParameterObject | ReferenceObject) => {
+        pathItem.parameters ??= []
+        if (isRef(parameter)) {
+          pathItem.parameters.push(parameter)
+        } else {
+          pathItem.parameters.push(parameter)
+        }
+        return pathHandler
+      },
+
+      // methods
       get: (operation: OperationHandler) => {
         registerOperation('get', operation)
         return pathHandler
@@ -345,7 +386,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         response.headers = headers
         return responseCtx
       },
-      content: (contentType , schema) => {
+      content: (contentType, schema) => {
         const mediaTypeObject = _content(response, contentType, schema)
         const responseContentContext: ResponseContentContext = {
           headers: (headers: HeadersObject) => {
@@ -357,18 +398,11 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
             return responseContentContext
           },
           examples: (name, examples) => {
-            if (mediaTypeObject.example) {
-              throw new Error("The 'examples' and 'example' properties are mutually exclusive")
-            }
-            mediaTypeObject.examples ??= {}
-            mediaTypeObject.examples[name] = examples
+            _examples(mediaTypeObject, name, examples)
             return responseContentContext
           },
           example: (value: unknown) => {
-            if (mediaTypeObject.examples) {
-              throw new Error("The 'example' and 'examples' properties are mutually exclusive")
-            }
-            mediaTypeObject.example = value
+            _example(mediaTypeObject, value)
             return responseContentContext
           },
         }
@@ -393,13 +427,16 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
       ...(type === 'path' && {required: options.required ?? true}),
     } satisfies ParameterObject)
   }
+
   const addExamples = (name: string, examples: ExampleObject) => {
     return _addComponent('examples', name, examples)
   }
+
   const addHeaders = (name: string, header: {schema: SchemaInput} & Omit<HeaderObject, 'schema'>) => {
     if (header.schema) header.schema = toSchema(header.schema)!
     return _addComponent('headers', name, header)
   }
+
   const addRequestBodies = (name: string, handler: (t: RequestBodyContext) => void) => {
     const requestBody: RequestBodyObject = {content: {}}
 
@@ -431,39 +468,42 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
       if (!('in' in option || 'name' in option)) {
         throw new Error('Invalid apiKey options')
       }
-      return _addComponent('securitySchemes', name, {type, ...option})
+      return {name, ..._addComponent('securitySchemes', name, {type, ...option})}
     }
 
     if (type === 'http') {
       if (!('scheme' in option)) {
         throw new Error('Invalid http options')
       }
-      return _addComponent('securitySchemes', name, {type, ...option})
+      return {name, ..._addComponent('securitySchemes', name, {type, ...option})}
     }
 
     if (type === 'oauth2') {
       if (!('flows' in option)) {
         throw new Error('Invalid oauth2 options')
       }
-      return _addComponent('securitySchemes', name, {type, ...option})
+      return {name, ..._addComponent('securitySchemes', name, {type, ...option})}
     }
 
     if (type === 'openIdConnect') {
       if (!('openIdConnectUrl' in option)) {
         throw new Error('Invalid openIdConnect options')
       }
-      return _addComponent('securitySchemes', name, {type, ...option})
+      return {name, ..._addComponent('securitySchemes', name, {type, ...option})}
     }
 
     if (type === 'mutualTLS') {
-      return _addComponent('securitySchemes', name, {type, ...option})
+      return {name, ..._addComponent('securitySchemes', name, {type, ...option})}
     }
+
+    throw new Error(`Unsupported security scheme type: ${type}`)
   }
   // const addLinks = (name: string) => _addComponent('links', name, {})
   // const addCallbacks = (name: string) => _addComponent('callbacks', name, {})
 
   return {
     addPath,
+
     addSchema,
     addResponses,
     addParameters,

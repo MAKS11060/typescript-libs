@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {ReferenceObject, SchemaObject, SchemaObjectType} from 'npm:openapi3-ts/oas31'
+import {ReferenceObject, SchemaObject, SchemaObjectType} from 'openapi3-ts/oas31'
 
 export class SchemaBuilder {
   schema: SchemaObject
@@ -16,6 +16,8 @@ export class SchemaBuilder {
       this.schema.minimum = value
     } else if (this.schema.type === 'string') {
       this.schema.minLength = value
+    } else if (this.schema.type === 'array') {
+      this.schema.minItems = value
     }
     return this
   }
@@ -25,6 +27,8 @@ export class SchemaBuilder {
       this.schema.maximum = value
     } else if (this.schema.type === 'string') {
       this.schema.maxLength = value
+    } else if (this.schema.type === 'array') {
+      this.schema.maxItems = value
     }
     return this
   }
@@ -98,8 +102,13 @@ export class SchemaBuilder {
     return this
   }
 
+  description(description: string): this {
+    this.schema.description = description
+    return this
+  }
+
   default(value: any): this {
-    this.schema.default = value // Установка значения по умолчанию
+    this.schema.default = value
     return this
   }
 
@@ -123,7 +132,6 @@ export class SchemaBuilder {
     return this
   }
 
-  // Дополнительные свойства
   additionalProperties(value: boolean | SchemaBuilder | SchemaObject | {$ref: string}): this {
     if (value instanceof SchemaBuilder) {
       this.schema.additionalProperties = value.toSchema()
@@ -154,6 +162,60 @@ export class SchemaBuilder {
     } else {
       this.schema.items = itemSchema instanceof SchemaBuilder ? itemSchema.toSchema() : itemSchema
     }
+    return this
+  }
+
+  // zod aliases
+  union(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
+    this.schema.anyOf = schemas.map((s) => (s instanceof SchemaBuilder ? s.toSchema() : s))
+    return this
+  }
+
+  intersection(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
+    this.schema.allOf = schemas.map((s) => (s instanceof SchemaBuilder ? s.toSchema() : s))
+    return this
+  }
+
+  record(keyType: 'string', valueType: SchemaBuilder | SchemaObject | {$ref: string}): this {
+    if (keyType !== 'string') {
+      throw new Error('Only "string" key type is supported in JSON Schema.')
+    }
+
+    const valueSchema = valueType instanceof SchemaBuilder ? valueType.toSchema() : valueType
+    this.schema.type = 'object'
+    this.schema.additionalProperties = valueSchema
+    return this
+  }
+
+  set(itemSchema: SchemaBuilder | SchemaObject | {$ref: string}): this {
+    this.schema.type = 'array'
+    this.schema.uniqueItems = true
+
+    if ('$ref' in itemSchema) {
+      this.schema.items = itemSchema // Прямая передача $ref
+    } else {
+      this.schema.items = itemSchema instanceof SchemaBuilder ? itemSchema.toSchema() : itemSchema
+    }
+
+    return this
+  }
+
+  tuple(...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): this {
+    this.schema.type = 'array'
+    this.schema.items
+    this.schema.items = schemas.map((s) => {
+      if ('$ref' in s) {
+        return s // Прямая передача $ref
+      }
+      return s instanceof SchemaBuilder ? s.toSchema() : s
+    }) as SchemaObject[]
+    this.schema.minItems = schemas.length
+    this.schema.maxItems = schemas.length
+    return this
+  }
+
+  literal(value: string | number | boolean): this {
+    this.schema.const = value
     return this
   }
 
@@ -196,4 +258,41 @@ export const o = {
       itemSchema instanceof SchemaBuilder || '$ref' in itemSchema ? itemSchema : new SchemaBuilder('null')
     ),
   enum: (values: string[] | number[]): SchemaBuilder => new SchemaBuilder('string').enum(values),
+  literal: (value: string | number | boolean): SchemaBuilder => new SchemaBuilder('string').literal(value),
+
+  //
+  union: (...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): SchemaBuilder => {
+    const builder = new SchemaBuilder('object')
+    return builder.anyOf(...schemas)
+  },
+
+  // Intersection через allOf
+  intersection: (...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): SchemaBuilder => {
+    const builder = new SchemaBuilder('object')
+    return builder.allOf(...schemas)
+  },
+
+  record: (keyType: 'string', valueType: SchemaBuilder | SchemaObject | {$ref: string}): SchemaBuilder => {
+    const builder = new SchemaBuilder('object')
+    builder.record(keyType, valueType)
+    return builder
+  },
+
+  map: (keySchema: SchemaBuilder | SchemaObject, valueSchema: SchemaBuilder | SchemaObject): SchemaBuilder => {
+    const builder = new SchemaBuilder('array')
+    builder.map(keySchema, valueSchema)
+    return builder
+  },
+
+  set: (itemSchema: SchemaBuilder | SchemaObject | {$ref: string}): SchemaBuilder => {
+    const builder = new SchemaBuilder('array')
+    builder.set(itemSchema)
+    return builder
+  },
+
+  tuple: (...schemas: (SchemaBuilder | SchemaObject | {$ref: string})[]): SchemaBuilder => {
+    const builder = new SchemaBuilder('array')
+    builder.tuple(...schemas)
+    return builder
+  },
 }
