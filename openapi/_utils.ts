@@ -1,10 +1,31 @@
-import {ExternalDocumentationObject} from 'openapi3-ts/oas31'
+#!/usr/bin/env -S deno run -A
+
+import {zodToJsonSchema} from 'npm:zod-to-json-schema'
+import type {ExternalDocumentationObject, ReferenceObject, SchemaObject} from 'openapi3-ts/oas31'
+import {z} from 'zod'
+import {SchemaBuilder} from './openapi-schema.ts'
 
 // '/api/{version}' => 'version'
 export type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` ? P | ParsePath<Rest> : never
 
 // '/api/{version}' => ['version']
-export const extractParams = (path: string) => Array.from(path.matchAll(/\{([^}]+)\}/g), (match) => match[1])
+export const extractParams = (path: string) => Array.from(path.matchAll(/\{([^}]+)\}/g), (m) => m[1])
+
+// Schema
+export const isRef = (obj: {}): obj is ReferenceObject => '$ref' in obj
+
+export type SchemaInput = SchemaObject | SchemaBuilder | ReferenceObject | z.ZodTypeAny
+
+export const toSchema = (schema?: SchemaInput) => {
+  if (schema instanceof SchemaBuilder) {
+    return schema.toSchema()
+  } else if (schema instanceof z.Schema) {
+    const res = zodToJsonSchema(schema)
+    delete res.$schema
+    return res as SchemaObject
+  }
+  return schema
+}
 
 type MergeObjects<A, B> = {
   [K in keyof A | keyof B]: K extends keyof A & keyof B

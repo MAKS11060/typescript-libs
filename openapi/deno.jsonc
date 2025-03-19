@@ -1,0 +1,13 @@
+{
+  "name": "@maks11060/openapi",
+  "version": "0.0.0",
+  "imports": {},
+  "exports": {
+    ".": "./mod.ts"
+  },
+  "publish": {
+    "exclude": [
+      "*.test.ts"
+    ]
+  }
+}

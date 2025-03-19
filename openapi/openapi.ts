@@ -1,3 +1,4 @@
+import {StandardSchemaV1} from 'npm:@standard-schema/spec'
 import {
   ComponentsObject,
   ContentObject,
@@ -22,19 +23,15 @@ import {
   ServerObject,
 } from 'npm:openapi3-ts/oas31'
 import {YAML} from './_deps.ts'
-import {extractParams, ParsePath} from './_utils.ts'
+import {extractParams, isRef, ParsePath, SchemaInput, toSchema} from './_utils.ts'
 import {SchemaBuilder} from './openapi-schema.ts'
+import {ExampleObject as ExampleObject2} from './types/openapi-schema.ts'
+
+type S = StandardSchemaV1
 
 SchemaBuilder
 
 export type ContentType = 'application/json' | 'text/plain'
-
-const isRef = (obj: {}): obj is ReferenceObject => '$ref' in obj
-
-type SchemaInput = SchemaObject | SchemaBuilder | ReferenceObject
-
-const toSchema = (schema?: SchemaObject | SchemaBuilder | ReferenceObject) =>
-  schema instanceof SchemaBuilder ? schema.toSchema() : schema
 
 export const tagsRegistry = <T extends string>(
   tags: Record<T, {description?: string; externalDocs?: ExternalDocumentationObject}>
@@ -78,22 +75,28 @@ type Operation = {
     (status: Status): ResponseContext
     (status: Status, ref: ReferenceObject): void
   }
+  //
+  requestBody: (handler: (requestBody: RequestBodyContext) => void | ReferenceObject) => void
 }
 
 type ResponseContext = {
   describe: (description: string) => ResponseContext
   headers: (headers: HeadersObject) => ResponseContext
   content: {
-    (contentType: ContentType, schema: SchemaInput): ResponseContentContext
-    (contentType: string, schema: SchemaInput): ResponseContentContext
+    <T extends SchemaInput>(contentType: ContentType, schema: T): ResponseContentContext<T>
+    <T extends SchemaInput>(contentType: string, schema: T): ResponseContentContext<T>
   }
 }
 
-type ResponseContentContext = {
-  headers: (headers: HeadersObject) => ResponseContentContext
-  examples: (name: string, examples: ExampleObject) => ResponseContentContext
+type isStandardSchema<T> = T extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<T> : unknown
+
+type ResponseContentContext<T = unknown> = {
+  headers: (headers: HeadersObject) => ResponseContentContext<T>
+  examples: (name: string, examples: ExampleObject2<isStandardSchema<T>>) => ResponseContentContext<T>
   /** @deprecated */
-  example: (value: unknown) => ResponseContentContext
+  example: (value: isStandardSchema<T>) => ResponseContentContext<T>
+  // examples: (name: string, examples: ExampleObject) => ResponseContentContext<T>
+  // example: (value: unknown) => ResponseContentContext<T>
 }
 
 type RequestBodyContext = {
@@ -311,6 +314,31 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
             operation.security?.push({[name.name]: scope})
           }
         },
+        requestBody: (handler) => {
+          if (isRef(handler)) {
+            operation.requestBody ??= handler
+          } else {
+            const requestBody: RequestBodyObject = (operation.requestBody && !isRef(operation.requestBody)) ? operation.requestBody : {content: {}}
+            operation.requestBody = requestBody
+
+            const ctx: RequestBodyContext = {
+              describe: (data: string) => {
+                _describe(requestBody, data)
+                return ctx
+              },
+              content: (contentType, schema) => {
+                _content(requestBody, contentType, schema)
+                return ctx
+              },
+              required: () => {
+                requestBody.required = true
+                return ctx
+              },
+            }
+
+            handler(ctx)
+          }
+        }
       })
     }
 
