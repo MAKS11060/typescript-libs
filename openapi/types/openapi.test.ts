@@ -37,12 +37,13 @@ doc.addPath('/user/create').post((t) => {
     .content('application/json', userSchema)
     .examples('CreateUser', {value: {id: '2', name: 'newUser'}})
 
+  // t.parameters({style: 'matrix'})
+
   t.requestBody((t) => {
     t.content('application/json', userSchema).required()
     t.content('text/plain', userSchema)
   })
 })
-
 
 api.post('/user/create', sValidator('json', userSchema), (c) => {
   const user = c.req.valid('json')
