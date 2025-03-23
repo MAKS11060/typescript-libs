@@ -12,6 +12,8 @@ import type {
 
 export interface ReferenceObject {
   $ref: string
+  description?: string
+  summary?: string
 }
 
 interface DiscriminatorObject {
@@ -112,8 +114,10 @@ export type ParameterObject = BaseParameter & {
     | {in: 'cookie'; style?: 'form'}
   )
 
-const a: ParameterObject = {
-  name: 'test',
-  in: 'path',
-  required: true,
-}
+
+export type ParameterOptions = (
+  | {in: 'path'; style?: 'matrix' | 'label' | 'simple'; required: true}
+  | {in: 'query'; style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'}
+  | {in: 'header'; style?: 'simple'}
+  | {in: 'cookie'; style?: 'form'}
+)

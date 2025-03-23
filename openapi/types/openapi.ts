@@ -1,5 +1,5 @@
-import {StandardSchemaV1} from 'npm:@standard-schema/spec'
-import {
+import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
+import type {
   ComponentsObject,
   ContentObject,
   ExamplesObject,
@@ -23,8 +23,8 @@ import {
 } from 'npm:openapi3-ts/oas31'
 import {YAML} from '../_deps.ts'
 import {extractParams, isRef, ParsePath, SchemaInput, toSchema} from '../_utils.ts'
-import {SchemaBuilder} from '../openapi-schema.ts'
-import {ExampleObject} from '../types/openapi-schema.ts'
+import type {SchemaBuilder} from '../openapi-schema.ts'
+import type {ExampleObject} from '../types/openapi-schema.ts'
 
 export type ContentType = 'application/json' | 'text/plain'
 
@@ -60,12 +60,22 @@ const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'tr
 type OperationMethod = (typeof methods)[number]
 type Status = number | `${1 | 2 | 3 | 4 | 5}XX` | 'default'
 
+type ParameterOptions = {
+  path: {style?: 'matrix' | 'label' | 'simple'}
+  query: {style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'}
+  header: {style?: 'simple'}
+  cookie: {style?: 'form'}
+}
 type Operation = {
   summary: (summary: string) => void
   describe: (description: string) => void
   operationId: (id: string) => void
   deprecated: () => void
   parameters(parameter: ParameterObject | ReferenceObject): void
+  parameter: {
+    (ref: ReferenceObject): ParameterContext
+    <T extends keyof ParameterOptions>(name: string, location: T, style: ParameterOptions[T]['style']): ParameterContext
+  }
   security: (name: string | {name: string}, scope?: string[]) => void
   response: {
     (status: Status): ResponseContext
@@ -73,6 +83,16 @@ type Operation = {
     (status: Status, ref: ReferenceObject): ResponseRefContext
   }
   requestBody: (handler: (requestBody: RequestBodyContext) => void | ReferenceObject) => void
+}
+
+type ParameterContext = {
+  explode(): ParameterContext
+  describe: (description: string) => ParameterContext
+  deprecated: () => ParameterContext
+  content: {
+    <T extends SchemaInput>(contentType: ContentType, schema: T): ResponseContentContext<T>
+    <T extends SchemaInput>(contentType: string, schema: T): ResponseContentContext<T>
+  }
 }
 
 type ResponseContext = {
@@ -196,6 +216,22 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
       throw new Error("The 'example' and 'examples' properties are mutually exclusive")
     }
     target.example = value
+  }
+
+  const _parameters = (
+    target: OperationObject | PathItemObject,
+    location: ParameterLocation,
+    name: string
+  ): ParameterBuilder => {
+    const parameter: ParameterObject = {
+      in: location,
+      name,
+    }
+
+    target.parameters ??= []
+    target.parameters.push(parameter)
+
+    return createParameterBuilder(parameter)
   }
 
   type AddPathOptions<T extends string> = {

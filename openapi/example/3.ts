@@ -19,12 +19,20 @@ const UsersListResponse = doc.addResponses('UsersList', (t) => {
   t.content('application/json', usersSchema)
 })
 
-doc.addPath('/v1/users').get((t) => {
-  t.response(200, UsersListResponse).describe('Resp 200').summary('Users list')
-  t.response(201, UsersListResponse).describe('Resp 200')
-  t.response(202, UsersListResponse).summary('Users list 2')
-})
+// doc.addPath('/v1/users').get((t) => {
+//   t.response(200, UsersListResponse).describe('Resp 200').summary('Users list')
+//   t.response(201, UsersListResponse).describe('Resp 200')
+//   t.response(202, UsersListResponse).summary('Users list 2')
+// })
 
-doc.addPath('/v2/users').get((t) => {
-  t.response(200, UsersListResponse)
-})
+doc //
+  .addPath('/v1/users')
+  .get((t) => {
+    t.response(200, UsersListResponse)
+    // t.parameters('query', 'q', 'form').describe('Search query').required()
+    // t.parameters('header', 'x-apikey', 'simple')
+    // t.parameters('cookie', 'token')
+    t.parameter('q', 'query', 'spaceDelimited')
+    t.parameter('dq', 'header', 'simple')
+  })
+
