@@ -3,7 +3,7 @@
 import {o} from '../openapi-schema.ts'
 import {createOpenApiDoc} from '../openapi.ts'
 
-const doc = createOpenApiDoc({
+export const doc = createOpenApiDoc({
   info: {
     title: 'Sample API',
     description: 'A sample API to demonstrate all possible fields in OpenAPI 3.1',
@@ -47,8 +47,6 @@ const doc = createOpenApiDoc({
     url: 'https://example.com/docs',
   },
 })
-
-setTimeout(() => console.log(doc.toYAML()))
 
 const UserSchema = doc.addSchema(
   'User',
@@ -130,10 +128,11 @@ doc.addSecuritySchemes('oauth2', 'oauth2', {
 })
 
 // Paths
-doc.addPath('/users')
+doc
+  .addPath('/users')
   .parameters(pageInQuery)
 
-  .get(t => {
+  .get((t) => {
     t.summary('List all users')
     t.operationId('listUsers')
     t.parameters(pageInQuery)

@@ -1,15 +1,12 @@
 #!/usr/bin/env -S deno run -A --watch
 
 import {Hono} from 'hono'
-import {cors} from 'hono/cors'
 import {sValidator} from 'npm:@hono/standard-validator'
 import {z} from 'zod'
-import {createOpenApiDoc} from '../openapi.ts'
+import {createOpenApiDoc} from '../types/openapi.ts'
 
-const doc = createOpenApiDoc({info: {title: 'local', version: '1'}, servers: [{url: 'http://localhost:8000/'}]})
-
-// routes.ts
-const api = new Hono() //
+export const api = new Hono() //
+export const doc = createOpenApiDoc({info: {title: 'local', version: '1'}, servers: [{url: 'http://localhost:8000/'}]})
 
 // users schemas
 const userSchema = z.object({
@@ -49,14 +46,3 @@ api.post('/user/create', sValidator('json', userSchema), (c) => {
   const user = c.req.valid('json')
   return c.json(user)
 })
-
-// main.ts
-{
-  const app = new Hono() //
-    .use(cors())
-    .get('/openapi.yml', (c) => c.text(doc.toYAML()))
-
-    .route('/', api)
-
-  Deno.serve(app.fetch)
-}

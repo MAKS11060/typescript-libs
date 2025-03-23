@@ -2,7 +2,6 @@ import {StandardSchemaV1} from 'npm:@standard-schema/spec'
 import {
   ComponentsObject,
   ContentObject,
-  ExampleObject,
   ExamplesObject,
   ExternalDocumentationObject,
   HeaderObject,
@@ -25,11 +24,7 @@ import {
 import {YAML} from './_deps.ts'
 import {extractParams, isRef, ParsePath, SchemaInput, toSchema} from './_utils.ts'
 import {SchemaBuilder} from './openapi-schema.ts'
-import {ExampleObject as ExampleObject2} from './types/openapi-schema.ts'
-
-type S = StandardSchemaV1
-
-SchemaBuilder
+import {ExampleObject} from './types/openapi-schema.ts'
 
 export type ContentType = 'application/json' | 'text/plain'
 
@@ -92,11 +87,9 @@ type isStandardSchema<T> = T extends StandardSchemaV1 ? StandardSchemaV1.InferOu
 
 type ResponseContentContext<T = unknown> = {
   headers: (headers: HeadersObject) => ResponseContentContext<T>
-  examples: (name: string, examples: ExampleObject2<isStandardSchema<T>>) => ResponseContentContext<T>
+  examples: (name: string, examples: ExampleObject<isStandardSchema<T>>) => ResponseContentContext<T>
   /** @deprecated */
   example: (value: isStandardSchema<T>) => ResponseContentContext<T>
-  // examples: (name: string, examples: ExampleObject) => ResponseContentContext<T>
-  // example: (value: unknown) => ResponseContentContext<T>
 }
 
 type RequestBodyContext = {
@@ -242,11 +235,6 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         },
         content: (contentType, schema) => {
           const mediaTypeObject = _content(response, contentType, schema)
-          // const mediaTypeObject: MediaTypeObject = {schema: toSchema(schema)}
-
-          // response.content ??= {}
-          // response.content[contentType] = mediaTypeObject
-
           const responseContentContext: ResponseContentContext = {
             headers: (headers: HeadersObject) => {
               // for (const key in headers) {
@@ -318,7 +306,8 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
           if (isRef(handler)) {
             operation.requestBody ??= handler
           } else {
-            const requestBody: RequestBodyObject = (operation.requestBody && !isRef(operation.requestBody)) ? operation.requestBody : {content: {}}
+            const requestBody: RequestBodyObject =
+              operation.requestBody && !isRef(operation.requestBody) ? operation.requestBody : {content: {}}
             operation.requestBody = requestBody
 
             const ctx: RequestBodyContext = {
@@ -338,7 +327,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
 
             handler(ctx)
           }
-        }
+        },
       })
     }
 
@@ -538,7 +527,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     addExamples,
     addHeaders,
     addRequestBodies,
-    addSecuritySchemes: addSecuritySchemes,
+    addSecuritySchemes,
     // addLinks,
     // addCallbacks,
 
