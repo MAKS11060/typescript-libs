@@ -1,9 +1,10 @@
 #!/usr/bin/env -S deno run -A
 
 import {zodToJsonSchema} from 'npm:zod-to-json-schema'
-import type {ExternalDocumentationObject, ReferenceObject, SchemaObject} from 'openapi3-ts/oas31'
+import type {ExternalDocumentationObject, SchemaObject} from 'openapi3-ts/oas31'
 import {z} from 'zod'
-import {o, SchemaBuilder} from './openapi-schema.ts'
+import {SchemaBuilder} from './openapi-schema.ts'
+import {ReferenceObject} from './types/openapi-schema.ts'
 
 // '/api/{version}' => 'version'
 export type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` ? P | ParsePath<Rest> : never

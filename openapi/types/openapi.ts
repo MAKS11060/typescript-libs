@@ -74,7 +74,7 @@ type Operation = {
       name: string,
       location: T,
       options: (ParameterOptions[T] & ParameterOptionsWithSchema) | ((t: OpParameterContext) => void)
-    ): OpParameterContext
+    ): void
   }
   security: (name: string | {name: string}, scope?: string[]) => void
   response: {
@@ -215,7 +215,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     target.example = value
   }
 
-  const _parameters = () => {}
+  // const _parameters = () => {}
 
   type AddPathOptions<T extends string> = {
     params?: {
@@ -317,7 +317,6 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
               },
             }
             options(ctx)
-            return ctx
           }
         },
         response: (status, ref?: ReferenceObject) => {
@@ -367,7 +366,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         if (isRef(parameter)) {
           pathItem.parameters.push(parameter)
         } else {
-          pathItem.parameters.push(parameter)
+          pathItem.parameters.push(parameter as any)
         }
         return pathHandler
       },

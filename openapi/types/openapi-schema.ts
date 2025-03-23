@@ -1,6 +1,5 @@
 #!/usr/bin/env -S deno run -A --env-file --watch
 
-import {YAML} from '../_deps.ts'
 import type {
   ArraySchema,
   BaseSchema,
