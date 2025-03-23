@@ -25,14 +25,25 @@ const UsersListResponse = doc.addResponses('UsersList', (t) => {
 //   t.response(202, UsersListResponse).summary('Users list 2')
 // })
 
+const tokenInHeader = doc.addParameters('token', 'header', {
+  schema: {
+    type: 'string',
+    format: 'password',
+  }
+})
+
+const authApi = doc.addSecuritySchemes('auth', 'apiKey', {in: 'cookie', name: 'token'})
+
 doc //
   .addPath('/v1/users')
   .get((t) => {
+    t.security(authApi)
+    t.parameter(tokenInHeader)
+    t.parameter('int64', 'header', (t) => {
+      t.content('application/json', {
+        type: 'string',
+        format: 'int64',
+      })
+    })
     t.response(200, UsersListResponse)
-    // t.parameters('query', 'q', 'form').describe('Search query').required()
-    // t.parameters('header', 'x-apikey', 'simple')
-    // t.parameters('cookie', 'token')
-    t.parameter('q', 'query', 'spaceDelimited')
-    t.parameter('dq', 'header', 'simple')
   })
-

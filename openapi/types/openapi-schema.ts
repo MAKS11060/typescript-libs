@@ -1,9 +1,11 @@
+#!/usr/bin/env -S deno run -A --env-file --watch
+
+import {YAML} from '../_deps.ts'
 import type {
   ArraySchema,
   BaseSchema,
   BooleanSchema,
   CombinedSchema,
-  JsonSchema,
   NullSchema,
   NumberSchema,
   ObjectSchema,
@@ -81,43 +83,52 @@ interface HeaderObject extends BaseSchema {
   allowEmptyValue?: boolean
 }
 
-//
-// Возможные значения для параметра `in`
-type ParameterLocation = 'query' | 'header' | 'path' | 'cookie'
+// Parameters
+export type ParameterLocation = 'query' | 'header' | 'path' | 'cookie'
+export type ParameterStyle = 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'
+export type ParameterOptions = {
+  path: {
+    style?: 'matrix' | 'label' | 'simple'
+    /** Always `true` */
+    required?: true
+  }
+  query: {
+    style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'
+    explode?: boolean
+    allowReserved?: boolean
+  }
+  header: {
+    style?: 'simple'
+    explode?: boolean
+  }
+  cookie: {
+    style?: 'form'
+    explode?: boolean
+  }
+}
 
-type ParameterStyle = 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'
+export type ParameterOptionsWithSchema = {
+  // Fixed Fields for use with schema https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#fixed-fields-for-use-with-schema
+  style?: ParameterStyle
+  explode?: boolean
+  allowReserved?: boolean
+  schema: OpenApiJsonSchema
+  example?: any
+  examples?: Record<string, ExampleObject | ReferenceObject>
+}
+export type ParameterOptionsWithContent = {
+  // Fixed Fields for use with content https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#fixed-fields-for-use-with-schema
+  content?: Record<string, MediaTypeObject | ReferenceObject>
+}
 
-interface BaseParameter {
+// export type ParameterCommonOptions =
+
+export type ParameterObject = {
+  // Common Fixed Fields https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#fixed-fields-10
   name: string
   in: ParameterLocation
   description?: string
   required?: boolean
   deprecated?: boolean
   allowEmptyValue?: boolean
-  style?: ParameterStyle
-  explode?: boolean
-  allowReserved?: boolean
-  schema?: JsonSchema
-  example?: any
-  examples?: Record<string, ExampleObject | ReferenceObject>
-  content?: Record<string, MediaTypeObject>
-}
-
-export type ParameterObject = BaseParameter & {
-  // Ограничения для style в зависимости от расположения параметра
-  style?: ParameterStyle
-  explode?: boolean
-} & (
-    | {in: 'path'; style?: 'matrix' | 'label' | 'simple'; required: true}
-    | {in: 'query'; style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'}
-    | {in: 'header'; style?: 'simple'}
-    | {in: 'cookie'; style?: 'form'}
-  )
-
-
-export type ParameterOptions = (
-  | {in: 'path'; style?: 'matrix' | 'label' | 'simple'; required: true}
-  | {in: 'query'; style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'}
-  | {in: 'header'; style?: 'simple'}
-  | {in: 'cookie'; style?: 'form'}
-)
+} & (ParameterOptionsWithSchema | ParameterOptionsWithContent)

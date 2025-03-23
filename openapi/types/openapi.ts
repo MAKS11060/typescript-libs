@@ -10,8 +10,6 @@ import type {
   MediaTypeObject,
   OpenAPIObject,
   OperationObject,
-  ParameterLocation,
-  ParameterObject,
   PathItemObject,
   PathsObject,
   ReferenceObject,
@@ -24,7 +22,13 @@ import type {
 import {YAML} from '../_deps.ts'
 import {extractParams, isRef, ParsePath, SchemaInput, toSchema} from '../_utils.ts'
 import type {SchemaBuilder} from '../openapi-schema.ts'
-import type {ExampleObject} from '../types/openapi-schema.ts'
+import type {
+  ExampleObject,
+  ParameterLocation,
+  ParameterObject,
+  ParameterOptions,
+  ParameterOptionsWithSchema,
+} from '../types/openapi-schema.ts'
 
 export type ContentType = 'application/json' | 'text/plain'
 
@@ -55,26 +59,22 @@ type ComponentType =
   | 'links'
   | 'callbacks'
 
-// type OperationMethod = 'get' | 'put' | 'post' | 'delete' | 'options' | 'head' | 'patch' | 'trace'
 const methods = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'] as const
 type OperationMethod = (typeof methods)[number]
 type Status = number | `${1 | 2 | 3 | 4 | 5}XX` | 'default'
 
-type ParameterOptions = {
-  path: {style?: 'matrix' | 'label' | 'simple'}
-  query: {style?: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'}
-  header: {style?: 'simple'}
-  cookie: {style?: 'form'}
-}
 type Operation = {
   summary: (summary: string) => void
   describe: (description: string) => void
   operationId: (id: string) => void
   deprecated: () => void
-  parameters(parameter: ParameterObject | ReferenceObject): void
   parameter: {
-    (ref: ReferenceObject): ParameterContext
-    <T extends keyof ParameterOptions>(name: string, location: T, style: ParameterOptions[T]['style']): ParameterContext
+    (ref: ReferenceObject): void
+    <T extends ParameterLocation>(
+      name: string,
+      location: T,
+      options: (ParameterOptions[T] & ParameterOptionsWithSchema) | ((t: OpParameterContext) => void)
+    ): OpParameterContext
   }
   security: (name: string | {name: string}, scope?: string[]) => void
   response: {
@@ -85,13 +85,10 @@ type Operation = {
   requestBody: (handler: (requestBody: RequestBodyContext) => void | ReferenceObject) => void
 }
 
-type ParameterContext = {
-  explode(): ParameterContext
-  describe: (description: string) => ParameterContext
-  deprecated: () => ParameterContext
+type OpParameterContext = {
   content: {
-    <T extends SchemaInput>(contentType: ContentType, schema: T): ResponseContentContext<T>
-    <T extends SchemaInput>(contentType: string, schema: T): ResponseContentContext<T>
+    <T extends SchemaInput>(contentType: ContentType, schema: T): OpParameterContext
+    <T extends SchemaInput>(contentType: string, schema: T): OpParameterContext
   }
 }
 
@@ -218,21 +215,7 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     target.example = value
   }
 
-  const _parameters = (
-    target: OperationObject | PathItemObject,
-    location: ParameterLocation,
-    name: string
-  ): ParameterBuilder => {
-    const parameter: ParameterObject = {
-      in: location,
-      name,
-    }
-
-    target.parameters ??= []
-    target.parameters.push(parameter)
-
-    return createParameterBuilder(parameter)
-  }
+  const _parameters = () => {}
 
   type AddPathOptions<T extends string> = {
     params?: {
@@ -311,12 +294,30 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
         deprecated: () => {
           operation.deprecated = true
         },
-        parameters: (parameter) => {
+        parameter: (name, location, options) => {
           operation.parameters ??= []
-          if (isRef(parameter)) {
-            operation.parameters.push(parameter)
-          } else {
-            operation.parameters.push(parameter)
+          if (isRef(name)) {
+            operation.parameters.push(name)
+            return
+          }
+
+          const parameter: ParameterObject = {
+            name,
+            in: location,
+            ...(typeof options !== 'function' && options),
+            ...(location === 'path' && {required: true}),
+          }
+          operation.parameters.push(parameter as any)
+
+          if (typeof options === 'function') {
+            const ctx: OpParameterContext = {
+              content: (contentType, schema) => {
+                const mediaTypeObject = _content(parameter as any, contentType, schema)
+                return ctx
+              },
+            }
+            options(ctx)
+            return ctx
           }
         },
         response: (status, ref?: ReferenceObject) => {
@@ -412,17 +413,29 @@ export const createOpenApiDoc = <Doc extends CreateOpenApiDoc>(doc: Doc) => {
     return _addComponent('responses', name, response)
   }
 
-  const addParameters = (
+  const addParameters = <T extends ParameterLocation>(
     name: string,
-    type: ParameterLocation,
-    options: {schema: SchemaInput} & Omit<ParameterObject, 'in' | 'name' | 'schema'>
+    location: T,
+    options: (ParameterOptions[T] & ParameterOptionsWithSchema) | ((t: OpParameterContext) => void)
   ) => {
-    return _addComponent('parameters', name, {
-      in: type,
+    const parameter: ParameterObject = {
       name,
-      schema: toSchema(options.schema),
-      ...(type === 'path' && {required: options.required ?? true}),
-    } satisfies ParameterObject)
+      in: location,
+      ...(typeof options !== 'function' && options),
+      ...(location === 'path' && {required: true}),
+    }
+
+    if (typeof options === 'function') {
+      const ctx: OpParameterContext = {
+        content: (contentType, schema) => {
+          const mediaTypeObject = _content(parameter as any, contentType, schema)
+          return ctx
+        },
+      }
+      options(ctx)
+    }
+
+    return _addComponent('parameters', name, parameter)
   }
 
   const addExamples = (name: string, examples: ExampleObject) => {

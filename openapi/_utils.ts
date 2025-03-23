@@ -3,7 +3,7 @@
 import {zodToJsonSchema} from 'npm:zod-to-json-schema'
 import type {ExternalDocumentationObject, ReferenceObject, SchemaObject} from 'openapi3-ts/oas31'
 import {z} from 'zod'
-import {SchemaBuilder} from './openapi-schema.ts'
+import {o, SchemaBuilder} from './openapi-schema.ts'
 
 // '/api/{version}' => 'version'
 export type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` ? P | ParsePath<Rest> : never
@@ -12,7 +12,10 @@ export type ParsePath<T extends string> = T extends `${string}{${infer P}}${infe
 export const extractParams = (path: string) => Array.from(path.matchAll(/\{([^}]+)\}/g), (m) => m[1])
 
 // Schema
-export const isRef = (obj: {}): obj is ReferenceObject => '$ref' in obj
+export const isRef = (obj?: unknown): obj is ReferenceObject => {
+  if (typeof obj !== 'object' || obj === null) return false
+  return '$ref' in obj
+}
 
 export type SchemaInput = SchemaObject | SchemaBuilder | ReferenceObject | z.ZodTypeAny
 

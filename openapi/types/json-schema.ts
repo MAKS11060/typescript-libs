@@ -33,7 +33,7 @@ export type SchemaFormat =
   | 'json-pointer'
   | 'relative-json-pointer'
   | 'regex'
-  | string
+  // | string
 
 export interface StringSchema extends BaseSchema {
   type: 'string'
