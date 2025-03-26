@@ -3,11 +3,23 @@
 import {expect} from 'jsr:@std/expect'
 import {o} from './json-schema-builder.ts'
 
-// const arr = o.array(o.string()).min(1).max(3)
-// console.log(arr)
+// const arr = o
+//   .array(o.string())
+//   .min(1)
+//   .max(3)
+//   .uniqueItems(true)
+//   .contains(o.string().pattern('^[A-Z]+$'))
+//   .minContains(1)
+//   .maxContains(2)
 // console.log(arr.toSchema())
-const arr = o.array(o.string())
-console.log(arr.min(1))
+
+const obj = o.object({
+  union: o.union([o.string(), o.number()]),
+  tuple: o.tuple([o.string(), o.number(), o.number()]),
+  literal: o.literal('a'),
+  enum: o.enum(['a', 'b']),
+})
+console.log(obj.toSchema())
 
 Deno.test('SchemaGenerator Tests', async (t) => {
   await t.step('User Schema with Required and Optional Fields', () => {

@@ -2,6 +2,7 @@ import {
   ArraySchema,
   BooleanSchema,
   CombinedSchema,
+  JsonSchema,
   NullSchema,
   NumberSchema,
   ObjectSchema,
@@ -59,10 +60,50 @@ class SchemaGenerator {
   static not(schema: SchemaGeneratorInstance): CombinedSchemaGenerator {
     return new CombinedSchemaGenerator('not', [schema])
   }
+
+  /**
+   * Creates a union schema that matches any of the provided schemas.
+   * @param schemas - An array of schema generator instances.
+   * @returns A new instance of CombinedSchemaGenerator with anyOf set.
+   */
+  static union(schemas: SchemaGeneratorInstance[]): CombinedSchemaGenerator {
+    return this.anyOf(schemas)
+  }
+
+  /**
+   * Creates a tuple schema that matches an array with specific item schemas.
+   * @param items - An array of schema generator instances for each item in the tuple.
+   * @returns A new instance of ArraySchemaGenerator with prefixItems set.
+   */
+  static tuple(items: SchemaGeneratorInstance[]): ArraySchemaGenerator {
+    const generator = new ArraySchemaGenerator(items[0])
+    generator.schema.prefixItems = items.map((item) => item.toSchema())
+    return generator
+  }
+
+  /**
+   * Creates a literal schema that matches a specific value.
+   * @param value - The literal value to match.
+   * @returns A new instance of StringSchemaGenerator with const set.
+   */
+  static literal(value: string): StringSchemaGenerator {
+    return new StringSchemaGenerator().const(value)
+  }
+
+  /**
+   * Creates an enum schema that matches any of the provided values.
+   * @param values - An array of values to match.
+   * @returns A new instance of StringSchemaGenerator with enum set.
+   */
+  static enum(values: string[]): StringSchemaGenerator {
+    const generator = new StringSchemaGenerator()
+    generator.schema.enum = values
+    return generator
+  }
 }
 
 class StringSchemaGenerator {
-  private readonly schema: StringSchema = {type: 'string'}
+  schema: StringSchema = {type: 'string'}
   private readonly isRequired: boolean
 
   constructor(isRequired: boolean = true) {
@@ -89,6 +130,28 @@ class StringSchemaGenerator {
 
   optional(): StringSchemaGenerator {
     return this.clone(false)
+  }
+
+  /**
+   * Sets a constant value for the string schema.
+   * @param value - The constant value.
+   * @returns A new instance of StringSchemaGenerator with const set.
+   */
+  const(value: string): StringSchemaGenerator {
+    const clone = this.clone()
+    clone.schema.const = value
+    return clone
+  }
+
+  /**
+   * Sets an enum for the string schema.
+   * @param values - The enum values.
+   * @returns A new instance of StringSchemaGenerator with enum set.
+   */
+  enum(values: string[]): StringSchemaGenerator {
+    const clone = this.clone()
+    clone.schema.enum = values
+    return clone
   }
 
   toSchema(): StringSchema {
@@ -209,25 +272,86 @@ class ObjectSchemaGenerator {
 }
 
 class ArraySchemaGenerator {
-  private readonly schema: ArraySchema
+  readonly schema: ArraySchema
+  private readonly items: SchemaGeneratorInstance
 
   constructor(items: SchemaGeneratorInstance) {
-    // this.schema = {type: 'array', items: items.toSchema()}
-    console.log(items)
-    this.schema = {type: 'array', }
+    this.items = items
+    this.schema = {type: 'array', items: items.toSchema()}
   }
 
+  /**
+   * Sets the minimum number of items in the array.
+   * @param minItems - The minimum number of items.
+   * @returns A new instance of ArraySchemaGenerator with minItems set.
+   */
   min(minItems: number): ArraySchemaGenerator {
     const clone = this.clone()
-    console.log(clone)
     clone.schema.minItems = minItems
     return clone
   }
 
+  /**
+   * Sets the maximum number of items in the array.
+   * @param maxItems - The maximum number of items.
+   * @returns A new instance of ArraySchemaGenerator with maxItems set.
+   */
   max(maxItems: number): ArraySchemaGenerator {
     const clone = this.clone()
     clone.schema.maxItems = maxItems
     return clone
+  }
+
+  /**
+   * Sets whether all items in the array must be unique.
+   * @param unique - The flag indicating if items should be unique.
+   * @returns A new instance of ArraySchemaGenerator with uniqueItems set.
+   */
+  uniqueItems(unique: boolean): ArraySchemaGenerator {
+    const clone = this.clone()
+    clone.schema.uniqueItems = unique
+    return clone
+  }
+
+  /**
+   * Sets the schema that the array must contain.
+   * @param containsSchema - The schema that the array must contain.
+   * @returns A new instance of ArraySchemaGenerator with contains set.
+   */
+  contains(containsSchema: SchemaGeneratorInstance): ArraySchemaGenerator {
+    const clone = this.clone()
+    clone.schema.contains = containsSchema.toSchema()
+    return clone
+  }
+
+  /**
+   * Sets the minimum number of items that match the contains schema.
+   * @param minContains - The minimum number of matching items.
+   * @returns A new instance of ArraySchemaGenerator with minContains set.
+   */
+  minContains(minContains: number): ArraySchemaGenerator {
+    const clone = this.clone()
+    clone.schema.minContains = minContains
+    return clone
+  }
+
+  /**
+   * Sets the maximum number of items that match the contains schema.
+   * @param maxContains - The maximum number of matching items.
+   * @returns A new instance of ArraySchemaGenerator with maxContains set.
+   */
+  maxContains(maxContains: number): ArraySchemaGenerator {
+    const clone = this.clone()
+    clone.schema.maxContains = maxContains
+    return clone
+  }
+
+  /**
+   * Sets the prefix items for the tuple schema.
+   * @param prefixItems - The prefix items for the tuple.
+   */
+  prefixItems(prefixItems: JsonSchema[]) {
+    this.schema.prefixItems = prefixItems
   }
 
   toSchema(): ArraySchema {
@@ -235,7 +359,7 @@ class ArraySchemaGenerator {
   }
 
   private clone(): ArraySchemaGenerator {
-    const clone = new ArraySchemaGenerator(this.schema.items as SchemaGeneratorInstance)
+    const clone = new ArraySchemaGenerator(this.items)
     Object.assign(clone.schema, this.schema)
     return clone
   }
