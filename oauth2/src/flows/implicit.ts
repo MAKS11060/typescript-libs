@@ -1,5 +1,5 @@
 /**
- * Authorization using the Implicit Grant flow
+ * Authorization using the **Implicit Grant** flow
  *
  * @module implicit
  */

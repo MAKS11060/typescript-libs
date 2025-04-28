@@ -1,5 +1,5 @@
 /**
- * Authorization using the Authorization Code Grant flow
+ * Authorization using the **Authorization Code Grant** flow
  *
  * @module authorizationCode
  */
@@ -70,10 +70,10 @@ export const oauth2ExchangeCode = async <T>(
  * @param refreshToken - Refresh token.
  * @returns Token response.
  */
-export const oauth2RefreshToken = async (
+export const oauth2RefreshToken = async <T>(
   config: OAuth2ClientConfig,
   refreshToken: string
-): Promise<OAuth2TokenResponse> => {
+): Promise<OAuth2TokenResponse<T>> => {
   if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
 
   const headers = new Headers({

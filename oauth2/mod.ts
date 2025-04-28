@@ -4,8 +4,10 @@
  * Client library for the `OAuth2`
  *
  * ## Features
- * - Flows
- *   - Authorization Code Grant
+ * - **Authorization Grant**
+ *   - Authorization Code
+ *   - Client Credentials
+ *   - Implicit
  * - Supported `PKCE` [(Proof Key for Code Exchange)](https://datatracker.ietf.org/doc/html/rfc7636)
  * - Helpers for working with tokens
  *   - {@linkcode isTokenExpired}
