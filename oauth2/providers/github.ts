@@ -30,6 +30,7 @@ export const createGithubOauth2: CreateOAuth2Config<{
   scope: config.scope,
   options: {
     params: {
+      ...(config.login && {login: config.login}),
       ...(config.allowSignup === false && {allow_signup: 'false'}),
     },
   },
