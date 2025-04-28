@@ -66,7 +66,7 @@ const formatsPrintSize = {hex: 2, dec: 3, bin: 8}
  * // 00000020 cd 5a b3 2b 47 59 53 e6
  * ```
  */
-export const printBuf = (buffer: ArrayBuffer, options?: PrintBufOptions) => {
+export const printBuf = (buffer: Uint8Array, options?: PrintBufOptions) => {
   const cfg: Required<PrintBufOptions> = {
     ...defaultOptions,
     ...options,
