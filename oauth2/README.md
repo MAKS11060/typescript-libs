@@ -4,8 +4,8 @@
 - **Client**
    - **Authorization Grant**
      - Authorization Code
-     - Implicit
      - Client Credentials
+     - Implicit
 
 - **TODO**
   - **Server**

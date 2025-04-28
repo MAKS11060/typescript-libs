@@ -14,7 +14,9 @@
   },
   "publish": {
     "exclude": [
-      "**/*.test.ts"
+      "**/*.test.ts",
+      "examples",
+      "README.md"
     ]
   }
 }
