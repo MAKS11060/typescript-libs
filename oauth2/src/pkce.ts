@@ -1,3 +1,9 @@
+/**
+ * The PKCE module contains features for easy integration with OAuth2
+ *
+ * @module PKCE
+ */
+
 import {encodeBase64Url} from '@std/encoding/base64url'
 
 /**

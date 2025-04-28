@@ -4,18 +4,17 @@ import type {OAuth2TokenResponse} from './oauth2.ts'
  * Represents an `OAuth2` token object with structured properties.
  *
  * This interface defines the structure of an `OAuth2` token after it has been processed and normalized.
- *
- * @property {string} tokenType - The type of the token, typically "Bearer".
- * @property {number | null} expiresIn - The number of seconds until the access token expires, or `null` if not provided.
- * @property {string} accessToken - The access token string.
- * @property {string | null} refreshToken - The refresh token string, or `null` if not provided.
- * @property {string[]} scope - An array of scopes granted by the authorization server.
  */
 export interface OAuth2Token {
+  /** The type of the token, typically "Bearer". */
   tokenType: 'Bearer'
+  /** The number of seconds until the access token expires, or `null` if not provided. */
   expiresIn: number | null
+  /** The access token string. */
   accessToken: string
+  /** The refresh token string, or `null` if not provided. */
   refreshToken: string | null
+  /** An array of scopes granted by the authorization server. */
   scope: string[]
 }
 
@@ -30,7 +29,7 @@ export interface OAuth2Token {
  *
  * @example
  * ```ts
- * const rawTokenResponse = {
+ * const rawToken = {
  *   access_token: 'abc123',
  *   token_type: 'Bearer',
  *   expires_in: 3600,
@@ -38,7 +37,7 @@ export interface OAuth2Token {
  *   scope: 'read write'
  * }
  *
- * const token = normalizedToken(rawTokenResponse)
+ * const token = normalizedToken(rawToken)
  * console.log(token.accessToken) // Output: "abc123"
  * console.log(token.scope)       // Output: ["read", "write"]
  * ```

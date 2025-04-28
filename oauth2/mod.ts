@@ -144,13 +144,14 @@
  * @module
  */
 
-export * from './error.ts'
-export * from './oauth2.ts'
-export * from './pkce.ts'
-export * from './utils.ts'
+// flows
+export * from './src/flows/authorization_code.ts'
+export * from './src/flows/client_credentials.ts'
+export * from './src/flows/implicit.ts'
 
-export * from './providers/discord.ts'
-export * from './providers/github.ts'
-export * from './providers/google.ts'
-export * from './providers/shikimori.ts'
+export * from './providers.ts'
 
+export * from './src/error.ts'
+export * from './src/oauth2.ts'
+export * from './src/pkce.ts'
+export * from './src/utils.ts'
