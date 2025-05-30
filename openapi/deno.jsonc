@@ -1,9 +1,20 @@
 {
   "name": "@maks11060/openapi",
   "version": "0.0.0",
-  "imports": {},
+  "tasks": {
+    "test": "deno test",
+    "test-dev": "deno test --no-check --watch",
+  },
+  "imports": {
+    "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
+    "@std/yaml": "jsr:@std/yaml@^1.0.5",
+    "zod": "npm:zod@^3.25.28",
+  },
   "exports": {
-    ".": "./mod.ts"
+    ".": "./mod.ts",
+    "./plugin/arktype": "./src/plugins/arktype.ts",
+    "./plugin/valibot": "./src/plugins/valibot.ts",
+    "./plugin/zod": "./src/plugins/zod.ts",
   },
   "publish": {
     "exclude": [
