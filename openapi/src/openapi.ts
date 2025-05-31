@@ -1,5 +1,5 @@
 import type {StandardSchemaV1} from '@standard-schema/spec'
-import * as YAML from '@std/yaml'
+import * as YAML from '@std/yaml/stringify'
 import {entriesToRecord, extractParams, toProp, toRest} from './lib/helpers.ts'
 import {createRef, deRef, isRef, type MaybeRef, type Ref} from './lib/ref.ts'
 import {

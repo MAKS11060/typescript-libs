@@ -1,7 +1,7 @@
-import {StandardSchemaV1} from '@standard-schema/spec'
-import * as YAML from '@std/yaml'
-import {ParsePath} from './lib/helpers.ts'
-import {MaybeRef, Ref} from './lib/ref.ts'
+import type {StandardSchemaV1} from '@standard-schema/spec'
+import type * as YAML from '@std/yaml/stringify'
+import type {ParsePath} from './lib/helpers.ts'
+import type {MaybeRef, Ref} from './lib/ref.ts'
 
 export const Internal = Symbol('Internal')
 
