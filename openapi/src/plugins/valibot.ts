@@ -1,15 +1,12 @@
-import {toJsonSchema, type ConversionConfig} from 'npm:@valibot/to-json-schema'
-import * as v from 'npm:valibot'
+import {toJsonSchema, type ConversionConfig} from 'npm:@valibot/to-json-schema@1.2.0'
+import * as v from 'npm:valibot@1.1.0'
 import {entriesToRecord} from '../lib/helpers.ts'
-import type {Plugin} from '../types.ts'
+import type {SchemaPlugin} from '../types.ts'
 
-// const toID = (id: string) => `#/components/schemas/${id}`
-
-export const valibotPlugin = (config?: ConversionConfig) => {
-  const registry = new Map<
-    string,
-    v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>
-  >()
+export const valibotPlugin = (
+  config?: ConversionConfig
+): SchemaPlugin<v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>> => {
+  const registry = new Map<string, v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>()
 
   return {
     vendor: v.any()['~standard']['vendor'],
@@ -33,5 +30,5 @@ export const valibotPlugin = (config?: ConversionConfig) => {
       })
       return {schemas}
     },
-  } satisfies Plugin<v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>
+  }
 }

@@ -7,5 +7,5 @@
  */
 
 export {createDoc} from './src/openapi.ts'
-export {type OpenAPI, type OpenAPIConfig, type Plugin} from './src/types.ts'
+export {type OpenAPI, type OpenAPIConfig, type SchemaPlugin as Plugin} from './src/types.ts'
 

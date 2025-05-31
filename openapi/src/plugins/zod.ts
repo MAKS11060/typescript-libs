@@ -1,7 +1,7 @@
 import z from 'zod/v4'
-import type {Plugin} from '../types.ts'
+import type {SchemaPlugin} from '../types.ts'
 
-export const zodPlugin = () => {
+export const zodPlugin = (): SchemaPlugin<z.ZodType> => {
   const registry = z.registry<z.core.JSONSchemaMeta>()
 
   return {
@@ -28,5 +28,5 @@ export const zodPlugin = () => {
         uri: (id) => `#/components/schemas/${id}`,
       })
     },
-  } satisfies Plugin<z.ZodType>
+  }
 }

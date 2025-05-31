@@ -1,10 +1,8 @@
-import {type} from 'npm:arktype'
+import {type} from 'npm:arktype@2.1.20'
 import {entriesToRecord} from '../lib/helpers.ts'
-import type {Plugin} from '../types.ts'
+import type {SchemaPlugin} from '../types.ts'
 
-// const toID = (id: string) => `#/components/schemas/${id}`
-
-export const arktypePlugin = () => {
+export const arktypePlugin = (): SchemaPlugin<type> => {
   const registry = new Map<string, type>()
 
   return {
@@ -25,13 +23,10 @@ export const arktypePlugin = () => {
     },
     getSchemas() {
       const schemas = entriesToRecord(registry, (schema) => {
-        // console.log(schemad)
-
-        schema.configure({})
-
+        // schema.configure({})
         return schema.toJsonSchema()
       })
       return {schemas}
     },
-  } satisfies Plugin<type>
+  }
 }

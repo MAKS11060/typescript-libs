@@ -4,6 +4,7 @@
   "tasks": {
     "test": "deno test",
     "test-dev": "deno test --no-check --watch",
+    "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
   },
   "imports": {
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
@@ -18,7 +19,8 @@
   },
   "publish": {
     "exclude": [
-      "*.test.ts"
+      "**/*.test.ts",
+      "examples",
     ]
   }
 }

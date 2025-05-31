@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
 import {z} from 'zod/v4'
-import '../debug/yaml.ts'
-import {createDoc} from './src/openapi.ts'
-import {zodPlugin} from './src/plugins/zod.ts'
+import '../../debug/yaml.ts'
+import {createDoc} from '../src/openapi.ts'
+import {zodPlugin} from '../src/plugins/zod.ts'
 
 export const doc = createDoc({
   // strict: false,

@@ -1,28 +1,28 @@
+import type {StandardSchemaV1} from '@standard-schema/spec'
 import * as YAML from '@std/yaml'
-import {z} from 'zod/v4'
 import {entriesToRecord, extractParams, toProp, toRest} from './lib/helpers.ts'
-import {createRef, deRef, isRef, MaybeRef, Ref} from './lib/ref.ts'
+import {createRef, deRef, isRef, type MaybeRef, type Ref} from './lib/ref.ts'
 import {
-  AddOperation,
-  AddParameter,
-  AddParameterHeader,
-  AddParameterInternal,
-  AddParameterPath,
-  AddPath,
-  AddPathItemOptions,
-  AddRequestBody,
-  AddRequestBodyContent,
-  AddResponse,
-  AddResponseContent,
-  AddSchema,
-  Example,
   Internal,
-  OpenAPI,
-  OpenAPIConfig,
-  ParameterLocation,
-  Security,
-  ServerObject,
-  Status,
+  type AddOperation,
+  type AddParameter,
+  type AddParameterHeader,
+  type AddParameterInternal,
+  type AddParameterPath,
+  type AddPath,
+  type AddPathItemOptions,
+  type AddRequestBody,
+  type AddRequestBodyContent,
+  type AddResponse,
+  type AddResponseContent,
+  type AddSchema,
+  type Example,
+  type OpenAPI,
+  type OpenAPIConfig,
+  type ParameterLocation,
+  type Security,
+  type ServerObject,
+  type Status,
 } from './types.ts'
 
 const ComponentKeyName = /^[a-zA-Z0-9\.\-_]+$/
@@ -37,6 +37,21 @@ const isValidComponentName = (name: string) => {
 
 /**
  * Create OpenAPI Schema builder
+ *
+ * @example
+ * ```ts
+ * const doc = createDoc({
+ *   info: {title: 'Test', version: '1.0.0'},
+ * })
+ *
+ * doc
+ *   .addPath('/api/path') //
+ *   .get((t) => {
+ *     t.response(200, (t) => {
+ *       t.content('application/json', {type: 'string'})
+ *     })
+ *   })
+ * ```
  */
 export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> => {
   const paths = new Map<string, MaybeRef<AddPath>>()
@@ -139,10 +154,16 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
     })
   }
 
-  const _toParameters = (parameters: Set<AddParameterInternal>) => {
+  const _toParameters = (parameters: Set<MaybeRef<AddParameterInternal>>) => {
     return parameters
       .values()
       .map((v) => {
+        if (isRef(v)) {
+          const {value, ref} = deRef(v)
+          const name = components.get(value)
+          return {$ref: `#/components/parameters/${name}`, ...ref}
+        }
+
         const {schema, examples, ...internal} = getInternal(v)
         return {
           ...internal,
@@ -293,6 +314,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       return {
         openapi: '3.1.1',
         ...toRest(config, {
+          openapi: true,
           info: true,
           tags: true,
           servers: true,
@@ -362,7 +384,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       }
 
       for (const plugin of config.plugins?.schema ?? []) {
-        if (plugin.vendor === (schema as z.ZodType)['~standard'].vendor) {
+        if (plugin.vendor === (schema as StandardSchemaV1)?.['~standard']?.vendor) {
           plugin.addSchemaGlobal(schema, name)
           components.set(schema!, name)
           component_schemas.set(name, schema)
@@ -569,12 +591,25 @@ const createPathItem = (): AddPath => {
       internal.description = description
       return this
     },
-    parameter(location, paramName, handler) {
-      const parameter = createParameter(location, paramName)
+    // parameter(location, paramName, handler) {
+    //   const parameter = createParameter(location, paramName)
 
+    //   internal.parameters ??= new Set()
+    //   internal.parameters.add(parameter)
+
+    //   handler(parameter)
+    //   return this
+    // },
+    parameter(location: any, paramName?: string, handler?: any) {
       internal.parameters ??= new Set()
-      internal.parameters.add(parameter)
 
+      if (isRef<AddParameterInternal>(location)) {
+        internal.parameters.add(location)
+        return void 0 as any
+      }
+
+      const parameter = createParameter(location, paramName!)
+      internal.parameters.add(parameter)
       handler(parameter)
       return this
     },
@@ -699,24 +734,30 @@ const createOperation = (): AddOperation => {
       internal.description = description
       return this
     },
-    parameter(location, paramName, handler) {
-      const parameter = createParameter(location, paramName)
-
-      internal.parameters ??= new Set()
-      internal.parameters.add(parameter)
-
-      handler(parameter)
+    externalDocs(doc) {
+      internal.externalDocs = doc
       return this
     },
-    response(status, handler) {
-      internal.responses ??= new Map()
-      if (isRef(handler)) {
-        internal.responses.set(status, handler)
+    deprecated(deprecated = true) {
+      internal.deprecated = deprecated
+      return this
+    },
+    operationId(id) {
+      internal.operationId = id
+      return this
+    },
+
+    parameter(location: any, paramName?: string, handler?: any) {
+      internal.parameters ??= new Set()
+
+      if (isRef<AddParameterInternal>(location)) {
+        internal.parameters.add(location)
         return void 0 as any
       }
-      const response = createResponse()
-      internal.responses.set(status, response)
-      handler(response)
+
+      const parameter = createParameter(location, paramName!)
+      internal.parameters.add(parameter)
+      handler(parameter)
       return this
     },
     requestBody(handler) {
@@ -728,6 +769,17 @@ const createOperation = (): AddOperation => {
       const requestBody = createRequestBody()
       internal.requestBody = requestBody
       handler(requestBody)
+      return this
+    },
+    response(status, handler) {
+      internal.responses ??= new Map()
+      if (isRef(handler)) {
+        internal.responses.set(status, handler)
+        return void 0 as any
+      }
+      const response = createResponse()
+      internal.responses.set(status, response)
+      handler(response)
       return this
     },
     security(sec: Ref<Security>, scopes?: string[]) {
@@ -775,10 +827,9 @@ const createResponse = (): AddResponse => {
   }
 }
 
-const createResponseContent = (schema?: MaybeRef<AddSchema>): AddResponseContent => {
-  const internal: AddResponseContent[typeof Internal] = {
-    schema,
-  }
+const createResponseContent = (schema?: MaybeRef<AddSchema> | unknown): AddResponseContent => {
+  const internal: AddResponseContent[typeof Internal] = {}
+  internal.schema = schema as MaybeRef<AddSchema>
 
   return {
     [Internal]: internal,
