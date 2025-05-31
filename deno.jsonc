@@ -18,6 +18,7 @@
     "./kv",
     "./web",
     "./oauth2",
+    "./openapi",
   ],
   "unstable": [
     "kv"
