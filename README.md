@@ -2,11 +2,11 @@
 
 [![JSR Score](https://jsr.io/badges/@maks11060)](https://jsr.io/@maks11060)
 
-| Package                            |                         Link                         |
-| ---------------------------------- | :--------------------------------------------------: |
-| [@maks11060/kv][@maks11060/kv]     |     [![JSR][@maks11060/kv badge]][@maks11060/kv]     |
-| [@maks11060/web][@maks11060/web]   |    [![JSR][@maks11060/web badge]][@maks11060/web]    |
-| [@maks11060/oauth2][@maks11060/kv] | [![JSR][@maks11060/oauth2 badge]][@maks11060/oauth2] |
+| Package                                |                         Link                         |
+| -------------------------------------- | :--------------------------------------------------: |
+| [@maks11060/kv][@maks11060/kv]         |     [![JSR][@maks11060/kv badge]][@maks11060/kv]     |
+| [@maks11060/web][@maks11060/web]       |    [![JSR][@maks11060/web badge]][@maks11060/web]    |
+| [@maks11060/oauth2][@maks11060/oauth2] | [![JSR][@maks11060/oauth2 badge]][@maks11060/oauth2] |
 
 [@maks11060/kv]: https://jsr.io/@maks11060/kv
 [@maks11060/web]: https://jsr.io/@maks11060/web
@@ -18,17 +18,14 @@
 
 
 ## Install
-
-### Deno
 ```ps
 deno add jsr:@maks11060/web
 ```
-### Other runtimes
 ```ps
-npx jsr add @maks11060/kv
+pnpm jsr:@maks11060/kv
 ```
 ```ps
-pnpm dlx jsr add @maks11060/kv
+npx jsr add @maks11060/kv
 ```
 
 ## kv model example

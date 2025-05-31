@@ -1,3 +1,16 @@
+/**
+ * The PKCE module contains features for easy integration with OAuth2
+ *
+ * @example
+ * ```ts
+ * const {uri, codeVerifier} = await usePKCE(oauth2Authorize(config, state))
+ * console.log(uri.toString()) // Example: "https://example.com/auth?code_challenge=sOmEchAllEngEhAsH&code_challenge_method=S256"
+ * console.log(codeVerifier) // Example: "abcdef1234567890"
+ * ```
+ *
+ * @module PKCE
+ */
+
 import {encodeBase64Url} from '@std/encoding/base64url'
 
 /**

@@ -1,15 +1,22 @@
 {
   "name": "@maks11060/oauth2",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "imports": {
     "@std/encoding": "jsr:@std/encoding@^1.0.7"
   },
   "exports": {
-    ".": "./mod.ts"
+    ".": "./mod.ts",
+    "./authorization": "./src/flows/authorization_code.ts",
+    "./client-credentials": "./src/flows/client_credentials.ts",
+    "./implicit": "./src/flows/implicit.ts",
+    "./providers": "./providers.ts",
+    "./pkce": "./src/pkce.ts",
   },
   "publish": {
     "exclude": [
-      "*.test.ts"
+      "**/*.test.ts",
+      "examples",
+      "README.md"
     ]
   }
 }
