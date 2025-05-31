@@ -28,17 +28,16 @@ const testHeader = doc.addHeader('Test', (t) => {
     .example('ex1', ex1)
 })
 
-const res = doc.addResponse('Res', t => {
-  t.header('a', t => {
-    t.schema(z.object())//
-    .example('a', t => t.value({}))
+const res = doc.addResponse('Res', (t) => {
+  t.header('a', (t) => {
+    t.schema(z.object()) //
+      .example('a', (t) => t.value({}))
   })
 })
 
 doc
   .addPath('/') //
   .get((t) => {
-
     t.response(200, (t) => {
       t.header('x-header', (t) => {
         t.schema({})
@@ -48,6 +47,7 @@ doc
     t.response('default', res)
   })
 
+//
 
 ////////////////////////////////
 /* const Ex2 = doc.addExample<string>('Ex2', t => {

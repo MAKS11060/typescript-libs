@@ -67,6 +67,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
   const components = new WeakMap<WeakKey, string>()
   const component_schemas = new Map<string, unknown>()
   const component_responses = new Map<string, AddResponse>()
+  // TODO: change AddParameter to AddParameterInternal
   const component_parameters = new Map<string, AddParameter[keyof AddParameter]>()
   const component_headers = new Map<string, AddParameterHeader>()
   const component_examples = new Map<string, Example>()
@@ -93,12 +94,11 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
           }
         })
       ),
-      ...toProp('parameters', component_parameters, (v) =>
-        entriesToRecord(v, (parameter) => {
-          const internal = getInternal(parameter as any as AddParameterInternal)
-          return {...internal}
+      ...toProp('parameters', component_parameters, (v) => {
+        return entriesToRecord(v, (el) => {
+          return _toParameter(el as unknown as AddParameterInternal)
         })
-      ),
+      }),
       ...toProp('examples', component_examples, (v) =>
         entriesToRecord(v, (example) => {
           const internal = getInternal(example)
@@ -155,23 +155,22 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
   }
 
   const _toParameters = (parameters: Set<MaybeRef<AddParameterInternal>>) => {
-    return parameters
-      .values()
-      .map((v) => {
-        if (isRef(v)) {
-          const {value, ref} = deRef(v)
-          const name = components.get(value)
-          return {$ref: `#/components/parameters/${name}`, ...ref}
-        }
+    return parameters.values().map(_toParameter).toArray()
+  }
 
-        const {schema, examples, ...internal} = getInternal(v)
-        return {
-          ...internal,
-          ...toProp('schema', schema, _toSchema),
-          ...toProp('examples', examples, _toExamples),
-        }
-      })
-      .toArray()
+  const _toParameter = (parameter: MaybeRef<AddParameterInternal>) => {
+    if (isRef(parameter)) {
+      const {value, ref} = deRef(parameter)
+      const name = components.get(value)
+      return {$ref: `#/components/parameters/${name}`, ...ref}
+    }
+
+    const {schema, examples, ...internal} = getInternal(parameter)
+    return {
+      ...internal,
+      ...toProp('schema', schema, _toSchema),
+      ...toProp('examples', examples, _toExamples),
+    }
   }
 
   const _toRequestBody = (res: MaybeRef<AddRequestBody>) => {
@@ -591,15 +590,6 @@ const createPathItem = (): AddPath => {
       internal.description = description
       return this
     },
-    // parameter(location, paramName, handler) {
-    //   const parameter = createParameter(location, paramName)
-
-    //   internal.parameters ??= new Set()
-    //   internal.parameters.add(parameter)
-
-    //   handler(parameter)
-    //   return this
-    // },
     parameter(location: any, paramName?: string, handler?: any) {
       internal.parameters ??= new Set()
 

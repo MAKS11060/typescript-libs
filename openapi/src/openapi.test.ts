@@ -3,6 +3,28 @@
 import {expect} from 'jsr:@std/expect'
 import {createDoc} from './openapi.ts'
 
+Deno.test('Test', async (t) => {
+  const doc = createDoc({
+    info: {
+      title: 'test',
+      version: '1',
+    },
+  })
+
+  const testQueryParam = doc.addParameter('Test', 'query', 'q', (t) => {
+    t.required() //
+      .schema({type: 'string'})
+      .example('Example1', (t) => t.value('123'))
+  })
+
+  // doc.addPathItem('test', (t) => {
+  // t.parameter(testQueryParam)
+  // })
+
+  console.log(doc.toDoc())
+  // console.log(doc.toYAML())
+})
+
 Deno.test('Test 1', async (t) => {
   const doc = createDoc({
     info: {
@@ -41,13 +63,27 @@ Deno.test('Test 1', async (t) => {
       .example('Example_2', testExample)
   })
 
-  const testPath = doc.addPathItem('Test', t => {
-    t.get(t => {
+  const testPath = doc.addPathItem('Test', (t) => {
+    t.get((t) => {
       t.requestBody(testRequestBody)
       t.response(200, testResponse)
       t.parameter(testQueryParam)
     })
   })
+
+  const anon = doc.addSecuritySchema.anonymous()
+  const oauth2 = doc.addSecuritySchema.oauth2('OAuth2', {
+    implicit: {
+      authorizationUrl: '',
+      scopes: {
+        read: '',
+        write: '',
+      },
+    },
+  })
+
+  doc.security(anon)
+  doc.security(oauth2, ['read'])
 
   console.log(doc.toJSON(true))
   expect(doc.toDoc()).toEqual({
@@ -56,6 +92,12 @@ Deno.test('Test 1', async (t) => {
       title: 'test',
       version: '1',
     },
+    security: [
+      {},
+      {
+        OAuth2: ['read'],
+      },
+    ],
     paths: {},
     components: {
       responses: {
@@ -85,6 +127,24 @@ Deno.test('Test 1', async (t) => {
           },
         },
       },
+      parameters: {
+        Test: {
+          in: 'query',
+          name: 'q',
+          required: true,
+          schema: {
+            type: 'string',
+          },
+          examples: {
+            Example_1: {
+              value: '123',
+            },
+            Example_2: {
+              $ref: '#/components/examples/Test',
+            },
+          },
+        },
+      },
       examples: {
         Test: {
           summary: 'summary',
@@ -92,9 +152,62 @@ Deno.test('Test 1', async (t) => {
           value: 'val1',
         },
       },
+      requestBodies: {
+        Test: {
+          description: 'description',
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'string',
+              },
+              examples: {
+                Example_1: {
+                  value: '123',
+                },
+                Example_2: {
+                  $ref: '#/components/examples/Test',
+                },
+              },
+            },
+          },
+        },
+      },
+      securitySchemes: {
+        OAuth2: {
+          type: 'oauth2',
+          flows: {
+            implicit: {
+              authorizationUrl: '',
+              scopes: {
+                read: '',
+                write: '',
+              },
+            },
+          },
+        },
+      },
+      pathItems: {
+        Test: {
+          get: {
+            parameters: [
+              {
+                $ref: '#/components/parameters/Test',
+              },
+            ],
+            requestBody: {
+              $ref: '#/components/requestBodies/Test',
+            },
+            responses: {
+              '200': {
+                $ref: '#/components/responses/Test',
+              },
+            },
+          },
+        },
+      },
     },
   })
-
 })
 
 /* import '../../debug/yaml.ts'

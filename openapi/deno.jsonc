@@ -13,9 +13,9 @@
   },
   "exports": {
     ".": "./mod.ts",
-    "./plugin/arktype": "./src/plugins/arktype.ts",
-    "./plugin/valibot": "./src/plugins/valibot.ts",
-    "./plugin/zod": "./src/plugins/zod.ts",
+    "./arktype": "./src/plugins/arktype.ts",
+    "./valibot": "./src/plugins/valibot.ts",
+    "./zod": "./src/plugins/zod.ts",
   },
   "publish": {
     "exclude": [
