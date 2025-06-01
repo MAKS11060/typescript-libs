@@ -358,14 +358,6 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
         if (isRef(pathItem)) {
           const {value} = deRef(pathItem)
           pathItem = value
-          // if (param in options) {
-          //   value.parameter('path', param, (options as Record<string, (t: AddParameterPath) => void>)[param])
-          // } else {
-          //   value.parameter('path', param, (t) => {
-          //     t.schema({type: 'string'})
-          //   })
-          // }
-          // continue
         }
 
         // no ref
@@ -376,32 +368,6 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
             t.schema({type: 'string'})
           })
         }
-
-        /* if (isRef(pathItem)) {
-          const {value} = deRef(pathItem)
-          if (item in options) {
-            // user parameter
-            // value.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
-            // value.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
-            // getInternal(value).parameters =
-            continue
-          }
-
-          // default parameter
-          value.parameter('path', item, (t) => {
-            t.schema({type: 'string'})
-          })
-        } else {
-          // user parameter handler
-
-          if (item in options) {
-            pathItem.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
-          }
-
-          // pathItem.parameter('path', item, (t) => {
-          //   // t.schema({type: 'string'})
-          // })
-        } */
       }
 
       paths.set(path, pathItem)
@@ -707,14 +673,6 @@ const createParameter = <T extends ParameterLocation>(
       return this
     },
     schema(schema: any) {
-      // if (isRef(schema)) {
-      //   console.log('REF')
-      //   internal.schema = deRef(schema)
-      //   return this
-      // }
-
-      // const ref = createRef(schema)
-      // internal.schema = ref
       internal.schema = schema
       return this
     },
