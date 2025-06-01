@@ -11,8 +11,8 @@
     "@std/collections": "jsr:@std/collections@^1.0.9",
     "@std/ulid": "jsr:@std/ulid@^1.0.0",
     "@std/yaml": "jsr:@std/yaml@^1.0.7",
-    "hono": "npm:hono",
-    "zod": "npm:zod"
+    "hono": "npm:hono@4.7.11",
+    "zod": "npm:zod@3.25.45"
   },
   "workspace": [
     "./kv",
