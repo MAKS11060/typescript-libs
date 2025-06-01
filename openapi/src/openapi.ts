@@ -179,7 +179,6 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
     }
 
     const internal = getInternal(res)
-
     return {
       ...toRest(internal, {
         description: true,
@@ -350,7 +349,6 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       } else if (isRef(_options)) {
         pathItem = _options as Ref<AddPath>
       } else {
-        options = _options
         pathItem = createPathItem()
       }
 
@@ -595,7 +593,7 @@ const createPathItem = (): AddPath => {
 
       if (isRef<AddParameterInternal>(location)) {
         internal.parameters.add(location)
-        return void 0 as any
+        return this
       }
 
       const parameter = createParameter(location, paramName!)
@@ -742,7 +740,7 @@ const createOperation = (): AddOperation => {
 
       if (isRef<AddParameterInternal>(location)) {
         internal.parameters.add(location)
-        return void 0 as any
+        return this
       }
 
       const parameter = createParameter(location, paramName!)
@@ -753,7 +751,7 @@ const createOperation = (): AddOperation => {
     requestBody(handler) {
       if (isRef(handler)) {
         internal.requestBody = handler
-        return void 0 as any
+        return this
       }
 
       const requestBody = createRequestBody()
@@ -765,7 +763,7 @@ const createOperation = (): AddOperation => {
       internal.responses ??= new Map()
       if (isRef(handler)) {
         internal.responses.set(status, handler)
-        return void 0 as any
+        return this
       }
       const response = createResponse()
       internal.responses.set(status, response)

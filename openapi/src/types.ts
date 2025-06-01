@@ -183,7 +183,7 @@ export interface AddPath<Config extends OpenAPIConfig = OpenAPIConfig> {
   }
   summary(summary: string): this
   describe(description: string): this
-  parameter(ref: Ref<AddParameter[keyof AddParameter]>): void
+  parameter(ref: Ref<AddParameter[keyof AddParameter]>): this
   parameter<T extends ParameterLocation>(location: T, paramName: string, handler: (t: AddParameter[T]) => void): this
   /** Add a `server` specific to this path */
   server<URI extends string>(server: ServerObject<URI>): this
@@ -222,13 +222,14 @@ export interface AddOperation<Config extends OpenAPIConfig = OpenAPIConfig> {
   operationId(id: string): this
   deprecated(deprecated?: boolean): this
 
-  parameter(ref: Ref<AddParameter[keyof AddParameter]>): void
   parameter<T extends ParameterLocation>(location: T, paramName: string, handler: (t: AddParameter[T]) => void): this
+  parameter(ref: Ref<AddParameter[keyof AddParameter]>): this
 
   requestBody(handler: (t: AddRequestBody<Config>) => void): this
-  requestBody(requestBody: Ref<AddRequestBody>): void
+  requestBody(requestBody: Ref<AddRequestBody>): this
+
   response(status: Status, handler: (t: AddResponse<Config>) => void): this
-  response(status: Status, response: Ref<AddResponse<Config>>): void
+  response(status: Status, response: Ref<AddResponse<Config>>): this
 
   /** Apply the `security` scheme to the operation */
   security<E>(
