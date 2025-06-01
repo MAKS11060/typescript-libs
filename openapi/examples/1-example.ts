@@ -9,7 +9,7 @@ setTimeout(() => console.yaml(doc.toDoc()))
 ////////////////////////////////
 const doc = createDoc({
   plugins: {
-    schema: [zodPlugin()],
+    // schema: [zodPlugin()],
   },
   info: {title: 'Test', version: '1.0.0'},
 })

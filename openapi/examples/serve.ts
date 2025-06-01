@@ -1,14 +1,27 @@
-#!/usr/bin/env -S deno run -A --watch
-
+import {OpenAPI} from '@maks11060/openapi'
 import {Hono} from 'npm:hono'
 import {cors} from 'npm:hono/cors'
-import {doc} from './main.ts'
+import '../../debug/yaml.ts'
 
-const app = new Hono() //
-  .use(cors())
-  .get('/openapi.json', (c) => c.text(doc.toJSON(true), {headers: {'Content-Type': 'application/json'}}))
-  .get('/openapi.yml', (c) => c.text(doc.toYAML()))
+export const serve = (doc: OpenAPI) => {
+  const app = new Hono() //
+    .use(cors())
+    .get('/openapi.json', (c) => c.text(doc.toJSON(true), {headers: {'Content-Type': 'application/json'}}))
+    .get('/openapi.yml', (c) => c.text(doc.toYAML()))
 
-Deno.serve(app.fetch)
+  // Deno.serve(app.fetch)
+  Deno.serve({
+    onListen({hostname,port}) {
+      const host = hostname === '0.0.0.0' ? 'localhost' : hostname
+      const uri = new URL('/openapi.yml', `http://localhost`)
+      uri.port = `${port}`
+      uri.hostname = `${host}`
 
-console.log('https://swagger-next.deno.dev/?url=http://localhost:8000/openapi.yml')
+      const swaggerUri = new URL(`https://swagger-next.deno.dev/?url=${uri.toString()}`)
+      console.log(swaggerUri.toString())
+      // console.log('https://swagger-next.deno.dev/?url=http://localhost:8000/openapi.yml')
+    },
+  }, app.fetch)
+
+}
+
