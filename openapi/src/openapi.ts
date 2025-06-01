@@ -75,56 +75,54 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
   const component_requestBodies = new Map<string, AddRequestBody>()
   const component_securitySchemas = new Map<string, Security>()
 
-  const toComponents = () => {
-    return {
-      ...toProp('schemas', config.plugins?.schema || [], (p) => {
-        for (const plugin of p) {
-          const res = plugin.getSchemas()
-          return res.schemas
+  const toComponents = () => ({
+    ...toProp('schemas', config.plugins?.schema || [], (p) => {
+      for (const plugin of p) {
+        const res = plugin.getSchemas()
+        return res.schemas
+      }
+    }),
+    ...toProp('responses', component_responses, (v) =>
+      entriesToRecord(v, (response) => {
+        const internal = getInternal(response)
+        internal.description ??= `Response`
+        return {
+          ...toRest(internal, {description: true}),
+          ...toProp('headers', internal.headers, _toHeader),
+          ...toProp('content', internal.content, _toContent),
         }
-      }),
-      ...toProp('responses', component_responses, (v) =>
-        entriesToRecord(v, (response) => {
-          const internal = getInternal(response)
-          internal.description ??= `Response`
-          return {
-            ...toRest(internal, {description: true}),
-            ...toProp('headers', internal.headers, _toHeader),
-            ...toProp('content', internal.content, _toContent),
-          }
-        })
-      ),
-      ...toProp('parameters', component_parameters, (v) => {
-        return entriesToRecord(v, (el) => {
-          return _toParameter(el as unknown as AddParameterInternal)
-        })
-      }),
-      ...toProp('examples', component_examples, (v) =>
-        entriesToRecord(v, (example) => {
-          const internal = getInternal(example)
-          return {...internal}
-        })
-      ),
-      ...toProp('requestBodies', component_requestBodies, (v) => {
-        return entriesToRecord(v, (el) => {
-          const internal = getInternal(el)
-          return {
-            ...toRest(internal, {
-              description: true,
-              required: true,
-            }),
-            ...toProp('content', internal.content, _toContent),
-          }
-        })
-      }),
-      ...toProp('headers', component_headers, _toHeader),
-      ...toProp('securitySchemes', component_securitySchemas, (v) => entriesToRecord(v)),
-      // TODO:
-      // ...toProp('links', component_links, v => ),
-      // ...toProp('callbacks', component_callbacks, v => ),
-      ...toProp('pathItems', component_pathItems, (v) => entriesToRecord(v, _toPathItem)),
-    }
-  }
+      })
+    ),
+    ...toProp('parameters', component_parameters, (v) => {
+      return entriesToRecord(v, (el) => {
+        return _toParameter(el as unknown as AddParameterInternal)
+      })
+    }),
+    ...toProp('examples', component_examples, (v) =>
+      entriesToRecord(v, (example) => {
+        const internal = getInternal(example)
+        return {...internal}
+      })
+    ),
+    ...toProp('requestBodies', component_requestBodies, (v) => {
+      return entriesToRecord(v, (el) => {
+        const internal = getInternal(el)
+        return {
+          ...toRest(internal, {
+            description: true,
+            required: true,
+          }),
+          ...toProp('content', internal.content, _toContent),
+        }
+      })
+    }),
+    ...toProp('headers', component_headers, _toHeader),
+    ...toProp('securitySchemes', component_securitySchemas, (v) => entriesToRecord(v)),
+    // TODO:
+    // ...toProp('links', component_links, v => ),
+    // ...toProp('callbacks', component_callbacks, v => ),
+    ...toProp('pathItems', component_pathItems, (v) => entriesToRecord(v, _toPathItem)),
+  })
 
   const _toHeader = (headers: Map<string, MaybeRef<AddParameterHeader>>) => {
     return entriesToRecord(headers, (header) => {
@@ -211,6 +209,12 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
   }
 
   const _toSchema = (schema: MaybeRef<AddSchema> | unknown) => {
+    // raw schema
+    if (components.has(schema as any)) {
+      const name = components.get(schema as any)
+      return {$ref: `#/components/schemas/${name}`}
+    }
+
     if (isRef(schema)) {
       const {value, ref} = deRef<AddSchema>(schema as any)
       const name = components.get(value.schema!)
@@ -350,12 +354,36 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
         pathItem = createPathItem()
       }
 
-      for (const item of extractParams(path)) {
+      for (const param of extractParams(path)) {
         if (isRef(pathItem)) {
+          const {value} = deRef(pathItem)
+          pathItem = value
+          // if (param in options) {
+          //   value.parameter('path', param, (options as Record<string, (t: AddParameterPath) => void>)[param])
+          // } else {
+          //   value.parameter('path', param, (t) => {
+          //     t.schema({type: 'string'})
+          //   })
+          // }
+          // continue
+        }
+
+        // no ref
+        if (param in options) {
+          pathItem.parameter('path', param, (options as Record<string, (t: AddParameterPath) => void>)[param])
+        } else {
+          pathItem.parameter('path', param, (t) => {
+            t.schema({type: 'string'})
+          })
+        }
+
+        /* if (isRef(pathItem)) {
           const {value} = deRef(pathItem)
           if (item in options) {
             // user parameter
-            value.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
+            // value.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
+            // value.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
+            // getInternal(value).parameters =
             continue
           }
 
@@ -364,10 +392,16 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
             t.schema({type: 'string'})
           })
         } else {
-          pathItem.parameter('path', item, (t) => {
-            t.schema({type: 'string'})
-          })
-        }
+          // user parameter handler
+
+          if (item in options) {
+            pathItem.parameter('path', item, (options as Record<string, (t: AddParameterPath) => void>)[item])
+          }
+
+          // pathItem.parameter('path', item, (t) => {
+          //   // t.schema({type: 'string'})
+          // })
+        } */
       }
 
       paths.set(path, pathItem)
@@ -673,6 +707,14 @@ const createParameter = <T extends ParameterLocation>(
       return this
     },
     schema(schema: any) {
+      // if (isRef(schema)) {
+      //   console.log('REF')
+      //   internal.schema = deRef(schema)
+      //   return this
+      // }
+
+      // const ref = createRef(schema)
+      // internal.schema = ref
       internal.schema = schema
       return this
     },

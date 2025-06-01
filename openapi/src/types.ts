@@ -323,7 +323,8 @@ export interface AddParameterInternal {
     style?: 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'
     explode?: boolean
     allowReserved?: boolean
-    schema?: {}
+    // schema?: {}
+    schema?: MaybeRef<AddSchema>
     example?: any
     examples?: Map<string, MaybeRef<Example>>
   }
