@@ -17,17 +17,24 @@ const doc = createDoc({
 serve(doc)
 
 //////////////////////////////// CODE
-const userId1 = z.int()
-const userId2 = z.int()
+const userId1 = z.int().positive()
+const userId2 = z.int().positive()
+const queryParam = z.string()
+const queryParam2 = z.string()
 
 // doc.addSchema('userID1', userId1)
 doc.addSchema('userID2', userId2)
+doc.addSchema('queryParam', queryParam)
 
 doc
   .addPath('/api/users/{id1}/{id2}', {
     id1: (t) => t.schema(userId1),
     id2: (t) => t.schema(userId2),
   })
+  .parameter('query', 'q', (t) => {
+    t.schema(queryParam)
+  })
+
   .get((t) => {
     t.response(200, (t) => {
       t.content('application/json', userId1)
