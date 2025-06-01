@@ -349,10 +349,12 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       } else if (isRef(_options)) {
         pathItem = _options as Ref<AddPath>
       } else {
+        options = _options ?? {}
         pathItem = createPathItem()
       }
 
       for (const param of extractParams(path)) {
+        console.log(options)
         if (isRef(pathItem)) {
           const {value} = deRef(pathItem)
           pathItem = value

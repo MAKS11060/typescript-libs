@@ -1,6 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
+import {zodPlugin} from '@maks11060/openapi/zod'
 import {expect} from 'jsr:@std/expect'
+import {z} from 'zod/v4'
 import {createDoc} from './openapi.ts'
 
 Deno.test('Test', async (t) => {
@@ -210,35 +212,130 @@ Deno.test('Test 1', async (t) => {
   })
 })
 
-/* import '../../debug/yaml.ts'
-import {createDoc} from './openapi.ts'
-import {zodPlugin} from './plugins/zod.ts'
-
-export const doc = createDoc({
-  plugins: {
-    schema: [zodPlugin()],
-  },
-  info: {title: '', version: ''},
-  tags: [{name: 'Tag'}, {name: 'Tag_2'}],
-})
-
-// setTimeout(() => console.log(doc.toDoc()))
-// setTimeout(() => console.log(doc.toJSON(true)))
-setTimeout(() => console.yaml(doc.toDoc()))
-
-////////////////////////////////
-const testHeader = doc.addHeader('Test', t => {
-  t.schema({})
-})
-
-doc
-  .addPath('/') //
-  .get((t) => {
-    t.response(200, t => {
-      t.header('x-header', t => {
-        t.schema({})
-      })
-      t.header('text', testHeader)
-    })
+Deno.test('Parameters', async (t) => {
+  const doc = createDoc({
+    plugins: {schema: [zodPlugin()]},
+    info: {title: 'test', version: '1'},
   })
- */
+
+  const queryParam2 = doc.addParameter('Param2', 'query', 'param2', (t) => {
+    t.schema(z.number())
+  })
+
+  doc
+    .addPath('/1') //
+    .parameter('query', 'param1', (t) => {
+      t.schema(z.number())
+    })
+    .get((t) => {
+      t.parameter(queryParam2)
+      t.parameter('query', 'param3', (t) => t.schema(z.number()))
+    })
+
+  doc
+    .addPath('/2/{param1}/{param2}', {
+      param2: (t) => t.schema(z.number()),
+    }) //
+    .parameter('query', 'param1', (t) => {
+      t.schema(z.number())
+    })
+    .get((t) => {
+      t.parameter(queryParam2)
+      t.parameter('query', 'param3', (t) => t.schema(z.number()))
+    })
+
+  console.log(doc.toJSON(true))
+  expect(doc.toDoc()).toEqual({
+    openapi: '3.1.1',
+    info: {
+      title: 'test',
+      version: '1',
+    },
+    paths: {
+      '/1': {
+        parameters: [
+          {
+            in: 'query',
+            name: 'param1',
+            schema: {
+              $schema: 'https://json-schema.org/draft/2020-12/schema',
+              type: 'number',
+            },
+          },
+        ],
+        get: {
+          parameters: [
+            {
+              $ref: '#/components/parameters/Param2',
+            },
+            {
+              in: 'query',
+              name: 'param3',
+              schema: {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                type: 'number',
+              },
+            },
+          ],
+        },
+      },
+      '/2/{param1}/{param2}': {
+        parameters: [
+          {
+            in: 'path',
+            name: 'param1',
+            required: true,
+            schema: {
+              type: 'string',
+            },
+          },
+          {
+            in: 'path',
+            name: 'param2',
+            required: true,
+            schema: {
+              $schema: 'https://json-schema.org/draft/2020-12/schema',
+              type: 'number',
+            },
+          },
+          {
+            in: 'query',
+            name: 'param1',
+            schema: {
+              $schema: 'https://json-schema.org/draft/2020-12/schema',
+              type: 'number',
+            },
+          },
+        ],
+        get: {
+          parameters: [
+            {
+              $ref: '#/components/parameters/Param2',
+            },
+            {
+              in: 'query',
+              name: 'param3',
+              schema: {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                type: 'number',
+              },
+            },
+          ],
+        },
+      },
+    },
+    components: {
+      schemas: {},
+      parameters: {
+        Param2: {
+          in: 'query',
+          name: 'param2',
+          schema: {
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            type: 'number',
+          },
+        },
+      },
+    },
+  })
+})

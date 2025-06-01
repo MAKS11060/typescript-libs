@@ -135,7 +135,7 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
   server<URI extends string>(server: ServerObject<URI>): void
 
   /** Define route */
-  addPath<T extends string>(path: T, options?: AddPathItemOptions<T>): AddPath<Config>
+  addPath<T extends string>(path: T, options?: Partial<AddPathItemOptions<T>>): AddPath<Config>
 
   addPath<T extends string>(path: T, pathItem: Ref<AddPath<Config>>): void
   addPath<T extends string>(path: T, options: Partial<AddPathItemOptions<T>>, pathItem: Ref<AddPath<Config>>): void
