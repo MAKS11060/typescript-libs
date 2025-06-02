@@ -214,7 +214,9 @@ Deno.test('Test 1', async (t) => {
 
 Deno.test('Parameters', async (t) => {
   const doc = createDoc({
-    plugins: {schema: [zodPlugin()]},
+    plugins: {
+      schema: [zodPlugin()],
+    },
     info: {title: 'test', version: '1'},
   })
 
@@ -243,6 +245,15 @@ Deno.test('Parameters', async (t) => {
       t.parameter(queryParam2)
       t.parameter('query', 'param3', (t) => t.schema(z.number()))
     })
+
+  doc.addParameter('ParamWithContent', 'query', 'content', (t) => {
+    t.content(
+      'application/json',
+      z.object({
+        key: z.string(),
+      })
+    )
+  })
 
   console.log(doc.toJSON(true))
   expect(doc.toDoc()).toEqual({
@@ -333,6 +344,25 @@ Deno.test('Parameters', async (t) => {
           schema: {
             $schema: 'https://json-schema.org/draft/2020-12/schema',
             type: 'number',
+          },
+        },
+        ParamWithContent: {
+          in: 'query',
+          name: 'content',
+          content: {
+            'application/json': {
+              schema: {
+                $schema: 'https://json-schema.org/draft/2020-12/schema',
+                type: 'object',
+                properties: {
+                  key: {
+                    type: 'string',
+                  },
+                },
+                required: ['key'],
+                additionalProperties: false,
+              },
+            },
           },
         },
       },

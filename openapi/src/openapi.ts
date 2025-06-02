@@ -163,10 +163,11 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       return {$ref: `#/components/parameters/${name}`, ...ref}
     }
 
-    const {schema, examples, ...internal} = getInternal(parameter)
+    const {schema, content, examples, ...internal} = getInternal(parameter)
     return {
       ...internal,
       ...toProp('schema', schema, _toSchema),
+      ...toProp('content', content, _toContent),
       ...toProp('examples', examples, _toExamples),
     }
   }
@@ -354,7 +355,6 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       }
 
       for (const param of extractParams(path)) {
-        console.log(options)
         if (isRef(pathItem)) {
           const {value} = deRef(pathItem)
           pathItem = value
@@ -508,7 +508,8 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
         const sec: Security<'http'> = {
           type: 'http',
           scheme,
-          bearerFormat,
+          // bearerFormat,
+          ...toProp('bearerFormat', bearerFormat),
         }
 
         component_securitySchemas.set(name, sec)
@@ -568,6 +569,89 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
 }
 
 const getInternal = <T>(component: {[Internal]: T}) => component[Internal]
+
+const createParameter = <T extends ParameterLocation>(
+  location: T,
+  name: string
+): AddParameter[T] & AddParameterInternal => {
+  const internal: AddParameterInternal[typeof Internal] = {
+    in: location,
+    name,
+    ...(location === 'path' && {required: true}),
+  }
+
+  return {
+    [Internal]: internal,
+    style(style: Parameters<AddParameter[keyof AddParameter]['style']>[0]) {
+      internal.style = style
+      return this
+    },
+    example(name: string, handler: ((t: Example) => void) | Ref<Example>) {
+      internal.examples ??= new Map()
+      if (isRef(handler)) {
+        internal.examples.set(name, handler)
+        return this
+      }
+
+      const example = createExample()
+      internal.examples.set(name, example)
+      handler(example)
+      return this
+    },
+    describe(description: string) {
+      internal.description = description
+      return this
+    },
+    required(required: boolean = true) {
+      internal.required = required
+      return this
+    },
+    deprecated(deprecated: boolean = true) {
+      internal.deprecated = deprecated
+      return this
+    },
+    allowEmptyValue(allowEmptyValue: boolean = true) {
+      internal.allowEmptyValue = allowEmptyValue
+      return this
+    },
+    explode(explode: boolean = true) {
+      internal.explode = explode
+      return this
+    },
+    allowReserved(allowReserved: boolean = true) {
+      internal.allowReserved = allowReserved
+      return this
+    },
+
+    // with schema
+    schema(schema: any) {
+      if (internal.content) {
+        throw new Error('It is not possible to add a schema: the content field already contains a schema.', {
+          cause: `the 'schema' field is mutually exclusive with the content field`,
+        })
+      }
+
+      internal.schema = schema
+      return this
+    },
+
+    // with content
+    content(type: string, schema: any) {
+      if (internal.schema) {
+        throw new Error('It is impossible to add content: the schema field already contains the schema', {
+          cause: `the 'content' field is mutually exclusive with the schema field`,
+        })
+      }
+
+      internal.content ??= new Map()
+
+      const responseContent = createResponseContent(schema)
+      internal.content.set(type, responseContent)
+
+      return responseContent
+    },
+  } as any
+}
 
 const createPathItem = (): AddPath => {
   const internal: AddPath[typeof Internal] = {
@@ -642,66 +726,6 @@ const createPathItem = (): AddPath => {
       return this
     },
   }
-}
-
-const createParameter = <T extends ParameterLocation>(
-  location: T,
-  name: string
-): AddParameter[T] & AddParameterInternal => {
-  const internal: AddParameterInternal[typeof Internal] = {
-    in: location,
-    name,
-    ...(location === 'path' && {required: true}),
-  }
-
-  return {
-    [Internal]: internal,
-    style(style: Parameters<AddParameter[keyof AddParameter]['style']>[0]) {
-      internal.style = style
-      return this
-    },
-    describe(description: string) {
-      internal.description = description
-      return this
-    },
-    required(required: boolean = true) {
-      internal.required = required
-      return this
-    },
-    deprecated(deprecated: boolean = true) {
-      internal.deprecated = deprecated
-      return this
-    },
-    schema(schema: any) {
-      internal.schema = schema
-      return this
-    },
-    example(name: string, handler: ((t: Example) => void) | Ref<Example>) {
-      internal.examples ??= new Map()
-      if (isRef(handler)) {
-        internal.examples.set(name, handler)
-        return this
-      }
-
-      const example = createExample()
-      internal.examples.set(name, example)
-      handler(example)
-      return this
-    },
-    //
-    allowEmptyValue(allowEmptyValue: boolean = true) {
-      internal.allowEmptyValue = allowEmptyValue
-      return this
-    },
-    explode(explode: boolean = true) {
-      internal.explode = explode
-      return this
-    },
-    allowReserved(allowReserved: boolean = true) {
-      internal.allowReserved = allowReserved
-      return this
-    },
-  } as any
 }
 
 const createOperation = (): AddOperation => {

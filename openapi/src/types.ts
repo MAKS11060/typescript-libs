@@ -148,7 +148,7 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
     name: string,
     location: T,
     paramName: string,
-    handler: (t: AddParameter[T]) => void
+    handler: (t: AddParameter<unknown, Config>[T]) => void
   ): Ref<AddParameter[T]>
   addHeader(name: string, handler: (t: AddParameterHeader) => void): Ref<AddParameterHeader>
 
@@ -183,8 +183,14 @@ export interface AddPath<Config extends OpenAPIConfig = OpenAPIConfig> {
   }
   summary(summary: string): this
   describe(description: string): this
+
+  parameter<T extends ParameterLocation>(
+    location: T,
+    paramName: string,
+    handler: (t: AddParameter<unknown, Config>[T]) => void
+  ): this
   parameter(ref: Ref<AddParameter[keyof AddParameter]>): this
-  parameter<T extends ParameterLocation>(location: T, paramName: string, handler: (t: AddParameter[T]) => void): this
+
   /** Add a `server` specific to this path */
   server<URI extends string>(server: ServerObject<URI>): this
 
@@ -311,6 +317,8 @@ export interface Example<T = unknown> {
 }
 
 //////////////// Parameters
+export interface AddParameterContent<T = unknown> extends AddResponseContent<T> {}
+
 export interface AddParameterInternal {
   [Internal]: {
     in: keyof AddParameter
@@ -320,14 +328,15 @@ export interface AddParameterInternal {
     required?: boolean
     deprecated?: boolean
     allowEmptyValue?: boolean
-    //
+    // with schema
     style?: 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'
     explode?: boolean
     allowReserved?: boolean
-    // schema?: {}
     schema?: MaybeRef<AddSchema>
     example?: any
     examples?: Map<string, MaybeRef<Example>>
+    // with content
+    content?: Map<string, AddParameterContent>
   }
 }
 
@@ -379,11 +388,22 @@ export type AddParameterCookie<T = unknown> = {
   example(name: string, ref: Ref<Example<T>>): AddParameterCookie<T>
 }
 
-export type AddParameter<T = unknown> = {
-  path: AddParameterPath<T>
-  query: AddParameterQuery<T>
-  header: AddParameterHeader<T>
-  cookie: AddParameterCookie<T>
+export type AddParameterWithContent<Config extends OpenAPIConfig = OpenAPIConfig> = {
+  content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
+    type: ContentType,
+    schema: T | MaybeRef<AddSchema<T>>
+  ): AddResponseContent<T>
+  content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
+    type: string,
+    schema: T | MaybeRef<AddSchema<T>>
+  ): AddResponseContent<T>
+}
+
+export type AddParameter<T = unknown, Config extends OpenAPIConfig = OpenAPIConfig> = {
+  path: AddParameterPath<T> & AddParameterWithContent<Config>
+  query: AddParameterQuery<T> & AddParameterWithContent<Config>
+  header: AddParameterHeader<T> & AddParameterWithContent<Config>
+  cookie: AddParameterCookie<T> & AddParameterWithContent<Config>
 }
 
 //////////////// Security
