@@ -35,6 +35,26 @@ const isValidComponentName = (name: string) => {
   }
 }
 
+type Context = ReturnType<typeof createContext>
+
+const createContext = (config: OpenAPIConfig) => {
+  const operationIds = new Set<string>()
+
+  return {
+    internal: {
+      operationIds,
+    },
+
+    registerOperationId(op: string) {
+      if (config.rules?.operationId !== 'no-check' && operationIds.has(op)) {
+        throw new Error(`The operation ID is already in use: ${op}`)
+      } else {
+        operationIds.add(op)
+      }
+    },
+  }
+}
+
 /**
  * Create OpenAPI Schema builder
  *
@@ -73,17 +93,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
   }
 
   const components = new WeakMap<WeakKey, string>() // component names
-  const operationIds = new Set<string>()
-
-  const _registerOperationId = (op?: string) => {
-    if (op) {
-      if (config.rules?.operationId !== 'no-check' && operationIds.has(op)) {
-        throw new Error(`The operation ID is already in use: ${op}`)
-      } else {
-        operationIds.add(op)
-      }
-    }
-  }
+  const context = createContext(config)
 
   const toComponents = () => ({
     ...toProp('schemas', config.plugins?.schema || [], (p) => {
@@ -277,7 +287,6 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       ...toProp('servers', internal.servers, _toServers),
       ...entriesToRecord(internal.operations!, (el) => {
         const internal = getInternal(el) // operation
-        _registerOperationId(internal.operationId)
         return {
           ...toProp('tags', internal.tags, _toTags),
           ...toRest(internal, {
@@ -364,7 +373,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         pathItem = _options as Ref<AddPath>
       } else {
         options = _options ?? {}
-        pathItem = createPathItem()
+        pathItem = createPathItem(context)
       }
 
       for (const param of extractParams(path)) {
@@ -484,7 +493,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         throw new Error(`Component name is already used: ${name}`)
       }
 
-      const pathItem = createPathItem()
+      const pathItem = createPathItem(context)
       components.set(pathItem, name)
       internal.components.pathItems.set(name, pathItem)
 
@@ -669,13 +678,13 @@ const createParameter = <T extends ParameterLocation>(
   } as any
 }
 
-const createPathItem = (): AddPath => {
+const createPathItem = (context: Context): AddPath => {
   const internal: AddPath[typeof Internal] = {
     operations: new Map(),
   }
 
   const _createOp = (method: string, handler: (t: AddOperation) => void) => {
-    const operation = createOperation()
+    const operation = createOperation(context)
     internal.operations?.set(method, operation)
     handler(operation)
   }
@@ -744,7 +753,7 @@ const createPathItem = (): AddPath => {
   }
 }
 
-const createOperation = (): AddOperation => {
+const createOperation = (context: Context): AddOperation => {
   const internal: AddOperation[typeof Internal] = {
     responses: new Map(),
   }
@@ -774,6 +783,7 @@ const createOperation = (): AddOperation => {
     },
     operationId(id) {
       internal.operationId = id
+      context.registerOperationId(id)
       return this
     },
 
