@@ -1,7 +1,6 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import {createDoc} from '../mod.ts'
-// import {createDoc} from '@maks11060/openapi'
+import {createDoc} from '@maks11060/openapi'
 import {zodPlugin} from '@maks11060/openapi/zod'
 import {serve} from './serve.ts'
 
