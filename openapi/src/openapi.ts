@@ -53,7 +53,7 @@ const isValidComponentName = (name: string) => {
  *   })
  * ```
  */
-export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> => {
+export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig & T): OpenAPI<T> => {
   const paths = new Map<string, MaybeRef<AddPath>>()
 
   const internal = {
