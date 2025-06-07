@@ -75,6 +75,18 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
   const component_requestBodies = new Map<string, AddRequestBody>()
   const component_securitySchemas = new Map<string, Security>()
 
+  const operationIds = new Set<string>()
+
+  const _addOperationId = (op?: string) => {
+    if (op) {
+      if (config.rules?.operationId !== 'no-check' && operationIds.has(op)) {
+        throw new Error(`The operation ID is already in use: ${op}`)
+      } else {
+        operationIds.add(op)
+      }
+    }
+  }
+
   const toComponents = () => ({
     ...toProp('schemas', config.plugins?.schema || [], (p) => {
       for (const plugin of p) {
@@ -267,6 +279,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: T): OpenAPI<T> 
       ...toProp('servers', internal.servers, _toServers),
       ...entriesToRecord(internal.operations!, (el) => {
         const internal = getInternal(el) // operation
+        _addOperationId(internal.operationId)
         return {
           ...toProp('tags', internal.tags, _toTags),
           ...toRest(internal, {

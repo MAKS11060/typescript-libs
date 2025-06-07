@@ -5,7 +5,27 @@ import type {MaybeRef, Ref} from './lib/ref.ts'
 
 export const Internal = Symbol('Internal')
 
-//////////////// Plugin
+//////////////// Rules
+type GetRules<T extends OpenAPIConfig, Rule extends string, Default = never> = T['rules'] extends {[K in Rule]: infer R}
+  ? R
+  : Default
+
+export interface OpenAPIRules {
+  /**
+   * {@linkcode OpenAPI.security} - You can specify arbitrary values for scopes
+   * @default true
+   */
+  security?: boolean
+
+  /**
+   * - `strict` - Behavior according to the specification
+   * - `no-check` - Allow redefinition
+   * @default `strict`
+   */
+  operationId?: 'strict' | 'no-check'
+}
+
+//////////////// Plugins
 export interface SchemaPlugin<T = unknown> {
   vendor: string
   registry: boolean
@@ -93,18 +113,16 @@ export interface ServerVariableObject {
   description?: string
 }
 
-////////////////
+//////////////// Config
 export interface OpenAPIConfig {
   /**
-   * If you turn off `strict` mode, the behavior of the
-   * following things will become more free
-   *
-   * - {@linkcode OpenAPI.security} - You can specify arbitrary values for scopes
-   *
-   * @default true
+   * Rule settings for the OpenAPI Schema
    */
-  strict?: boolean
+  rules?: OpenAPIRules
 
+  /**
+   * Plugins
+   */
   plugins?: {
     schema?: SchemaPlugin[]
   }
@@ -114,9 +132,25 @@ export interface OpenAPIConfig {
    * @default '3.1.1'
    */
   openapi?: string
+
+  /**
+   * Provides metadata about the API. The metadata MAY be used by tooling as required.
+   */
   info: InfoObject
+
+  /**
+   * A list of `tags` to group paths.
+   *
+   * The `tags` specified here will be suggested by auto-completion.
+   */
   tags?: TagObject[]
+
+  /**
+   * An array of `Server Objects`, which provide connectivity information to a target server.
+   */
   servers?: ServerObject[]
+
+  /** Additional external documentation. */
   externalDocs?: ExternalDocumentationObject
   jsonSchemaDialect?: string
 }
@@ -166,7 +200,9 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
   /** Apply a `security` scheme to the whole document */
   security<E>(
     schema: Ref<Security<string, E>>,
-    scopes?: Config['strict'] extends false ? ExtractScopesFromFlows<E>[] | string[] : ExtractScopesFromFlows<E>[]
+    scopes?: GetRules<Config, 'security', true> extends false
+      ? ExtractScopesFromFlows<E>[] | string[]
+      : ExtractScopesFromFlows<E>[]
   ): void
   /** Apply a `security` scheme to the whole document */
   security(securitySchema: Ref<Security<string>>): void
@@ -240,7 +276,9 @@ export interface AddOperation<Config extends OpenAPIConfig = OpenAPIConfig> {
   /** Apply the `security` scheme to the operation */
   security<E>(
     schema: Ref<Security<string, E>>,
-    scopes?: Config['strict'] extends false ? ExtractScopesFromFlows<E>[] | string[] : ExtractScopesFromFlows<E>[]
+    scopes?: GetRules<Config, 'security', true> extends false //
+      ? ExtractScopesFromFlows<E>[] | string[]
+      : ExtractScopesFromFlows<E>[]
   ): void
   /** Apply the `security` scheme to the operation */
   security(securitySchema: Ref<Security<string>>): void
