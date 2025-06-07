@@ -54,30 +54,28 @@ const isValidComponentName = (name: string) => {
  * ```
  */
 export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig & T): OpenAPI<T> => {
-  const paths = new Map<string, MaybeRef<AddPath>>()
-
-  const internal = {
+  const internal: OpenAPI[typeof Internal] = {
     tags: new Set<string>(),
     servers: new Set<ServerObject>(),
     security: new Set<[Ref<Security>, string[] | undefined]>(),
-    // TODO: add paths
-    // TODO: add components
+
+    paths: new Map<string, MaybeRef<AddPath>>(),
+    components: {
+      schemas: new Map<string, unknown>(),
+      responses: new Map<string, AddResponse>(),
+      parameters: new Map<string, AddParameter[keyof AddParameter]>(),
+      headers: new Map<string, AddParameterHeader>(),
+      examples: new Map<string, Example>(),
+      pathItems: new Map<string, AddPath>(),
+      requestBodies: new Map<string, AddRequestBody>(),
+      securitySchemas: new Map<string, Security>(),
+    },
   }
 
-  const components = new WeakMap<WeakKey, string>()
-  const component_schemas = new Map<string, unknown>()
-  const component_responses = new Map<string, AddResponse>()
-  // TODO: change AddParameter to AddParameterInternal
-  const component_parameters = new Map<string, AddParameter[keyof AddParameter]>()
-  const component_headers = new Map<string, AddParameterHeader>()
-  const component_examples = new Map<string, Example>()
-  const component_pathItems = new Map<string, AddPath>()
-  const component_requestBodies = new Map<string, AddRequestBody>()
-  const component_securitySchemas = new Map<string, Security>()
-
+  const components = new WeakMap<WeakKey, string>() // component names
   const operationIds = new Set<string>()
 
-  const _addOperationId = (op?: string) => {
+  const _registerOperationId = (op?: string) => {
     if (op) {
       if (config.rules?.operationId !== 'no-check' && operationIds.has(op)) {
         throw new Error(`The operation ID is already in use: ${op}`)
@@ -94,7 +92,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         return res.schemas
       }
     }),
-    ...toProp('responses', component_responses, (v) =>
+    ...toProp('responses', internal.components.responses, (v) =>
       entriesToRecord(v, (response) => {
         const internal = getInternal(response)
         internal.description ??= `Response`
@@ -105,18 +103,18 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         }
       })
     ),
-    ...toProp('parameters', component_parameters, (v) => {
+    ...toProp('parameters', internal.components.parameters, (v) => {
       return entriesToRecord(v, (el) => {
         return _toParameter(el as unknown as AddParameterInternal)
       })
     }),
-    ...toProp('examples', component_examples, (v) =>
+    ...toProp('examples', internal.components.examples, (v) =>
       entriesToRecord(v, (example) => {
         const internal = getInternal(example)
         return {...internal}
       })
     ),
-    ...toProp('requestBodies', component_requestBodies, (v) => {
+    ...toProp('requestBodies', internal.components.requestBodies, (v) => {
       return entriesToRecord(v, (el) => {
         const internal = getInternal(el)
         return {
@@ -128,12 +126,12 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         }
       })
     }),
-    ...toProp('headers', component_headers, _toHeader),
-    ...toProp('securitySchemes', component_securitySchemas, (v) => entriesToRecord(v)),
+    ...toProp('headers', internal.components.headers, _toHeader),
+    ...toProp('securitySchemes', internal.components.securitySchemas, (v) => entriesToRecord(v)),
     // TODO:
-    // ...toProp('links', component_links, v => ),
-    // ...toProp('callbacks', component_callbacks, v => ),
-    ...toProp('pathItems', component_pathItems, (v) => entriesToRecord(v, _toPathItem)),
+    // ...toProp('links', internal.components.links, v => ),
+    // ...toProp('callbacks', internal.components.callbacks, v => ),
+    ...toProp('pathItems', internal.components.pathItems, (v) => entriesToRecord(v, _toPathItem)),
   })
 
   const _toHeader = (headers: Map<string, MaybeRef<AddParameterHeader>>) => {
@@ -279,7 +277,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       ...toProp('servers', internal.servers, _toServers),
       ...entriesToRecord(internal.operations!, (el) => {
         const internal = getInternal(el) // operation
-        _addOperationId(internal.operationId)
+        _registerOperationId(internal.operationId)
         return {
           ...toProp('tags', internal.tags, _toTags),
           ...toRest(internal, {
@@ -320,6 +318,8 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
   }
 
   return {
+    [Internal]: internal,
+
     toJSON(pretty?: boolean) {
       return JSON.stringify(this.toDoc(), null, pretty ? 2 : undefined)
     },
@@ -340,7 +340,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         ...toProp('servers', internal.servers, _toServers),
         ...toProp('security', internal.security, _toSecurity),
         ...toProp('tags', internal.tags, _toTags),
-        paths: entriesToRecord(paths, _toPathItem),
+        paths: entriesToRecord(internal.paths, _toPathItem),
         components: toComponents(),
       }
     },
@@ -383,7 +383,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         }
       }
 
-      paths.set(path, pathItem)
+      internal.paths.set(path, pathItem)
       if (isRef(_pathItem) || isRef(_options)) return void 0 as any
 
       return pathItem
@@ -391,7 +391,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addSchema(name, schema) {
       isValidComponentName(name)
-      if (component_schemas.has(name)) {
+      if (internal.components.schemas.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
@@ -399,7 +399,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         if (plugin.vendor === (schema as StandardSchemaV1)?.['~standard']?.vendor) {
           plugin.addSchemaGlobal(schema, name)
           components.set(schema!, name)
-          component_schemas.set(name, schema)
+          internal.components.schemas.set(name, schema)
         }
       }
 
@@ -410,13 +410,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addResponse(name, handler) {
       isValidComponentName(name)
-      if (component_responses.has(name)) {
+      if (internal.components.responses.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
       const response = createResponse()
       components.set(response, name)
-      component_responses.set(name, response)
+      internal.components.responses.set(name, response)
 
       handler(response)
       return createRef(response)
@@ -424,13 +424,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addRequestBody(name, handler) {
       isValidComponentName(name)
-      if (component_requestBodies.has(name)) {
+      if (internal.components.requestBodies.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
       const requestBody = createRequestBody()
       components.set(requestBody, name)
-      component_requestBodies.set(name, requestBody)
+      internal.components.requestBodies.set(name, requestBody)
 
       handler(requestBody)
       return createRef(requestBody)
@@ -438,13 +438,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addParameter(name, location, paramName, handler) {
       isValidComponentName(name)
-      if (component_parameters.has(name)) {
+      if (internal.components.parameters.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
       const parameter = createParameter(location, paramName)
       components.set(parameter, name)
-      component_parameters.set(name, parameter)
+      internal.components.parameters.set(name, parameter)
 
       handler(parameter)
       return createRef(parameter)
@@ -452,13 +452,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addHeader(name, handler) {
       isValidComponentName(name)
-      if (component_headers.has(name)) {
+      if (internal.components.headers.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
       const parameter = createParameter('header', '')
       components.set(parameter, name)
-      component_headers.set(name, parameter)
+      internal.components.headers.set(name, parameter)
 
       handler(parameter)
       return createRef(parameter)
@@ -466,13 +466,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addExample(name: string, schema: unknown | ((t: Example) => void), handler?: (t: Example) => void) {
       isValidComponentName(name)
-      if (component_examples.has(name)) {
+      if (internal.components.examples.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
       const example = createExample()
       components.set(example, name)
-      component_examples.set(name, example)
+      internal.components.examples.set(name, example)
 
       typeof schema === 'function' ? schema(example) : handler?.(example)
       return createRef(example)
@@ -480,13 +480,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
 
     addPathItem(name, handler) {
       isValidComponentName(name)
-      if (component_pathItems.has(name)) {
+      if (internal.components.pathItems.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
       }
 
       const pathItem = createPathItem()
       components.set(pathItem, name)
-      component_pathItems.set(name, pathItem)
+      internal.components.pathItems.set(name, pathItem)
 
       handler(pathItem)
       return createRef(pathItem)
@@ -498,7 +498,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       },
       apiKey(name, location, paramName) {
         isValidComponentName(name)
-        if (component_securitySchemas.has(name)) {
+        if (internal.components.securitySchemas.has(name)) {
           throw new Error(`SecuritySchema name is already used: ${name}`)
         }
 
@@ -508,13 +508,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           name: paramName,
         }
 
-        component_securitySchemas.set(name, sec)
+        internal.components.securitySchemas.set(name, sec)
         components.set(sec, name)
         return createRef(sec)
       },
       http(name, scheme, bearerFormat?: string) {
         isValidComponentName(name)
-        if (component_securitySchemas.has(name)) {
+        if (internal.components.securitySchemas.has(name)) {
           throw new Error(`SecuritySchema name is already used: ${name}`)
         }
 
@@ -525,13 +525,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           ...toProp('bearerFormat', bearerFormat),
         }
 
-        component_securitySchemas.set(name, sec)
+        internal.components.securitySchemas.set(name, sec)
         components.set(sec, name)
         return createRef(sec)
       },
       oauth2(name, flows?: any) {
         isValidComponentName(name)
-        if (component_securitySchemas.has(name)) {
+        if (internal.components.securitySchemas.has(name)) {
           throw new Error(`SecuritySchema name is already used: ${name}`)
         }
 
@@ -540,13 +540,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           flows,
         }
 
-        component_securitySchemas.set(name, sec)
+        internal.components.securitySchemas.set(name, sec)
         components.set(sec, name)
         return createRef(sec)
       },
       openIdConnect(name, openIdConnectUrl) {
         isValidComponentName(name)
-        if (component_securitySchemas.has(name)) {
+        if (internal.components.securitySchemas.has(name)) {
           throw new Error(`SecuritySchema name is already used: ${name}`)
         }
 
@@ -555,13 +555,13 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           openIdConnectUrl,
         }
 
-        component_securitySchemas.set(name, sec)
+        internal.components.securitySchemas.set(name, sec)
         components.set(sec, name)
         return createRef(sec)
       },
       mutualTLS(name) {
         isValidComponentName(name)
-        if (component_securitySchemas.has(name)) {
+        if (internal.components.securitySchemas.has(name)) {
           throw new Error(`SecuritySchema name is already used: ${name}`)
         }
 
@@ -569,7 +569,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           type: 'mutualTLS',
         }
 
-        component_securitySchemas.set(name, sec)
+        internal.components.securitySchemas.set(name, sec)
         components.set(sec, name)
         return createRef(sec)
       },
@@ -581,7 +581,10 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
   }
 }
 
-const getInternal = <T>(component: {[Internal]: T}) => component[Internal]
+/**
+ * Get `Internal` component data
+ */
+export const getInternal = <T>(component: {[Internal]: T}) => component[Internal]
 
 const createParameter = <T extends ParameterLocation>(
   location: T,
@@ -923,4 +926,34 @@ const createExample = (): Example => {
       return this
     },
   }
+}
+
+//////////////////////////////// Public Utils
+
+/** Get a list of registered operation IDs */
+export const getOperationIds = (doc: OpenAPI): Map<string, string> => {
+  const {paths} = getInternal(doc)
+  const res = new Map<string, string>()
+  for (const [path, pathItem] of paths) {
+    if (isRef(pathItem)) {
+      continue // TODO: update this code
+    }
+
+    const {operations = []} = getInternal(pathItem)
+    for (const [method, operation] of operations) {
+      const {operationId} = getInternal(operation)
+      if (operationId) res.set(operationId, path)
+    }
+  }
+  return res
+}
+
+/** Get a list of registered `paths` */
+export const getPaths = (doc: OpenAPI): Set<string> => {
+  const {paths} = getInternal(doc)
+  const res = new Set<string>()
+  for (const [path] of paths) {
+    res.add(path)
+  }
+  return res
 }

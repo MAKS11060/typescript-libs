@@ -156,7 +156,27 @@ export interface OpenAPIConfig {
 }
 
 export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
-  // [Internal]: {} // TODO: use for save all internal object
+  [Internal]: {
+    tags: Set<string>
+    servers: Set<ServerObject>
+    security: Set<[Ref<Security>, string[] | undefined]>
+
+    paths: Map<string, MaybeRef<AddPath>>
+    // TODO: webhooks: Map<string, MaybeRef<AddPath>>
+
+    components: {
+      schemas: Map<string, unknown>
+      responses: Map<string, AddResponse>
+      parameters: Map<string, AddParameter[keyof AddParameter]>
+      headers: Map<string, AddParameterHeader>
+      examples: Map<string, Example>
+      pathItems: Map<string, AddPath>
+      requestBodies: Map<string, AddRequestBody>
+      securitySchemas: Map<string, Security>
+      // TODO: links
+      // TODO: callbacks
+    }
+  }
 
   /** Generates an OpenAPI schema */
   toDoc(): any

@@ -85,5 +85,5 @@
  * @module
  */
 
-export {createDoc} from './src/openapi.ts'
+export {createDoc, getInternal, getPaths, getOperationIds} from './src/openapi.ts'
 export {type OpenAPI, type OpenAPIConfig, type SchemaPlugin} from './src/types.ts'

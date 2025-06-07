@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import {createDoc} from '@maks11060/openapi'
+import {createDoc, getOperationIds, getPaths} from '@maks11060/openapi'
 import {zodPlugin} from '@maks11060/openapi/zod'
 import {serve} from './serve.ts'
 
@@ -41,3 +41,6 @@ doc
   .post((t) => {
     t.operationId('get_root')
   })
+
+console.log(getOperationIds(doc))
+console.log(getPaths(doc))
