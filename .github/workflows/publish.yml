@@ -1,8 +1,6 @@
 name: Publish
 
 on:
-  release:
-    types: created
   workflow_dispatch:
 
 jobs:
@@ -19,9 +17,41 @@ jobs:
 
       - name: Set up Deno
         uses: denoland/setup-deno@v2
+        with:
+          cache: true
+
 
       - name: Publish to JSR
         run: deno task publish
 
-      # - name: Release
-      #   uses: softprops/action-gh-release@v2
+      - name: Calculate tag version
+        run: |
+          CURRENT_DATE=$(date +"%Y.%m.%d")
+          BASE_TAG="${CURRENT_DATE}"
+          COUNT=1
+
+          git fetch --tags
+
+          while git rev-parse "$BASE_TAG-$COUNT" >/dev/null 2>&1; do
+            COUNT=$((COUNT + 1))
+          done
+
+          if [ $COUNT -eq 1 ] && ! git rev-parse "$BASE_TAG" >/dev/null 2>&1; then
+            FINAL_TAG="$BASE_TAG"
+          else
+            FINAL_TAG="$BASE_TAG-$COUNT"
+          fi
+
+          echo "FINAL_TAG=$FINAL_TAG" >> $GITHUB_ENV
+          echo "$FINAL_TAG"
+
+      - name: Create and push Git tag
+        run: |
+          git tag "$FINAL_TAG"
+          git push origin "$FINAL_TAG"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.FINAL_TAG }}
+          generate_release_notes: true
