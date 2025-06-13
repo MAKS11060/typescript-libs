@@ -16,10 +16,12 @@ export type MaybeRef<T> = T | Ref<T>
 
 export const createRef = <T>(
   value: T,
-  ref?: Ref<T>[typeof InternalRef]
+  ref?: Ref<T>[typeof InternalRef],
 ): Ref<T> => {
   return {
-    [Internal]: value,
+    get [Internal]() {
+      return value
+    },
     [InternalRef]: ref ?? {},
     summary(summary) {
       return createRef(value, {...this[InternalRef], summary})
