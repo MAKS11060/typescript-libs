@@ -20,7 +20,6 @@ jobs:
         with:
           cache: true
 
-
       - name: Publish to JSR
         run: deno task publish
 
