@@ -6,7 +6,7 @@
  * - Add support: webhooks, callbacks, links
  *
  * @example Create Doc
- *  * ```ts
+ * ```ts
  * import {createDoc} from '@maks11060/openapi'
  * import {zodPlugin} from '@maks11060/openapi/zod'
  * import {z} from 'zod/v4'

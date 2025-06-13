@@ -96,14 +96,16 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
   const context = createContext(config)
 
   const toComponents = () => ({
-    ...toProp('schemas', config.plugins?.schema || [], (p) => {
-      for (const plugin of p) {
-        const res = plugin.getSchemas()
-        return res.schemas
+    ...toProp('schemas', {}, (v) => {
+      const schemas = {
+        ...entriesToRecord(internal.components.schemas),
+        ...Array.from(config.plugins?.schema || [], (plugin) => plugin.getSchemas().schemas)
+          .reduce((acc, cur) => ({...acc, ...cur}), {}),
       }
+      if (Object.keys(schemas).length) return schemas
     }),
-    ...toProp('responses', internal.components.responses, (v) =>
-      entriesToRecord(v, (response) => {
+    ...toProp('responses', internal.components.responses, (v) => {
+      return entriesToRecord(v, (response) => {
         const internal = getInternal(response)
         internal.description ??= `Response`
         return {
@@ -111,17 +113,19 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           ...toProp('headers', internal.headers, _toHeader),
           ...toProp('content', internal.content, _toContent),
         }
-      })),
+      })
+    }),
     ...toProp('parameters', internal.components.parameters, (v) => {
       return entriesToRecord(v, (el) => {
         return _toParameter(el as unknown as AddParameterInternal)
       })
     }),
-    ...toProp('examples', internal.components.examples, (v) =>
-      entriesToRecord(v, (example) => {
+    ...toProp('examples', internal.components.examples, (v) => {
+      return entriesToRecord(v, (example) => {
         const internal = getInternal(example)
         return {...internal}
-      })),
+      })
+    }),
     ...toProp('requestBodies', internal.components.requestBodies, (v) => {
       return entriesToRecord(v, (el) => {
         const internal = getInternal(el)
@@ -402,14 +406,20 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         throw new Error(`Component name is already used: ${name}`)
       }
 
+      // register the schema using the plugin
       for (const plugin of config.plugins?.schema ?? []) {
         if (plugin.vendor === (schema as StandardSchemaV1)?.['~standard']?.vendor) {
           plugin.addSchemaGlobal(schema, name)
           components.set(schema!, name)
           internal.components.schemas.set(name, schema)
+          return createRef({
+            schema,
+          })
         }
       }
 
+      components.set(schema!, name)
+      internal.components.schemas.set(name, schema)
       return createRef({
         schema,
       })
