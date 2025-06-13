@@ -1,6 +1,6 @@
-import {type} from 'npm:arktype@2.1.20'
-import {entriesToRecord} from '../lib/helpers.ts'
-import type {SchemaPlugin} from '../types.ts'
+import { type } from 'npm:arktype@2.1.20'
+import { entriesToRecord } from '../lib/helpers.ts'
+import type { SchemaPlugin } from '../types.ts'
 
 export const arktypePlugin = (): SchemaPlugin<type> => {
   const registry = new Map<string, type>()

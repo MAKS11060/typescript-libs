@@ -1,13 +1,13 @@
-import type {StandardSchemaV1} from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type * as YAML from '@std/yaml/stringify'
-import type {ParsePath} from './lib/helpers.ts'
-import type {MaybeRef, Ref} from './lib/ref.ts'
+import type { ParsePath } from './lib/helpers.ts'
+import type { MaybeRef, Ref } from './lib/ref.ts'
 
 export const Internal = Symbol('Internal')
 
 //////////////// Rules
-type GetRules<T extends OpenAPIConfig, Rule extends string, Default = never> = T['rules'] extends {[K in Rule]: infer R}
-  ? R
+type GetRules<T extends OpenAPIConfig, Rule extends string, Default = never> = T['rules'] extends
+  { [K in Rule]: infer R } ? R
   : Default
 
 export interface OpenAPIRules {
@@ -47,22 +47,17 @@ interface MIME {
   text: '*' | 'plain' | 'html'
 }
 
-export type ContentType = {[K in keyof MIME]: `${K}/${MIME[K]}`}[keyof MIME]
+export type ContentType = { [K in keyof MIME]: `${K}/${MIME[K]}` }[keyof MIME]
 
 export type ParameterLocation = 'path' | 'query' | 'header' | 'cookie'
 
-export type ExtractSchema<T> = T extends StandardSchemaV1
-  ? StandardSchemaV1.InferOutput<T>
-  : T extends Ref<{schema: infer O}>
-  ? O
+export type ExtractSchema<T> = T extends StandardSchemaV1 ? StandardSchemaV1.InferOutput<T>
+  : T extends Ref<{schema: infer O}> ? O
   : unknown // no schema plugins
 
-type ExtractTags<T> = T extends {tags: Array<infer U>}
-  ? U extends {name: infer N}
-    ? N extends string
-      ? N
-      : never
+type ExtractTags<T> = T extends {tags: Array<infer U>} ? U extends {name: infer N} ? N extends string ? N
     : never
+  : never
   : never
 
 export type AddPathItemOptions<T extends string> = {
@@ -188,31 +183,111 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
   /** Add `server` global */
   server<URI extends string>(server: ServerObject<URI>): void
 
-  /** Define route */
+  /**
+   * Define route
+   *
+   * ```yaml
+   * paths:
+   *   "/": # <-- HERE
+   * ```
+   */
   addPath<T extends string>(path: T, options?: Partial<AddPathItemOptions<T>>): AddPath<Config>
 
   addPath<T extends string>(path: T, pathItem: Ref<AddPath<Config>>): void
   addPath<T extends string>(path: T, options: Partial<AddPathItemOptions<T>>, pathItem: Ref<AddPath<Config>>): void
 
-  // Components
+  /**
+   * Add a `schema` to components
+   *
+   * ```yaml
+   * components:
+   *   schemas: # <-- HERE
+   * ```
+   */
   addSchema<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(name: string, schema: T): Ref<AddSchema<T>>
+
+  /**
+   * Add a `schemas` to components
+   *
+   * ```yaml
+   * components:
+   *   schemas: # <-- HERE
+   * ```
+   */
+  // addSchemas<T extends {[K: string]: PluginInputType<ExtractSchemaPlugins<Config>>}>(schemas: T): {
+  //   [K in keyof T]: Ref<AddSchema<T[K]>>
+  // }
+  addSchemas<T extends {[K: string]: PluginInputType<ExtractSchemaPlugins<Config>>}>(schemas: T): {
+    [K in keyof T]: Ref<AddSchema<T[K]>>
+  }
+  /**
+   * Add a `response` to components
+   *
+   * ```yaml
+   * components:
+   *   responses: # <-- HERE
+   * ```
+   */
   addResponse(name: string, handler: (t: AddResponse<Config>) => void): Ref<AddResponse>
+
+  /**
+   * Add a `requestBodies` to components
+   *
+   * ```yaml
+   * components:
+   *   requestBodies: # <-- HERE
+   * ```
+   */
   addRequestBody(name: string, handler: (t: AddRequestBody<Config>) => void): Ref<AddRequestBody>
+
+  /**
+   * Add a `parameter` to components
+   *
+   * ```yaml
+   * components:
+   *   parameters: # <-- HERE
+   * ```
+   */
   addParameter<T extends ParameterLocation>(
     name: string,
     location: T,
     paramName: string,
-    handler: (t: AddParameter<unknown, Config>[T]) => void
+    handler: (t: AddParameter<unknown, Config>[T]) => void,
   ): Ref<AddParameter[T]>
+
+  /**
+   * Add a `header` to components
+   *
+   * ```yaml
+   * components:
+   *   headers: # <-- HERE
+   * ```
+   */
   addHeader(name: string, handler: (t: AddParameterHeader) => void): Ref<AddParameterHeader>
 
+  /**
+   * Add a `example` to components
+   *
+   * ```yaml
+   * components:
+   *   examples: # <-- HERE
+   * ```
+   */
   addExample<T>(name: string, handler: (t: Example<T>) => void): Ref<Example<T>>
   addExample<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     name: string,
     schema: T | MaybeRef<AddSchema<T>>,
-    handler: (t: Example<ExtractSchema<T>>) => void
+    handler: (t: Example<ExtractSchema<T>>) => void,
   ): Ref<Example<T>>
 
+  /**
+   * Add a `pathItem` to components
+   *
+   * ```yaml
+   * components:
+   *   pathItems: # <-- HERE
+   * ```
+   */
   addPathItem(name: string, handler: (t: AddPath) => void): Ref<AddPath>
 
   /** The object contains methods for creating `security schemes` */
@@ -220,9 +295,8 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
   /** Apply a `security` scheme to the whole document */
   security<E>(
     schema: Ref<Security<string, E>>,
-    scopes?: GetRules<Config, 'security', true> extends false
-      ? ExtractScopesFromFlows<E>[] | string[]
-      : ExtractScopesFromFlows<E>[]
+    scopes?: GetRules<Config, 'security', true> extends false ? ExtractScopesFromFlows<E>[] | string[]
+      : ExtractScopesFromFlows<E>[],
   ): void
   /** Apply a `security` scheme to the whole document */
   security(securitySchema: Ref<Security<string>>): void
@@ -237,26 +311,137 @@ export interface AddPath<Config extends OpenAPIConfig = OpenAPIConfig> {
     servers?: Set<ServerObject>
     tags?: Set<TagObject>
   }
+
+  /**
+   * Add a `summary` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     summary: # <-- HERE
+   * ```
+   */
   summary(summary: string): this
+
+  /**
+   * Add a `description` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     description: # <-- HERE
+   * ```
+   */
   describe(description: string): this
 
+  /**
+   * Add a `parameter` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     parameters:
+   *       - # <-- HERE
+   * ```
+   */
   parameter<T extends ParameterLocation>(
     location: T,
     paramName: string,
-    handler: (t: AddParameter<unknown, Config>[T]) => void
+    handler: (t: AddParameter<unknown, Config>[T]) => void,
   ): this
   parameter(ref: Ref<AddParameter[keyof AddParameter]>): this
 
-  /** Add a `server` specific to this path */
+  /**
+   * Add a `server` specific to this path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     servers:
+   *       - # <-- HERE
+   * ```
+   */
   server<URI extends string>(server: ServerObject<URI>): this
 
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     get: # <-- HERE
+   * ```
+   */
   get(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     get: # <-- HERE
+   * ```
+   */
   put(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     post: # <-- HERE
+   * ```
+   */
   post(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     delete: # <-- HERE
+   * ```
+   */
   delete(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     options: # <-- HERE
+   * ```
+   */
   options(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     head: # <-- HERE
+   * ```
+   */
   head(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     patch: # <-- HERE
+   * ```
+   */
   patch(handler: (t: AddOperation<Config>) => void): this
+  /**
+   * Add a `method` for the path
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     trace: # <-- HERE
+   * ```
+   */
   trace(handler: (t: AddOperation<Config>) => void): this
 }
 
@@ -278,8 +463,31 @@ export interface AddOperation<Config extends OpenAPIConfig = OpenAPIConfig> {
 
   tag(tag: ExtractTags<Config>): this
   tag(tag: string): this
+
+  /**
+   * Add a `summary` for the path `operation`
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     [METHOD]:
+   *       summary: # <-- HERE
+   * ```
+   */
   summary(summary: string): this
+
+  /**
+   * Add a `description` for the `operation`
+   *
+   * ```yaml
+   * paths:
+   *   '/':
+   *     [METHOD]:
+   *       description: # <-- HERE
+   * ```
+   */
   describe(description: string): this
+
   externalDocs(doc: ExternalDocumentationObject): this
   operationId(id: string): this
   deprecated(deprecated?: boolean): this
@@ -298,7 +506,7 @@ export interface AddOperation<Config extends OpenAPIConfig = OpenAPIConfig> {
     schema: Ref<Security<string, E>>,
     scopes?: GetRules<Config, 'security', true> extends false //
       ? ExtractScopesFromFlows<E>[] | string[]
-      : ExtractScopesFromFlows<E>[]
+      : ExtractScopesFromFlows<E>[],
   ): void
   /** Apply the `security` scheme to the operation */
   security(securitySchema: Ref<Security<string>>): void
@@ -317,11 +525,11 @@ export interface AddResponse<Config extends OpenAPIConfig = OpenAPIConfig> {
   describe(description: string): this
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: ContentType,
-    schema: T | MaybeRef<AddSchema<T>>
+    schema: T | MaybeRef<AddSchema<T>>,
   ): AddResponseContent<T>
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: string,
-    schema: T | MaybeRef<AddSchema<T>>
+    schema: T | MaybeRef<AddSchema<T>>,
   ): AddResponseContent<T>
   header(name: string, handler: (t: AddParameterHeader) => void): this
   header(name: string, ref: Ref<AddParameterHeader>): this
@@ -346,11 +554,11 @@ export interface AddRequestBody<Config extends OpenAPIConfig = OpenAPIConfig> {
   required(required?: boolean): this
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: ContentType,
-    schema: T | MaybeRef<AddSchema<T>>
+    schema: T | MaybeRef<AddSchema<T>>,
   ): AddRequestBodyContent<T>
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: string,
-    schema: T | MaybeRef<AddSchema<T>>
+    schema: T | MaybeRef<AddSchema<T>>,
   ): AddRequestBodyContent<T>
 }
 
@@ -449,11 +657,11 @@ export type AddParameterCookie<T = unknown> = {
 export type AddParameterWithContent<Config extends OpenAPIConfig = OpenAPIConfig> = {
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: ContentType,
-    schema: T | MaybeRef<AddSchema<T>>
+    schema: T | MaybeRef<AddSchema<T>>,
   ): AddResponseContent<T>
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: string,
-    schema: T | MaybeRef<AddSchema<T>>
+    schema: T | MaybeRef<AddSchema<T>>,
   ): AddResponseContent<T>
 }
 
@@ -493,7 +701,7 @@ export interface OAuthFlowsObject<
   T1 extends string = never,
   T2 extends string = never,
   T3 extends string = never,
-  T4 extends string = never
+  T4 extends string = never,
 > {
   authorizationCode?: {
     authorizationUrl: string

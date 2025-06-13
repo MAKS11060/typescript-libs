@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import {createDoc} from '@maks11060/openapi'
-import {zodPlugin} from '@maks11060/openapi/zod'
-import {z} from 'zod/v4'
-import {serve} from './serve.ts'
+import { createDoc } from '@maks11060/openapi'
+import { zodPlugin } from '@maks11060/openapi/zod'
+import { z } from 'zod/v4'
+import { serve } from './serve.ts'
 
 setTimeout(() => console.yaml(doc.toDoc()))
 
@@ -34,7 +34,6 @@ doc
   .parameter('query', 'q', (t) => {
     t.schema(queryParam)
   })
-
   .get((t) => {
     t.response(200, (t) => {
       t.content('application/json', userId1)

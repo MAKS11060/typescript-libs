@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
 import '../../debug/yaml.ts'
-import {createDoc} from '../mod.ts'
-import {zodPlugin} from '../src/plugins/zod.ts'
+import { createDoc } from '../mod.ts'
+import { zodPlugin } from '../src/plugins/zod.ts'
 
 setTimeout(() => console.yaml(doc.toDoc()))
 
@@ -15,7 +15,7 @@ const doc = createDoc({
 })
 
 doc.addSchema('test', {
-  type: 'string'
+  type: 'string',
 })
 
 doc
@@ -25,4 +25,3 @@ doc
       t.content('application/json', {type: 'string'})
     })
   })
-

@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run -A
 
-import {z} from 'zod/v4'
+import { z } from 'zod/v4'
 import '../../debug/yaml.ts'
-import {createDoc} from '../mod.ts'
-import {zodPlugin} from '../src/plugins/zod.ts'
+import { createDoc } from '../mod.ts'
+import { zodPlugin } from '../src/plugins/zod.ts'
 
 setTimeout(() => console.yaml(doc.toDoc()))
 
@@ -103,7 +103,6 @@ doc
 
     t.security(petstoreAuth, ['write:pets', 'read:pets'])
   })
-
   .post((t) => {
     t.tag('pet')
     t.summary('Add a new pet to the store.')

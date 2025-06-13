@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {type} from 'npm:arktype'
+import { type } from 'npm:arktype'
 import '../../../debug/yaml.ts'
-import {arktypePlugin} from './arktype.ts'
+import { arktypePlugin } from './arktype.ts'
 
 const userId = type('string')
 const user = type({

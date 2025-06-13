@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {zodPlugin} from '@maks11060/openapi/zod'
-import {expect} from 'jsr:@std/expect'
-import {z} from 'zod/v4'
-import {createDoc} from './openapi.ts'
+import { zodPlugin } from '@maks11060/openapi/zod'
+import { expect } from 'jsr:@std/expect'
+import { z } from 'zod/v4'
+import { createDoc } from './openapi.ts'
 
 Deno.test('Test', async (t) => {
   const doc = createDoc({
@@ -251,7 +251,7 @@ Deno.test('Parameters', async (t) => {
       'application/json',
       z.object({
         key: z.string(),
-      })
+      }),
     )
   })
 
@@ -368,4 +368,24 @@ Deno.test('Parameters', async (t) => {
       },
     },
   })
+})
+
+Deno.test('createDoc() schemas', async (t) => {
+  const doc = createDoc({
+    plugins: {schema: [zodPlugin()]},
+    info: {
+      title: 'test',
+      version: '1',
+    },
+  })
+
+  const ID = z.int().positive()
+  const user = z.object({
+    id: ID,
+    username: z.string(),
+  })
+
+  console.log(doc.addSchemas({ID, user}))
+
+  console.log(doc.toYAML())
 })

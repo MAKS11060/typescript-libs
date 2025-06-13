@@ -1,9 +1,8 @@
-import type {StandardSchemaV1} from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import * as YAML from '@std/yaml/stringify'
-import {entriesToRecord, extractParams, toProp, toRest} from './lib/helpers.ts'
-import {createRef, deRef, isRef, type MaybeRef, type Ref} from './lib/ref.ts'
+import { entriesToRecord, extractParams, toProp, toRest } from './lib/helpers.ts'
+import { createRef, deRef, isRef, type MaybeRef, type Ref } from './lib/ref.ts'
 import {
-  Internal,
   type AddOperation,
   type AddParameter,
   type AddParameterHeader,
@@ -17,6 +16,7 @@ import {
   type AddResponseContent,
   type AddSchema,
   type Example,
+  Internal,
   type OpenAPI,
   type OpenAPIConfig,
   type ParameterLocation,
@@ -111,8 +111,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
           ...toProp('headers', internal.headers, _toHeader),
           ...toProp('content', internal.content, _toContent),
         }
-      })
-    ),
+      })),
     ...toProp('parameters', internal.components.parameters, (v) => {
       return entriesToRecord(v, (el) => {
         return _toParameter(el as unknown as AddParameterInternal)
@@ -122,8 +121,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       entriesToRecord(v, (example) => {
         const internal = getInternal(example)
         return {...internal}
-      })
-    ),
+      })),
     ...toProp('requestBodies', internal.components.requestBodies, (v) => {
       return entriesToRecord(v, (el) => {
         const internal = getInternal(el)
@@ -417,6 +415,15 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       })
     },
 
+    addSchemas(schemas) {
+      return entriesToRecord(
+        Object.entries(schemas),
+        (schema, name) => {
+          return this.addSchema(name, schema)
+        },
+      ) as any
+    },
+
     addResponse(name, handler) {
       isValidComponentName(name)
       if (internal.components.responses.has(name)) {
@@ -597,7 +604,7 @@ export const getInternal = <T>(component: {[Internal]: T}) => component[Internal
 
 const createParameter = <T extends ParameterLocation>(
   location: T,
-  name: string
+  name: string,
 ): AddParameter[T] & AddParameterInternal => {
   const internal: AddParameterInternal[typeof Internal] = {
     in: location,

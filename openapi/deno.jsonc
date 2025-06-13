@@ -4,23 +4,23 @@
   "tasks": {
     "test": "deno test",
     "test-dev": "deno test --no-check --watch",
-    "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
+    "check": "deno publish --allow-slow-types --allow-dirty --dry-run"
   },
   "imports": {
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
-    "zod": "npm:zod@^3.25.45",
+    "zod": "npm:zod@^3.25.64"
   },
   "exports": {
     ".": "./mod.ts",
     "./arktype": "./src/plugins/arktype.ts",
     "./valibot": "./src/plugins/valibot.ts",
-    "./zod": "./src/plugins/zod.ts",
+    "./zod": "./src/plugins/zod.ts"
   },
   "publish": {
     "exclude": [
       "**/*.test.ts",
-      "examples",
+      "examples"
     ]
   }
 }

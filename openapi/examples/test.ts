@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {z} from 'zod/v4'
-import {createDoc} from '../mod.ts'
-import {zodPlugin} from '../src/plugins/zod.ts'
+import { z } from 'zod/v4'
+import { createDoc } from '../mod.ts'
+import { zodPlugin } from '../src/plugins/zod.ts'
 
 setTimeout(() => console.log(doc.toYAML()))
 

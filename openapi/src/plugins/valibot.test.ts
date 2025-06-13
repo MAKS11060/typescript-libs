@@ -2,7 +2,7 @@
 
 import * as v from 'npm:valibot'
 import '../../../debug/yaml.ts'
-import {valibotPlugin} from './valibot.ts'
+import { valibotPlugin } from './valibot.ts'
 
 const userId = v.string()
 const user = v.object({
@@ -22,7 +22,6 @@ plugin.addSchemaGlobal(user, 'User')
 plugin.addSchemaGlobal(account, 'Account')
 
 console.yaml(plugin.getSchemas())
-
 
 // const s = toJsonSchema(user, {
 //   definitions: {

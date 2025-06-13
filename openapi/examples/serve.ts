@@ -1,6 +1,6 @@
-import {OpenAPI} from '@maks11060/openapi'
-import {Hono} from 'npm:hono'
-import {cors} from 'npm:hono/cors'
+import { OpenAPI } from '@maks11060/openapi'
+import { Hono } from 'npm:hono'
+import { cors } from 'npm:hono/cors'
 import '../../debug/yaml.ts'
 
 export const serve = (doc: OpenAPI) => {
@@ -11,7 +11,7 @@ export const serve = (doc: OpenAPI) => {
 
   // Deno.serve(app.fetch)
   Deno.serve({
-    onListen({hostname,port}) {
+    onListen({hostname, port}) {
       const host = hostname === '0.0.0.0' ? 'localhost' : hostname
       const uri = new URL('/openapi.yml', `http://localhost`)
       uri.port = `${port}`
@@ -22,6 +22,4 @@ export const serve = (doc: OpenAPI) => {
       // console.log('https://swagger-next.deno.dev/?url=http://localhost:8000/openapi.yml')
     },
   }, app.fetch)
-
 }
-
