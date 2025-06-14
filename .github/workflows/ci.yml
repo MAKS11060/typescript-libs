@@ -20,7 +20,6 @@ jobs:
 
   #     - name: Run tests
   #       run: deno test -A
-
   publish-dry-run:
     runs-on: ubuntu-latest
     timeout-minutes: 30
