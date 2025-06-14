@@ -1,13 +1,13 @@
-import {chunk} from '@std/collections/chunk'
-import {ulid} from '@std/ulid'
-import {z} from 'zod'
-import {fromKvIterator, getKvPage, KvPageOptions} from './kvLib.ts'
+import { chunk } from '@std/collections/chunk'
+import { ulid } from '@std/ulid'
+import { z } from 'zod'
+import { fromKvIterator, getKvPage, KvPageOptions } from './kvLib.ts'
 
 type ModelOptions<
   //
   S extends z.Schema,
   PrimaryKey extends keyof z.input<S>,
-  SecondaryKeys extends Exclude<keyof z.input<S>, PrimaryKey>
+  SecondaryKeys extends Exclude<keyof z.input<S>, PrimaryKey>,
 > = {
   /** `kv prefix` */
   prefix: string
@@ -48,11 +48,11 @@ export const createModel = <
   S extends z.Schema,
   PrimaryKey extends keyof z.input<S>,
   // keys without primaryKey
-  SecondaryKeys extends Exclude<keyof z.input<S>, PrimaryKey>
+  SecondaryKeys extends Exclude<keyof z.input<S>, PrimaryKey>,
 >(
   kv: Deno.Kv,
   schema: S,
-  modelOptions: ModelOptions<S, PrimaryKey, SecondaryKeys>
+  modelOptions: ModelOptions<S, PrimaryKey, SecondaryKeys>,
 ) => {
   type Input = z.input<S>
   type InputWithoutKey = Omit<Input, PrimaryKey>
@@ -87,7 +87,7 @@ export const createModel = <
         expireIn?: number
         force?: boolean
       },
-      output: Output
+      output: Output,
     ): void
     (
       action: 'update',
@@ -97,7 +97,7 @@ export const createModel = <
         force?: boolean
       },
       output: Output,
-      currentValue: Output
+      currentValue: Output,
     ): void
     (
       action: 'remove',
@@ -106,7 +106,7 @@ export const createModel = <
         expireIn?: number
         force?: boolean
       },
-      output: Output
+      output: Output,
     ): void
   }
 
@@ -235,13 +235,13 @@ export const createModel = <
     <T extends SecondaryKeys>(
       indexKey: T,
       value: Output[T],
-      options: {resolve: true} & KvPageOptions<PrimaryKeyType>
+      options: {resolve: true} & KvPageOptions<PrimaryKeyType>,
     ): Promise<Output[]>
     // Get object[] `primary key`
     <T extends SecondaryKeys>(
       indexKey: T,
       value: Output[T],
-      options?: {resolve?: false} & KvPageOptions<PrimaryKeyType>
+      options?: {resolve?: false} & KvPageOptions<PrimaryKeyType>,
     ): Promise<Output[T][]>
   }
 
@@ -266,9 +266,9 @@ export const createModel = <
           return kv.getMany<Output[]>(
             ids.map((id) => {
               return [modelOptions.prefix, id]
-            })
+            }),
           )
-        })
+        }),
       )
 
       return res
@@ -335,7 +335,7 @@ export const createModel = <
     indexKey: T,
     indexVal: Output[T],
     newValue: UpdateNewValue,
-    options?: UpdateOptions
+    options?: UpdateOptions,
   ): Promise<Output> => {
     const currentValue = await findByIndex(indexKey, indexVal, {resolve: true})
 

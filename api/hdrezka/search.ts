@@ -1,6 +1,6 @@
-import {DOMParser} from 'jsr:@b-fuze/deno-dom'
-import {CustomFetch} from '../../web/types.ts'
-import {GetURI, getURI, ua} from './_utils.ts'
+import { DOMParser } from 'jsr:@b-fuze/deno-dom'
+import { CustomFetch } from '../../web/types.ts'
+import { GetURI, getURI, ua } from './_utils.ts'
 
 const SearchGenre = {
   films: 1,
@@ -11,20 +11,22 @@ const SearchGenre = {
 
 type SearchFilter =
   | {
-      type: 'films' | 'series' | 'cartoons' | 'anime'
-      filter?: 'last' | 'popular' | 'soon' | 'watching'
-    }
+    type: 'films' | 'series' | 'cartoons' | 'anime'
+    filter?: 'last' | 'popular' | 'soon' | 'watching'
+  }
   | {
-      type: 'new'
-      filter?: 'last' | 'popular' | 'watching'
-      genre?: keyof typeof SearchGenre //'1' | '2' | '3' | '82'
-    }
+    type: 'new'
+    filter?: 'last' | 'popular' | 'watching'
+    genre?: keyof typeof SearchGenre //'1' | '2' | '3' | '82'
+  }
   | {
-      type: 'announce'
-    }
+    type: 'announce'
+  }
 
-type SearchOptions = CustomFetch &
-  SearchFilter & {
+type SearchOptions =
+  & CustomFetch
+  & SearchFilter
+  & {
     /** @default 1 */
     page?: number
     headers?: HeadersInit

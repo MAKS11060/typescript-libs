@@ -49,7 +49,6 @@ const defaultOptions: Required<PrintBufOptions> = {
 const formats = {hex: 16, dec: 10, bin: 2}
 const formatsPrintSize = {hex: 2, dec: 3, bin: 8}
 
-
 /**
  * Prints the contents of an {@linkcode ArrayBuffer} in a formatted table to the console.
  *
@@ -83,10 +82,12 @@ export const printBuf = (buffer: Uint8Array, options?: PrintBufOptions) => {
     const col = i.toString(formats[cfg.byteNumberFormat])
     const colWithPad = col.padStart(formatsPrintSize[cfg.byteFormat], '0')
     // 000 001 => %c00 + %c1
-    output += `%c${colWithPad.slice(
-      0,
-      colWithPad.length - col.length
-    )}%c${col} `
+    output += `%c${
+      colWithPad.slice(
+        0,
+        colWithPad.length - col.length,
+      )
+    }%c${col} `
     outputCss.push('color: black', 'color: white')
   }
 
@@ -102,22 +103,23 @@ export const printBuf = (buffer: Uint8Array, options?: PrintBufOptions) => {
   }
 
   for (let i = 0; i < buf.length; i++) {
-    outputCss =
-      row % 2
-        ? ['color: blue', 'color: yellow']
-        : ['color: blue', 'color: orange']
+    outputCss = row % 2 ? ['color: blue', 'color: yellow'] : ['color: blue', 'color: orange']
 
     // address
     if (counter === 0) {
-      output += `%c${i
-        .toString(formats[cfg.addressFormat])
-        .padStart(8, '0')} %c`
+      output += `%c${
+        i
+          .toString(formats[cfg.addressFormat])
+          .padStart(8, '0')
+      } %c`
     }
 
     // byte
-    output += `${buf[i]
-      .toString(formats[cfg.byteFormat])
-      .padStart(formatsPrintSize[cfg.byteFormat], '0')} `
+    output += `${
+      buf[i]
+        .toString(formats[cfg.byteFormat])
+        .padStart(formatsPrintSize[cfg.byteFormat], '0')
+    } `
     counter++
 
     // print line

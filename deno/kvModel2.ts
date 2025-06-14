@@ -1,17 +1,17 @@
-import {chunk, zip} from '@std/collections'
-import {ulid} from '@std/ulid/ulid'
-import type {StandardSchemaV1} from 'npm:@standard-schema/spec'
-import {standardValidate} from '../kv/_standardValidate.ts'
-import {KvPageOptions, getKvPage} from './kvLib.ts'
+import { chunk, zip } from '@std/collections'
+import { ulid } from '@std/ulid/ulid'
+import type { StandardSchemaV1 } from 'npm:@standard-schema/spec'
+import { standardValidate } from '../kv/_standardValidate.ts'
+import { getKvPage, KvPageOptions } from './kvLib.ts'
 
 type Array2Union<T> = T extends Array<infer O> ? O : T
 
 type GetPrimitiveKey<TObject> = {
-  [K in keyof TObject as TObject[K] extends Deno.KvKeyPart
-    ? undefined extends TObject[K]
-      ? never
+  [
+    K in keyof TObject as TObject[K] extends Deno.KvKeyPart ? undefined extends TObject[K] ? never
       : K
-    : never]: TObject[K]
+      : never
+  ]: TObject[K]
 }
 
 type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
@@ -19,7 +19,7 @@ type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
 type ModelOptions<
   Schema extends StandardSchemaV1,
   IndexKey extends string,
-  Output = StandardSchemaV1.InferOutput<Schema>
+  Output = StandardSchemaV1.InferOutput<Schema>,
 > = {
   prefix: string
   /**
@@ -53,8 +53,7 @@ type IndexOptionsResult<Index extends IndexOptions<any, any>> = {
 
 type ChoiceOption<T extends 'one' | 'many', One, Many> = T extends 'one' //
   ? One
-  : T extends 'many'
-  ? Many
+  : T extends 'many' ? Many
   : never
 
 interface CreateOptions<Key> {
@@ -65,7 +64,7 @@ interface CreateOptions<Key> {
   /**
    * Check `index` before rewriting. Set `true` for overwrite index
    * @default false
-   * */
+   */
   force?: boolean
   /** override `AtomicOperation` for one transaction */
   op?: Deno.AtomicOperation
@@ -78,10 +77,10 @@ const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a
 export const createKvModel = (kv: Deno.Kv) => {
   const model = <
     Schema extends StandardSchemaV1, //
-    Options extends ModelOptions<Schema, string>
+    Options extends ModelOptions<Schema, string>,
   >(
     schema: Schema,
-    modelOptions: Options
+    modelOptions: Options,
   ) => {
     type Input = StandardSchemaV1.InferInput<Schema>
     type Output = StandardSchemaV1.InferOutput<Schema>
@@ -172,7 +171,7 @@ export const createKvModel = (kv: Deno.Kv) => {
           IndexMap[Key]['type'], //
           FindNoResolve,
           FindNoResolve & KvPageOptions<PrimaryKeyType>
-        >
+        >,
       ): Promise<
         ChoiceOption<
           IndexMap[Key]['type'], //
@@ -188,7 +187,7 @@ export const createKvModel = (kv: Deno.Kv) => {
           IndexMap[Key]['type'], //
           FindResolve,
           FindResolve & KvPageOptions<PrimaryKeyType>
-        >
+        >,
       ): Promise<
         ChoiceOption<
           IndexMap[Key]['type'], //
@@ -214,7 +213,7 @@ export const createKvModel = (kv: Deno.Kv) => {
         const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(
           kv,
           key,
-          options as KvPageOptions<PrimaryKeyType>
+          options as KvPageOptions<PrimaryKeyType>,
         )
 
         if (options?.resolve) {
@@ -224,9 +223,9 @@ export const createKvModel = (kv: Deno.Kv) => {
               return kv.getMany<Output[]>(
                 page.map(({key}) => {
                   return [modelOptions.prefix, key.at(-1)!]
-                })
+                }),
               )
-            })
+            }),
           )
 
           return res
@@ -249,7 +248,7 @@ export const createKvModel = (kv: Deno.Kv) => {
       (
         key: PrimaryKeyType,
         handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey> | Promise<void> | void,
-        options?: UpdateOptions
+        options?: UpdateOptions,
       ): Promise<Output>
     }
 
@@ -258,8 +257,9 @@ export const createKvModel = (kv: Deno.Kv) => {
       if (!value) return null
 
       const {[modelOptions.primaryKey]: primaryKey, ...curValue} = value
-      const {[modelOptions.primaryKey]: _, ...newValueRaw} =
-        typeof handler === 'function' ? (await handler(value)) ?? value : handler
+      const {[modelOptions.primaryKey]: _, ...newValueRaw} = typeof handler === 'function'
+        ? (await handler(value)) ?? value
+        : handler
 
       // make new obj
       const newValue = standardValidate(schema, {
@@ -290,7 +290,7 @@ export const createKvModel = (kv: Deno.Kv) => {
 
         const secondaryKeys = Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]
         const prevSecondaryKeys = (Array.isArray(_prevSecondaryKey) ? _prevSecondaryKey : [_prevSecondaryKey]).filter(
-          (v) => !secondaryKeys.includes(v)
+          (v) => !secondaryKeys.includes(v),
         )
 
         // delete prev index
@@ -359,7 +359,7 @@ export const createKvModel = (kv: Deno.Kv) => {
         IndexMap[Key]['type'],
         RemoveByIndexOptions,
         RemoveByIndexOptions & KvPageOptions<PrimaryKeyType>
-      >
+      >,
     ) => {
       const op = options?.op ?? kv.atomic()
       const res = await findByIndex(key, value, options as any)

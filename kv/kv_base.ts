@@ -7,7 +7,6 @@
  * @module kvBase
  */
 
-
 /**
  * KvMap interface
  */

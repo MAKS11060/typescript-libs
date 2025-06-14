@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno test -A --watch
 
-import {expect} from 'jsr:@std/expect'
-import {z} from 'zod'
-import {createModel} from './kvModel.ts'
+import { expect } from 'jsr:@std/expect'
+import { z } from 'zod'
+import { createModel } from './kvModel.ts'
 
 // const smallID = () => encodeHex(crypto.getRandomValues(new Uint8Array(4)))
 const idMap = new Map<string, number>()

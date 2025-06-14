@@ -1,8 +1,8 @@
-import type {StandardSchemaV1} from '@standard-schema/spec'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 export const standardValidate = <T extends StandardSchemaV1>(
   schema: T,
-  input: StandardSchemaV1.InferInput<T>
+  input: StandardSchemaV1.InferInput<T>,
 ): StandardSchemaV1.InferOutput<T> => {
   const result = schema['~standard'].validate(input)
   if (result instanceof Promise) {

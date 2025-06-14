@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import {expect} from 'jsr:@std/expect/expect'
-import {kvMap, kvSet} from './kv_base.ts'
+import { expect } from 'jsr:@std/expect/expect'
+import { kvMap, kvSet } from './kv_base.ts'
 
 const kv = await Deno.openKv(':memory:')
 

@@ -30,7 +30,7 @@ export type KvPageOptions<Offset = Deno.KvKeyPart> = Omit<Deno.KvListOptions, 'c
 export const getKvPage = async <T, Offset = Deno.KvKeyPart>(
   kv: Deno.Kv,
   key: Deno.KvKey,
-  options: KvPageOptions<Offset> = {}
+  options: KvPageOptions<Offset> = {},
 ): Promise<{
   kvEntries(): Promise<Deno.KvEntry<T>[]>
   entries(): Promise<[Deno.KvKey, T][]>
@@ -81,7 +81,7 @@ export const fromKvIterator = async <T>(
   options?: {
     limit?: number
     filter?: (val: T, key: Deno.KvKey) => unknown
-  }
+  },
 ): Promise<Deno.KvEntry<T>[]> => {
   const result: Deno.KvEntry<T>[] = []
 

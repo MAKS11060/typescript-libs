@@ -28,8 +28,8 @@ export interface CustomFetch {
  * ```
  */
 export const wrapFetch = (
-  handler: (req: Request, ...args: any[]) => Response | Promise<Response>
-): ((input: URL | Request | string, init?: RequestInit) => Response | Promise<Response>) => {
+  handler: (req: Request, ...args: any[]) => Response | Promise<Response>,
+): (input: URL | Request | string, init?: RequestInit) => Response | Promise<Response> => {
   return (input: URL | Request | string, init?: RequestInit) => {
     if (input instanceof Request) return handler(input, init)
     return handler(new Request(input, init))

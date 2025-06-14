@@ -1,4 +1,4 @@
-import {createMiddleware} from 'hono/factory'
+import { createMiddleware } from 'hono/factory'
 
 function statusColor(status: number) {
   const code = (status / 100) | 0 // 404 => 4
@@ -14,7 +14,7 @@ export const loggerBody = <T = unknown, O = unknown>(
     pad?: number
     incoming?: (data: T) => void
     outgoing?: (data: O) => void
-  } = {}
+  } = {},
 ) => {
   options.pad ??= 0
   options.incoming ??= console.log
@@ -40,12 +40,14 @@ export const loggerBody = <T = unknown, O = unknown>(
       }
 
       console.log(
-        `--> ${c.req.method.padStart(pad, padFill)} %c${c.res.status} %c${c.req.url} %c${(
-          performance.now() - start
-        ).toFixed(3)} ms`,
+        `--> ${c.req.method.padStart(pad, padFill)} %c${c.res.status} %c${c.req.url} %c${
+          (
+            performance.now() - start
+          ).toFixed(3)
+        } ms`,
         `color: ${statusColor(c.res.status)}`,
         'color: green',
-        'color: blue'
+        'color: blue',
       )
       return
     } catch (e) {

@@ -12,11 +12,11 @@
  * console.log(await authHook(ctx, headers)) // from cache
  */
 export const useWeekCache = <T extends unknown[], R>(
-  cb: (...args: T) => R
-): ((
+  cb: (...args: T) => R,
+): (
   key: WeakKey,
   ...args: T
-) => R extends PromiseConstructor ? Promise<R> : R) => {
+) => R extends PromiseConstructor ? Promise<R> : R => {
   const cache = new WeakMap<WeakKey, R>()
 
   if (cb.constructor.name === 'AsyncFunction') {

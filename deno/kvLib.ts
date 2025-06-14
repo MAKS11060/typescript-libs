@@ -45,7 +45,7 @@ export const fromKvIterator = async <T>(
   options?: {
     limit?: number
     filter?: (val: T, key: Deno.KvKey) => unknown
-  }
+  },
 ) => {
   const result: Deno.KvEntry<T>[] = []
 
@@ -68,7 +68,7 @@ export const fromKvIterator = async <T>(
  */
 export const kvEntries = async <T>(kv: Deno.Kv, selector: Deno.KvListSelector, options?: Deno.KvListOptions) => {
   return (await Array.fromAsync(kv.list<T>(selector, options), (item) => [item.key.join(' '), item.value]).then(
-    Object.fromEntries
+    Object.fromEntries,
   )) as Record<string, T>
 }
 
