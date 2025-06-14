@@ -20,5 +20,6 @@ export const handleOauth2Response = async <T>(response: Response): Promise<OAuth
 }
 
 export const normalizeScope = (scope: string | string[]): string => {
-  return Array.isArray(scope) ? scope.join(' ') : scope
+  if (Array.isArray(scope)) return scope.map((v) => v.trim()).join(' ')
+  return scope
 }
