@@ -1,4 +1,4 @@
-import type {CreateOAuth2Config} from '../src/oauth2.ts'
+import type { CreateOAuth2Config } from '../src/oauth2.ts'
 
 /**
  * Returns the OAuth configuration for `Discord`
@@ -16,7 +16,7 @@ export const createDiscordOauth2: CreateOAuth2Config<{
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
-  redirectUri: config.redirectUri.toString(),
+  redirectUri: config.redirectUri?.toString(),
   authorizeUri: 'https://discord.com/oauth2/authorize',
   tokenUri: 'https://discord.com/api/oauth2/token',
   scope: config.scope,

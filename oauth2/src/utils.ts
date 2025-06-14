@@ -1,4 +1,4 @@
-import type {OAuth2TokenResponse} from './oauth2.ts'
+import type { OAuth2TokenResponse } from './oauth2.ts'
 
 /**
  * Represents an `OAuth2` token object with structured properties.

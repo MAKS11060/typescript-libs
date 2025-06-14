@@ -1,6 +1,6 @@
-import {expect} from 'jsr:@std/expect/expect'
-import {Hono} from 'npm:hono'
-import {oauth2Implicit} from './implicit.ts'
+import { expect } from 'jsr:@std/expect/expect'
+import { Hono } from 'npm:hono'
+import { oauth2Implicit } from './implicit.ts'
 
 Deno.test('oauth2Implicit', async (t) => {
   const app = new Hono()
@@ -42,9 +42,9 @@ Deno.test('oauth2Implicit', async (t) => {
 
   expect(res.status).toBe(302)
   expect(res.headers.get('location')).toEqual(
-    'https://localhost/callback#access_token=xyz&token_type=Bearer&expires_in=3600'
+    'https://localhost/callback#access_token=xyz&token_type=Bearer&expires_in=3600',
   )
   // expect(res.headers.get('location')).toEqual(
-    // 'https://localhost/callback#access_token%3Dxyz%26token_type%3DBearer%26expires_in%3D3600'
+  // 'https://localhost/callback#access_token%3Dxyz%26token_type%3DBearer%26expires_in%3D3600'
   // )
 })

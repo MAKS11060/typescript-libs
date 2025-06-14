@@ -10,7 +10,7 @@
     "./client-credentials": "./src/flows/client_credentials.ts",
     "./implicit": "./src/flows/implicit.ts",
     "./providers": "./providers.ts",
-    "./pkce": "./src/pkce.ts",
+    "./pkce": "./src/pkce.ts"
   },
   "publish": {
     "exclude": [

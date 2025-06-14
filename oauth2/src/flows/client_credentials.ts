@@ -17,9 +17,9 @@
  * @module clientCredentials
  */
 
-import {encodeBase64} from '@std/encoding/base64'
-import {handleOauth2Response, normalizeScope} from '../_internal.ts'
-import type {OAuth2ClientConfig, OAuth2TokenResponse} from '../oauth2.ts'
+import { encodeBase64 } from '@std/encoding/base64'
+import { handleOauth2Response, normalizeScope } from '../_internal.ts'
+import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
 
 /**
  * Client Credentials Grant
@@ -42,7 +42,7 @@ import type {OAuth2ClientConfig, OAuth2TokenResponse} from '../oauth2.ts'
  */
 export const oauth2ClientCredentials = async <T>(
   config: OAuth2ClientConfig,
-  credentialLocation: 'header' | 'query' = 'header'
+  credentialLocation: 'header' | 'query' = 'header',
 ): Promise<OAuth2TokenResponse<T>> => {
   if (!config.clientSecret) throw new Error('Missing required configuration: clientSecret')
 
