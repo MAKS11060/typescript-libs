@@ -13,30 +13,32 @@
 [@maks11060/web]: https://jsr.io/@maks11060/web
 [@maks11060/oauth2]: https://jsr.io/@maks11060/oauth2
 [@maks11060/openapi]: https://jsr.io/@maks11060/openapi
-
 [@maks11060/kv badge]: https://jsr.io/badges/@maks11060/kv
 [@maks11060/web badge]: https://jsr.io/badges/@maks11060/web
 [@maks11060/oauth2 badge]: https://jsr.io/badges/@maks11060/oauth2
 [@maks11060/openapi badge]: https://jsr.io/badges/@maks11060/openapi
 
-
 ## Install
+
 ```ps
 deno add jsr:@maks11060/web
 ```
+
 ```ps
 pnpm jsr:@maks11060/kv
 ```
+
 ```ps
 npx jsr add @maks11060/kv
 ```
 
 ## kv model example
+
 ```ts
 #!/usr/bin/env -S deno run -A
 
-import {kvProvider, printKV} from 'jsr:@maks11060/kv'
-import {z} from 'npm:zod'
+import { kvProvider, printKV } from 'jsr:@maks11060/kv'
+import { z } from 'npm:zod'
 
 const kv = await Deno.openKv(':memory:')
 const kvLib = kvProvider(kv)
@@ -103,7 +105,7 @@ await postModel.update(
       tags: currentTags,
     }
   },
-  {force: true /* Allow override 'post' index */}
+  {force: true /* Allow override 'post' index */},
 )
 const updatedPost3 = await postModel.find(post3.id)
 // {id: '01JMDGZ7YJ4ZECVF5ZVSE1S8PX', title: 'Post 3', tags: ['frontend', 'css', 'html', 'ts']}
@@ -114,8 +116,9 @@ await printKV(kv)
 ```
 
 ## Web
+
 ```ts
-import {createCachedFetch} from '@maks11060/web'
+import { createCachedFetch } from '@maks11060/web'
 
 const fetch = await createCachedFetch({
   name: 'cache-1',
@@ -125,22 +128,13 @@ const fetch = await createCachedFetch({
 ```
 
 ## wip/dev
-```ts
-// OAuth2
-import {createGithubOauth2, oauth2Authorize, oauth2ExchangeCode} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/oauth2/mod.ts'
 
-const config = createGithubOauth2({
-  clientId: Deno.env.get('GITHUB_CLIENT_ID')!,
-  clientSecret: Deno.env.get('GITHUB_CLIENT_SECRET')!,
-  redirectUri: Deno.env.get('OAUTH2_REDIRECT')!,
-})
-const authorizeUri = oauth2Authorize(config, 'state-12345')
-console.log(authorizeUri.toString())
+```ts
 
 
 // Hono helper
-import {createHonoVar} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/hono/mod.ts'
-import {Hono} from 'hono'
+import { createHonoVar } from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/hono/mod.ts'
+import { Hono } from 'hono'
 
 const vars = createHonoVar(async (c) => {
   return {
@@ -148,7 +142,7 @@ const vars = createHonoVar(async (c) => {
     foo(data: string) {
       console.log(data)
       return data
-    }
+    },
   }
 })
 
@@ -157,18 +151,18 @@ const app = new Hono()
     return c.text(c.var.foo('hello'))
   })
 
-
 // Parser
 import * as animego from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/api/animego/animego.ts'
 import * as hdrezka from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/api/hdrezka/hdrezka.ts'
 
-
 // CLI
-import {promptSelect, promptMultipleSelect} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/cli/prompt.ts'
-
+import {
+  promptMultipleSelect,
+  promptSelect,
+} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/cli/prompt.ts'
 
 // Debugging
-import {printBuf} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/debug/mod.ts'
+import { printBuf } from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/debug/mod.ts'
 
 printBuf(crypto.getRandomValues(new Uint8Array(40)))
 //       40 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15
@@ -176,22 +170,20 @@ printBuf(crypto.getRandomValues(new Uint8Array(40)))
 // 00000010 2b 8c fd 3d fd 9c a5 d3 07 9b d5 70 48 95 67 aa
 // 00000020 d3 63 1c 4b a2 64 db 5d
 
-
 // Random utilities
-import {weekCache} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/lib/mod.ts'
+import { weekCache } from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/lib/mod.ts'
 
 const authHook = useWeakCache((headers: Headers) => {
   if (headers.get('authorization') == 'Bearer test') return true
 })
 
 const ctx = {} // any object.
-const headers = new Headers({'Authorization': 'Bearer test'})
+const headers = new Headers({Authorization: 'Bearer test'})
 console.log(await authHook(ctx, headers))
 console.log(await authHook(ctx, headers)) // from cache
 
-
 // createModel old version
-import {createModel} from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/deno/mod.ts'
+import { createModel } from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/deno/mod.ts'
 import z from 'zod'
 
 export const kv = await Deno.openKv()

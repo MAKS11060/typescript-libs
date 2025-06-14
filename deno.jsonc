@@ -18,17 +18,15 @@
     "./kv",
     "./web",
     "./oauth2",
-    "./openapi",
+    "./openapi"
   ],
   "fmt": {
-    "include": [
-      "./kv"
-    ],
     "lineWidth": 120,
+    "newLineKind": "crlf",
     "quoteProps": "asNeeded",
     "semiColons": false,
     "singleQuote": true,
-    "spaceSurroundingProperties": false,
+    "spaceSurroundingProperties": false
   },
   "unstable": [
     "kv"

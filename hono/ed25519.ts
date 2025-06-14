@@ -24,7 +24,7 @@ export const verifyRequestSignature = (key: CryptoKey) => {
       key.algorithm,
       key,
       decodeHex(signature),
-      concat([encoder.encode(timestamp), body]) // (timestamp + body)
+      concat([encoder.encode(timestamp), body]), // (timestamp + body)
     )
     if (!valid) return c.json({error: 'Bad request signature'}, 401)
 
@@ -46,7 +46,7 @@ export const signResponse = (key: CryptoKey) => {
     const signature = await crypto.subtle.sign(
       'Ed25519',
       key,
-      concat([encoder.encode(timestamp), body]) // (timestamp + body)
+      concat([encoder.encode(timestamp), body]), // (timestamp + body)
     )
 
     c.header('X-Signature-Ed25519', encodeHex(signature))

@@ -9,20 +9,20 @@
  * @module kvModel
  */
 
-import type {StandardSchemaV1} from '@standard-schema/spec'
-import {chunk} from '@std/collections/chunk'
-import {ulid} from '@std/ulid/ulid'
-import {standardValidate} from './_standardValidate.ts'
-import {type KvPageOptions, getKvPage} from './kv_helper.ts'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { chunk } from '@std/collections/chunk'
+import { ulid } from '@std/ulid/ulid'
+import { standardValidate } from './_standardValidate.ts'
+import { getKvPage, type KvPageOptions } from './kv_helper.ts'
 
 type Array2Union<T> = T extends Array<infer O> ? O : T
 
 type GetPrimitiveKey<TObject> = {
-  [K in keyof TObject as TObject[K] extends Deno.KvKeyPart
-    ? undefined extends TObject[K]
-      ? never
+  [
+    K in keyof TObject as TObject[K] extends Deno.KvKeyPart ? undefined extends TObject[K] ? never
       : K
-    : never]: TObject[K]
+      : never
+  ]: TObject[K]
 }
 
 type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
@@ -30,7 +30,7 @@ type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
 export type ModelOptions<
   Schema extends StandardSchemaV1,
   IndexKey extends string,
-  Output = StandardSchemaV1.InferOutput<Schema>
+  Output = StandardSchemaV1.InferOutput<Schema>,
 > = {
   /** A unique name for the `model` */
   prefix: string
@@ -77,8 +77,7 @@ type IndexOptionsResult<Index extends IndexOptions<any, any>> = {
 
 type ChoiceOption<T extends 'one' | 'many', One, Many> = T extends 'one' //
   ? One
-  : T extends 'many'
-  ? Many
+  : T extends 'many' ? Many
   : never
 
 type CreateOptions<Key> = {
@@ -89,7 +88,7 @@ type CreateOptions<Key> = {
   /**
    * Check `index` before rewriting. Set `true` for overwrite index
    * @default false
-   * */
+   */
   force?: boolean
   /** override `AtomicOperation` for one transaction */
   op?: Deno.AtomicOperation
@@ -107,7 +106,6 @@ type TransactionOption = {
 const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((el, index) => el === b[index])
 
 /**
- *
  * Allows you to create a {@linkcode kvModel} for {@linkcode Deno.Kv} using your favorite validation library that supports the
  * {@link https://github.com/standard-schema/standard-schema#what-schema-libraries-implement-the-spec Standard schema}
  *
@@ -142,11 +140,11 @@ const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a
  */
 export const kvModel = <
   Schema extends StandardSchemaV1, //
-  Options extends ModelOptions<Schema, string>
+  Options extends ModelOptions<Schema, string>,
 >(
   kv: Deno.Kv,
   schema: Schema,
-  modelOptions: Options
+  modelOptions: Options,
 ) => {
   type Input = StandardSchemaV1.InferInput<Schema>
   type Output = StandardSchemaV1.InferOutput<Schema>
@@ -290,7 +288,7 @@ export const kvModel = <
         IndexMap[Key]['type'], //
         FindNoResolve,
         FindNoResolve & KvPageOptions<PrimaryKeyType>
-      >
+      >,
     ): Promise<
       ChoiceOption<
         IndexMap[Key]['type'], //
@@ -321,7 +319,7 @@ export const kvModel = <
         IndexMap[Key]['type'], //
         FindResolve,
         FindResolve & KvPageOptions<PrimaryKeyType>
-      >
+      >,
     ): Promise<
       ChoiceOption<
         IndexMap[Key]['type'], //
@@ -352,9 +350,9 @@ export const kvModel = <
             return kv.getMany<Output[]>(
               page.map(({key}) => {
                 return [modelOptions.prefix, key.at(-1)!]
-              })
+              }),
             )
-          })
+          }),
         )
 
         return res
@@ -396,7 +394,7 @@ export const kvModel = <
     (
       key: PrimaryKeyType,
       handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey> | Promise<void> | void,
-      options?: UpdateOptions
+      options?: UpdateOptions,
     ): Promise<Output>
   }
 
@@ -405,8 +403,9 @@ export const kvModel = <
     if (!value) return null
 
     const {[modelOptions.primaryKey]: primaryKey, ...curValue} = value
-    const {[modelOptions.primaryKey]: _, ...newValueRaw} =
-      typeof handler === 'function' ? (await handler(value)) ?? value : handler
+    const {[modelOptions.primaryKey]: _, ...newValueRaw} = typeof handler === 'function'
+      ? (await handler(value)) ?? value
+      : handler
 
     // make new obj
     const newValue = standardValidate(schema, {
@@ -437,7 +436,7 @@ export const kvModel = <
 
       const secondaryKeys = Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]
       const prevSecondaryKeys = (Array.isArray(_prevSecondaryKey) ? _prevSecondaryKey : [_prevSecondaryKey]).filter(
-        (v) => !secondaryKeys.includes(v)
+        (v) => !secondaryKeys.includes(v),
       )
 
       // delete prev index
@@ -507,7 +506,7 @@ export const kvModel = <
       IndexMap[Key]['type'],
       RemoveByIndexOptions,
       RemoveByIndexOptions & KvPageOptions<PrimaryKeyType>
-    >
+    >,
   ) => {
     const op = options?.op ?? kv.atomic()
     const res = await findByIndex(key, value, options as any)

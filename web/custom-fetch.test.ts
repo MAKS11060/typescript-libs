@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno test -A --watch
 
-import {Hono} from 'hono'
-import {createClient} from './custom-fetch.ts'
-import {wrapFetch} from './types.ts'
+import { Hono } from 'hono'
+import { createClient } from './custom-fetch.ts'
+import { wrapFetch } from './types.ts'
 
 const app = new Hono() //
   .get('*', (c) => {

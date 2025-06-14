@@ -1,9 +1,9 @@
-import {expect} from 'jsr:@std/expect/expect'
+import { expect } from 'jsr:@std/expect/expect'
 import * as v from 'npm:valibot'
-import {z} from 'zod'
-import {printKV} from './kv_helper.ts'
-import {kvModel} from './kv_model.ts'
-import {kvProvider} from './mod.ts'
+import { z } from 'zod'
+import { printKV } from './kv_helper.ts'
+import { kvModel } from './kv_model.ts'
+import { kvProvider } from './mod.ts'
 
 const smallIdInit = () => {
   const idMap = new Map<string, number>()

@@ -1,6 +1,6 @@
-import type {StandardSchemaV1} from '@standard-schema/spec'
-import {kvMap, kvSet} from './kv_base.ts'
-import {type ModelOptions, kvModel} from './kv_model.ts'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { kvMap, kvSet } from './kv_base.ts'
+import { kvModel, type ModelOptions } from './kv_model.ts'
 
 /**
  * @example
@@ -38,14 +38,14 @@ import {type ModelOptions, kvModel} from './kv_model.ts'
  * ```
  */
 export const kvProvider = (
-  kv: Deno.Kv
+  kv: Deno.Kv,
 ): {
   model: <
     Schema extends StandardSchemaV1, //
-    Options extends ModelOptions<Schema, string>
+    Options extends ModelOptions<Schema, string>,
   >(
     schema: Schema,
-    modelOptions: Options
+    modelOptions: Options,
   ) => ReturnType<typeof kvModel<Schema, Options>>
   map: <K extends Deno.KvKeyPart, V>(prefix: Deno.KvKeyPart) => ReturnType<typeof kvMap<K, V>>
   set: <T extends Deno.KvKeyPart>(prefix: Deno.KvKeyPart) => ReturnType<typeof kvSet<T>>
@@ -80,10 +80,10 @@ export const kvProvider = (
      */
     model: <
       Schema extends StandardSchemaV1, //
-      Options extends ModelOptions<Schema, string>
+      Options extends ModelOptions<Schema, string>,
     >(
       schema: Schema,
-      modelOptions: Options
+      modelOptions: Options,
     ) => {
       return kvModel<Schema, Options>(kv, schema, modelOptions)
     },

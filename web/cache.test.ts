@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno test -A
 
-import {delay} from 'jsr:@std/async/delay'
-import {createCachedFetch} from './cache.ts'
-import {expect} from 'jsr:@std/expect/expect'
+import { delay } from 'jsr:@std/async/delay'
+import { createCachedFetch } from './cache.ts'
+import { expect } from 'jsr:@std/expect/expect'
 
 Deno.test('cachedFetch', async (t) => {
   const name = `cache-${Date.now()}`

@@ -4,7 +4,7 @@
  * @module
  */
 
-import type {CustomFetch} from './types.ts'
+import type { CustomFetch } from './types.ts'
 
 /**
  * Represents options for configuring a cache system

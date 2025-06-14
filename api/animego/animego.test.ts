@@ -1,4 +1,4 @@
-import {createCachedFetch} from '../../web/cache.ts'
+import { createCachedFetch } from '../../web/cache.ts'
 
 Deno.test('parse', async () => {
   const fetch = await createCachedFetch({

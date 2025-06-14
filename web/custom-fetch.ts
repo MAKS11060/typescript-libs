@@ -1,4 +1,4 @@
-import type {CustomFetch} from './types.ts'
+import type { CustomFetch } from './types.ts'
 
 type ClientMethods = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
 
@@ -46,10 +46,9 @@ export const createClient = (init?: ClientOptions) => {
     // Apply middleware for request
     for (const middleware of middlewares) {
       if (middleware.onRequest) {
-        request =
-          middleware.onRequest.constructor.name === 'AsyncFunction'
-            ? await middleware.onRequest(request)
-            : (middleware.onRequest(request) as any)
+        request = middleware.onRequest.constructor.name === 'AsyncFunction'
+          ? await middleware.onRequest(request)
+          : (middleware.onRequest(request) as any)
       }
     }
 
@@ -58,10 +57,9 @@ export const createClient = (init?: ClientOptions) => {
     // Apply middleware for response
     for (const middleware of middlewares) {
       if (middleware.onResponse) {
-        response =
-          middleware.onResponse.constructor.name === 'AsyncFunction'
-            ? await middleware.onResponse(response)
-            : (middleware.onResponse(response) as any)
+        response = middleware.onResponse.constructor.name === 'AsyncFunction'
+          ? await middleware.onResponse(response)
+          : (middleware.onResponse(response) as any)
       }
     }
 

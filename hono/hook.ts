@@ -1,5 +1,5 @@
-import type {Context} from 'hono'
-import {createMiddleware} from 'hono/factory'
+import type { Context } from 'hono'
+import { createMiddleware } from 'hono/factory'
 
 /**
  * Modify the `Variables` in `hono` context
