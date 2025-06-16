@@ -17,9 +17,8 @@
  * @module clientCredentials
  */
 
-import { encodeBase64 } from '@std/encoding/base64'
-import { handleOauth2Response, normalizeScope } from '../_internal.ts'
 import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
+import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
 
 /**
  * Client Credentials Grant
@@ -58,7 +57,7 @@ export const oauth2ClientCredentials = async <T>(
     method: 'POST',
     headers: {
       ...(credentialLocation === 'header' && {
-        Authorization: `Basic ${encodeBase64(`${config.clientId}:${config.clientSecret}`)}`,
+        Authorization: basicAuth(config.clientId, config.clientSecret),
       }),
     },
     body,

@@ -83,7 +83,7 @@ export type OAuth2TokenResponse<T = unknown> = T & {
    * The type of the token, typically "Bearer".
    * This indicates how the token should be used in requests (e.g., as a Bearer token).
    */
-  token_type: 'Bearer' | string
+  token_type: string
 
   /**
    * The number of seconds until the access token expires.

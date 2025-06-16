@@ -4,8 +4,8 @@
  * @module authorizationCode
  */
 
-import { handleOauth2Response, normalizeScope } from '../_internal.ts'
 import type { OAuth2ClientConfig, OAuth2ExchangeCodeOptions, OAuth2TokenResponse } from '../oauth2.ts'
+import { handleOauth2Response, normalizeScope } from './_internal.ts'
 
 /**
  * Generates an authorization URL for `OAuth2`.
@@ -74,7 +74,9 @@ export const oauth2RefreshToken = async <T>(
   config: OAuth2ClientConfig,
   refreshToken: string,
 ): Promise<OAuth2TokenResponse<T>> => {
-  if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
+  // if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
+  if (!config.clientId) throw new Error('Missing required configuration: clientId')
+  if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
 
   const headers = new Headers({
     accept: 'application/json',

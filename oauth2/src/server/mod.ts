@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { createMiddleware } from 'hono/factory'
-import { OAuth2Error } from '../../mod.ts'
 
 type AuthorizationCodeFlow = {
   response_type: 'code'
