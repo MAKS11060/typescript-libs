@@ -8,10 +8,14 @@ import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
 import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
 
 /** */
-export const oauth2Password = async <T>(config: OAuth2ClientConfig, options: {
-  username: string
-  password: string
-}): Promise<OAuth2TokenResponse<T>> => {
+export const oauth2Password = async <T>(
+  config: OAuth2ClientConfig,
+  options: {
+    username: string
+    password: string
+    fetch?: typeof fetch
+  },
+): Promise<OAuth2TokenResponse<T>> => {
   if (!config.clientSecret) throw new Error('Missing required configuration: clientSecret')
 
   const body = new URLSearchParams()
@@ -20,7 +24,8 @@ export const oauth2Password = async <T>(config: OAuth2ClientConfig, options: {
   body.set('password', options.password)
   if (config.scope) body.set('scope', normalizeScope(config.scope))
 
-  const res = await fetch(config.tokenUri, {
+  const _fetch = options.fetch ?? fetch
+  const res = await _fetch(config.tokenUri, {
     method: 'POST',
     headers: {
       Authorization: basicAuth(config.clientId, config.clientSecret),

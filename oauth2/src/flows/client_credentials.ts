@@ -41,24 +41,29 @@ import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
  */
 export const oauth2ClientCredentials = async <T>(
   config: OAuth2ClientConfig,
-  credentialLocation: 'header' | 'query' = 'header',
+  options?: {
+    credentialLocation?: 'header' | 'query'
+    fetch?: typeof fetch
+  },
 ): Promise<OAuth2TokenResponse<T>> => {
   if (!config.clientSecret) throw new Error('Missing required configuration: clientSecret')
 
+  options ??= {}
+  options.credentialLocation ??= 'header'
+
   const body = new URLSearchParams()
   body.set('grant_type', 'client_credentials')
-  if (credentialLocation === 'query') {
+  if (options.credentialLocation === 'query') {
     body.set('client_id', config.clientId)
     body.set('client_secret', config.clientSecret)
   }
   if (config.scope) body.set('scope', normalizeScope(config.scope))
 
-  const res = await fetch(config.tokenUri, {
+  const _fetch = options.fetch ?? fetch
+  const res = await _fetch(config.tokenUri, {
     method: 'POST',
     headers: {
-      ...(credentialLocation === 'header' && {
-        Authorization: basicAuth(config.clientId, config.clientSecret),
-      }),
+      ...(options.credentialLocation === 'header' && {Authorization: basicAuth(config.clientId, config.clientSecret)}),
     },
     body,
   })

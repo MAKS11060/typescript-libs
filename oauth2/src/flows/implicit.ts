@@ -8,7 +8,7 @@ import type { OAuth2ClientConfig } from '../oauth2.ts'
 import { normalizeScope } from './_internal.ts'
 
 /**
- * Generates an authorization URL for `OAuth2' in the browser.
+ * Generates an authorization `URL` for `OAuth2' in the browser.
  */
 export const oauth2Implicit = (config: OAuth2ClientConfig, state?: string): URL => {
   const uri = new URL(config.authorizeUri)

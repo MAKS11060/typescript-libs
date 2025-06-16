@@ -72,9 +72,11 @@ export const oauth2ExchangeCode = async <T>(
  */
 export const oauth2RefreshToken = async <T>(
   config: OAuth2ClientConfig,
-  refreshToken: string,
+  options: {
+    refreshToken: string
+    fetch?: typeof fetch
+  },
 ): Promise<OAuth2TokenResponse<T>> => {
-  // if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
   if (!config.clientId) throw new Error('Missing required configuration: clientId')
   if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
 
@@ -87,10 +89,15 @@ export const oauth2RefreshToken = async <T>(
   const body = new URLSearchParams()
   body.set('grant_type', 'refresh_token')
   body.set('client_id', config.clientId)
-  body.set('refresh_token', refreshToken)
-
+  body.set('refresh_token', options.refreshToken)
   if (config.clientSecret) body.set('client_secret', config.clientSecret)
 
-  const res = await fetch(config.tokenUri, {method: 'POST', headers, body})
+  const _fetch = options.fetch ?? fetch
+  const res = await _fetch(config.tokenUri, {
+    method: 'POST',
+    headers,
+    body,
+  })
+
   return handleOauth2Response(res)
 }
