@@ -42,6 +42,7 @@ import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
 export const oauth2ClientCredentials = async <T>(
   config: OAuth2ClientConfig,
   options?: {
+    /** @default 'header' */
     credentialLocation?: 'header' | 'query'
     fetch?: typeof fetch
   },

@@ -1,21 +1,7 @@
 import { oauth2Authorize, oauth2ExchangeCode } from '@maks11060/oauth2/authorization'
 import { OAuth2ClientConfig } from '../oauth2.ts'
+import { OAuth2StateStorage, StateData } from './state.ts'
 
-export interface StateData {
-  /** OAuth2 provider name */
-  service: string
-  /** Subject */
-  sub?: string
-}
-
-/** Storage for oauth `state` */
-export interface OAuth2StateStorage<T = string> {
-  generator?(): T | Promise<T>
-  set(state: T, data: StateData): string | Promise<string>
-  get(state: string): StateData | Promise<StateData>
-}
-
-////////////////////////////////////////////////////////////////
 export interface OAuth2ServiceAuthorize {
   /** Subject */
   sub?: string
@@ -24,6 +10,7 @@ export interface OAuth2ServiceAuthorize {
 export interface OAuth2ServiceCallback {
   state: string
   code: string
+  codeVerifier?: string
 }
 
 export const oauth2Service = <T extends string = string, S = string>(config: {
@@ -57,7 +44,7 @@ export const oauth2Service = <T extends string = string, S = string>(config: {
     },
 
     async callback(options: OAuth2ServiceCallback) {
-      const {service, ...data}: StateData = await config.state.get(options.state)
+      const {service, ...data} = await config.state.get(options.state)
       if (!this.has(service)) throw new Error('OAuth2 Service: unknown client')
 
       const cfg = this.getClient(service)
@@ -66,10 +53,4 @@ export const oauth2Service = <T extends string = string, S = string>(config: {
       return {service, token, ...data}
     },
   }
-}
-
-////////////////////////////////////////////////////////////////
-export interface OAuth2AccountStorage<T = string> {
-  set(state: T, data: StateData): unknown | Promise<unknown>
-  get(state: string): unknown | Promise<unknown>
 }

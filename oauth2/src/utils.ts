@@ -1,6 +1,13 @@
 import type { OAuth2TokenResponse } from './oauth2.ts'
 
 /**
+ * Get the `scope` as an array
+ */
+export const getScope = (token: OAuth2TokenResponse): string[] => {
+  return token.scope ? token.scope.split(/[,\s]+/) : []
+}
+
+/**
  * Represents an `OAuth2` token object with structured properties.
  *
  * This interface defines the structure of an `OAuth2` token after it has been processed and normalized.
@@ -56,3 +63,4 @@ export const normalizeOAuth2Token = (token: OAuth2TokenResponse): OAuth2Token =>
  * Checks if a given token object is normalized and conforms to the {@linkcode OAuth2Token} structure.
  */
 export const isNormalized = (token: OAuth2TokenResponse | OAuth2Token): token is OAuth2Token => 'accessToken' in token
+

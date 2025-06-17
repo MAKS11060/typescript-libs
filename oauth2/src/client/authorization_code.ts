@@ -4,8 +4,27 @@
  * @module authorizationCode
  */
 
-import type { OAuth2ClientConfig, OAuth2ExchangeCodeOptions, OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
 import { handleOauth2Response, normalizeScope } from './_internal.ts'
+
+/**
+ * Represents the options required to exchange an authorization code for tokens.
+ */
+export interface OAuth2ExchangeCodeOptions {
+  /**
+   * The authorization code received from the authorization server during the redirect.
+   * This code is exchanged for an access token and optionally a refresh token.
+   */
+  code: string
+
+  /**
+   * The PKCE (Proof Key for Code Exchange) verify code used to validate the authorization code.
+   * This is required if PKCE was used during the authorization request.
+   */
+  codeVerifier?: string
+
+  fetch?: typeof fetch
+}
 
 /**
  * Generates an authorization URL for `OAuth2`.
@@ -13,7 +32,12 @@ import { handleOauth2Response, normalizeScope } from './_internal.ts'
  * @param state - Optional `state` parameter.
  * @returns Authorization {@linkcode URL}.
  */
-export const oauth2Authorize = (config: OAuth2ClientConfig, state?: string): URL => {
+export const oauth2Authorize = (
+  config: OAuth2ClientConfig,
+  options?: {
+    state?: string
+  },
+): URL => {
   if (!config.authorizeUri) throw new Error('authorizeUri is required')
 
   const uri = new URL(config.authorizeUri)
@@ -22,7 +46,7 @@ export const oauth2Authorize = (config: OAuth2ClientConfig, state?: string): URL
 
   if (config.redirectUri) uri.searchParams.set('redirect_uri', config.redirectUri)
   if (config.scope) uri.searchParams.set('scope', normalizeScope(config.scope))
-  if (state) uri.searchParams.set('state', state)
+  if (options?.state) uri.searchParams.set('state', options.state)
 
   if (config.options?.params) {
     for (const [k, v] of new URLSearchParams(config.options.params)) {
@@ -43,7 +67,8 @@ export const oauth2ExchangeCode = async <T>(
   config: OAuth2ClientConfig,
   options: OAuth2ExchangeCodeOptions,
 ): Promise<OAuth2TokenResponse<T>> => {
-  if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
+  if (!config.clientId) throw new Error('Missing required configuration: clientId')
+  if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
 
   const headers = new Headers({
     accept: 'application/json',
@@ -60,7 +85,13 @@ export const oauth2ExchangeCode = async <T>(
   if (config.redirectUri) body.set('redirect_uri', config.redirectUri)
   if (options.codeVerifier) body.set('code_verifier', options.codeVerifier)
 
-  const res = await fetch(config.tokenUri, {method: 'POST', headers, body})
+  const _fetch = options.fetch ?? fetch
+  const res = await _fetch(config.tokenUri, {
+    method: 'POST',
+    headers,
+    body,
+  })
+
   return handleOauth2Response(res)
 }
 

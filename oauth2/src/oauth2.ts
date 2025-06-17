@@ -105,23 +105,6 @@ export type OAuth2TokenResponse<T = unknown> = T & {
 }
 
 /**
- * Represents the options required to exchange an authorization code for tokens.
- */
-export interface OAuth2ExchangeCodeOptions {
-  /**
-   * The authorization code received from the authorization server during the redirect.
-   * This code is exchanged for an access token and optionally a refresh token.
-   */
-  code: string
-
-  /**
-   * The PKCE (Proof Key for Code Exchange) verify code used to validate the authorization code.
-   * This is required if PKCE was used during the authorization request.
-   */
-  codeVerifier?: string
-}
-
-/**
  * Template for creating `OAuth2` configuration
  *
  * @example

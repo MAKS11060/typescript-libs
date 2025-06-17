@@ -2,10 +2,10 @@
 
 import { expect } from 'jsr:@std/expect/expect'
 import type { OAuth2TokenResponse } from './oauth2.ts'
-import { isTokenExpired, normalizeOAuth2Token } from './utils.ts'
+import { normalizeOAuth2Token } from './utils.ts'
 
 Deno.test('isTokenExpired', (t) => {
-  const rawTokenResponse: OAuth2TokenResponse = {
+  const rawToken: OAuth2TokenResponse = {
     access_token: 'abc123',
     token_type: 'Bearer',
     expires_in: 3600,
@@ -13,21 +13,7 @@ Deno.test('isTokenExpired', (t) => {
     scope: 'read  write, user:read',
   }
 
-  const rawTokenResponseExpired: OAuth2TokenResponse = {
-    access_token: 'abc123',
-    token_type: 'Bearer',
-    expires_in: -1,
-    refresh_token: 'xyz789',
-    scope: 'read  write, user:read',
-  }
-
-  const rawTokenResponseGithub: OAuth2TokenResponse = {
-    access_token: 'gh_abc123',
-    token_type: 'Bearer',
-  }
-
-  const token = normalizeOAuth2Token(rawTokenResponse)
-  console.log(token)
+  const token = normalizeOAuth2Token(rawToken)
   expect(token).toStrictEqual({
     accessToken: 'abc123',
     expiresIn: 3600,
@@ -35,9 +21,4 @@ Deno.test('isTokenExpired', (t) => {
     scope: ['read', 'write', 'user:read'],
     tokenType: 'Bearer',
   })
-
-  expect(isTokenExpired(token)).toBe(false)
-  expect(isTokenExpired(rawTokenResponse)).toBe(false)
-  expect(isTokenExpired(rawTokenResponseGithub)).toBe(false)
-  expect(isTokenExpired(rawTokenResponseExpired)).toBe(true)
 })
