@@ -1,14 +1,13 @@
-import { encodeBase64 } from '@std/encoding/base64'
-import { ErrorMap, OAuth2Exception } from '../error.ts'
-import type { OAuth2TokenResponse } from '../oauth2.ts'
+import type {OAuth2TokenResponse} from './oauth2.ts'
+import {type OAuth2Error, OAuth2Exception} from './error.ts'
 
 export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2TokenResponse<T>> => {
   const data: Record<string, any> = await response.json()
 
   // Check for errors in the response
   if (!response.ok || 'error' in data) {
-    const errorData = {
-      error: data.error ?? ErrorMap.server_error,
+    const errorData: OAuth2Error = {
+      error: data.error || 'unknown_error',
       error_description: data.error_description || 'No additional information provided.',
       error_uri: data.error_uri,
     }
@@ -21,10 +20,5 @@ export const handleOauth2Response = async <T>(response: Response): Promise<OAuth
 }
 
 export const normalizeScope = (scope: string | string[]): string => {
-  if (Array.isArray(scope)) return scope.map((v) => v.trim()).join(' ')
-  return scope
-}
-
-export const basicAuth = (username: string, password: string) => {
-  return `Basic ${encodeBase64(`${username}:${password}`)}`
+  return Array.isArray(scope) ? scope.join(' ') : scope
 }

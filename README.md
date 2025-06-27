@@ -130,6 +130,8 @@ const fetch = await createCachedFetch({
 ## wip/dev
 
 ```ts
+
+
 // Hono helper
 import { createHonoVar } from 'https://raw.githubusercontent.com/MAKS11060/deno-libs/main/hono/mod.ts'
 import { Hono } from 'hono'

@@ -1,11 +1,4 @@
-import type { OAuth2TokenResponse } from './oauth2.ts'
-
-/**
- * Get the `scope` as an array
- */
-export const getScope = (token: OAuth2TokenResponse): string[] => {
-  return token.scope ? token.scope.split(/[,\s]+/) : []
-}
+import type {OAuth2TokenResponse} from './oauth2.ts'
 
 /**
  * Represents an `OAuth2` token object with structured properties.
@@ -62,5 +55,27 @@ export const normalizeOAuth2Token = (token: OAuth2TokenResponse): OAuth2Token =>
 /**
  * Checks if a given token object is normalized and conforms to the {@linkcode OAuth2Token} structure.
  */
-export const isNormalized = (token: OAuth2TokenResponse | OAuth2Token): token is OAuth2Token => 'accessToken' in token
+const isNormalized = (token: OAuth2TokenResponse | OAuth2Token): token is OAuth2Token => 'accessToken' in token
 
+/**
+ * Checks if an OAuth2 token has expired.
+ *
+ * @param {OAuth2Token} token - The OAuth2 token object to check.
+ * @returns {boolean} Returns `true` if the token has expired, otherwise `false`.
+ *
+ * @example
+ * ```ts
+ * const token = {
+ *   token_type: 'Bearer',
+ *   expires_in: 3600,
+ *   access_token: 'abc123',
+ * }
+ * console.log(isTokenExpired(token)) // false (if called within 1 hour)
+ * ```
+ */
+export const isTokenExpired = (token: OAuth2TokenResponse | OAuth2Token): boolean => {
+  token = isNormalized(token) ? token : normalizeOAuth2Token(token)
+  if (token.expiresIn === null) return false // If no expiration time, assume it's valid
+  const now = Math.floor(Date.now() / 1000)
+  return now - token.expiresIn >= now
+}

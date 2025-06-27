@@ -83,7 +83,7 @@ export type OAuth2TokenResponse<T = unknown> = T & {
    * The type of the token, typically "Bearer".
    * This indicates how the token should be used in requests (e.g., as a Bearer token).
    */
-  token_type: string
+  token_type: 'Bearer' | string
 
   /**
    * The number of seconds until the access token expires.
@@ -102,6 +102,23 @@ export type OAuth2TokenResponse<T = unknown> = T & {
    * These scopes indicate which resources the application has been authorized to access.
    */
   scope?: string
+}
+
+/**
+ * Represents the options required to exchange an authorization code for tokens.
+ */
+export interface OAuth2ExchangeCodeOptions {
+  /**
+   * The authorization code received from the authorization server during the redirect.
+   * This code is exchanged for an access token and optionally a refresh token.
+   */
+  code: string
+
+  /**
+   * The PKCE (Proof Key for Code Exchange) verify code used to validate the authorization code.
+   * This is required if PKCE was used during the authorization request.
+   */
+  codeVerifier?: string
 }
 
 /**
@@ -125,5 +142,5 @@ export type OAuth2TokenResponse<T = unknown> = T & {
  * ```
  */
 export type CreateOAuth2Config<T extends Record<string, unknown> = {redirectUri: string | URL}> = (
-  config: T,
+  config: T
 ) => OAuth2ClientConfig

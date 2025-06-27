@@ -4,27 +4,8 @@
  * @module authorizationCode
  */
 
-import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
-import { handleOauth2Response, normalizeScope } from './_internal.ts'
-
-/**
- * Represents the options required to exchange an authorization code for tokens.
- */
-export interface OAuth2ExchangeCodeOptions {
-  /**
-   * The authorization code received from the authorization server during the redirect.
-   * This code is exchanged for an access token and optionally a refresh token.
-   */
-  code: string
-
-  /**
-   * The PKCE (Proof Key for Code Exchange) verify code used to validate the authorization code.
-   * This is required if PKCE was used during the authorization request.
-   */
-  codeVerifier?: string
-
-  fetch?: typeof fetch
-}
+import {handleOauth2Response, normalizeScope} from '../_internal.ts'
+import type {OAuth2ClientConfig, OAuth2ExchangeCodeOptions, OAuth2TokenResponse} from '../oauth2.ts'
 
 /**
  * Generates an authorization URL for `OAuth2`.
@@ -32,12 +13,7 @@ export interface OAuth2ExchangeCodeOptions {
  * @param state - Optional `state` parameter.
  * @returns Authorization {@linkcode URL}.
  */
-export const oauth2Authorize = (
-  config: OAuth2ClientConfig,
-  options?: {
-    state?: string
-  },
-): URL => {
+export const oauth2Authorize = (config: OAuth2ClientConfig, state?: string): URL => {
   if (!config.authorizeUri) throw new Error('authorizeUri is required')
 
   const uri = new URL(config.authorizeUri)
@@ -46,7 +22,7 @@ export const oauth2Authorize = (
 
   if (config.redirectUri) uri.searchParams.set('redirect_uri', config.redirectUri)
   if (config.scope) uri.searchParams.set('scope', normalizeScope(config.scope))
-  if (options?.state) uri.searchParams.set('state', options.state)
+  if (state) uri.searchParams.set('state', state)
 
   if (config.options?.params) {
     for (const [k, v] of new URLSearchParams(config.options.params)) {
@@ -65,10 +41,9 @@ export const oauth2Authorize = (
  */
 export const oauth2ExchangeCode = async <T>(
   config: OAuth2ClientConfig,
-  options: OAuth2ExchangeCodeOptions,
+  options: OAuth2ExchangeCodeOptions
 ): Promise<OAuth2TokenResponse<T>> => {
-  if (!config.clientId) throw new Error('Missing required configuration: clientId')
-  if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
+  if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
 
   const headers = new Headers({
     accept: 'application/json',
@@ -85,13 +60,7 @@ export const oauth2ExchangeCode = async <T>(
   if (config.redirectUri) body.set('redirect_uri', config.redirectUri)
   if (options.codeVerifier) body.set('code_verifier', options.codeVerifier)
 
-  const _fetch = options.fetch ?? fetch
-  const res = await _fetch(config.tokenUri, {
-    method: 'POST',
-    headers,
-    body,
-  })
-
+  const res = await fetch(config.tokenUri, {method: 'POST', headers, body})
   return handleOauth2Response(res)
 }
 
@@ -103,13 +72,9 @@ export const oauth2ExchangeCode = async <T>(
  */
 export const oauth2RefreshToken = async <T>(
   config: OAuth2ClientConfig,
-  options: {
-    refresh_token: string
-    fetch?: typeof fetch
-  },
+  refreshToken: string
 ): Promise<OAuth2TokenResponse<T>> => {
-  if (!config.clientId) throw new Error('Missing required configuration: clientId')
-  if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
+  if (!config.clientId || !config.tokenUri) throw new Error('Missing required configuration: clientId or tokenUri')
 
   const headers = new Headers({
     accept: 'application/json',
@@ -120,15 +85,10 @@ export const oauth2RefreshToken = async <T>(
   const body = new URLSearchParams()
   body.set('grant_type', 'refresh_token')
   body.set('client_id', config.clientId)
-  body.set('refresh_token', options.refresh_token)
+  body.set('refresh_token', refreshToken)
+
   if (config.clientSecret) body.set('client_secret', config.clientSecret)
 
-  const _fetch = options.fetch ?? fetch
-  const res = await _fetch(config.tokenUri, {
-    method: 'POST',
-    headers,
-    body,
-  })
-
+  const res = await fetch(config.tokenUri, {method: 'POST', headers, body})
   return handleOauth2Response(res)
 }

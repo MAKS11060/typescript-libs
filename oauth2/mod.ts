@@ -118,14 +118,38 @@
  * })
  * ```
  *
+ * @example
+ * Helpers
+ * ```ts
+ * import {isTokenExpired, normalizeOAuth2Token} from '@maks11060/oauth2'
+ *
+ * const rawTokenResponse = {
+ *   access_token: 'abc123',
+ *   token_type: 'Bearer',
+ *   expires_in: 3600,
+ *   refresh_token: 'xyz789',
+ *   scope: 'read  write, user:read',
+ * }
+ *
+ * const oauth2Token = normalizeOAuth2Token(token)
+ * // {
+ * //   tokenType: "Bearer",
+ * //   expiresIn: 3600,
+ * //   accessToken: "abc123",
+ * //   refreshToken: "xyz789",
+ * //   scope: [ "read", "write", "user:read" ]
+ * // }
+ *
+ * isTokenExpired(oauth2Token) // false
+ * ```
+ *
  * @module
  */
 
 // flows
-export * from './src/client/authorization_code.ts'
-export * from './src/client/client_credentials.ts'
-export * from './src/client/implicit.ts'
-export * from './src/client/password.ts'
+export * from './src/flows/authorization_code.ts'
+export * from './src/flows/client_credentials.ts'
+export * from './src/flows/implicit.ts'
 
 export * from './providers.ts'
 
@@ -133,4 +157,3 @@ export * from './src/error.ts'
 export * from './src/oauth2.ts'
 export * from './src/pkce.ts'
 export * from './src/utils.ts'
-

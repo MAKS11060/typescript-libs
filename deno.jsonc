@@ -23,7 +23,7 @@
   ],
   "fmt": {
     "lineWidth": 120,
-    "newLineKind": "system",
+    "newLineKind": "crlf",
     "quoteProps": "asNeeded",
     "semiColons": false,
     "singleQuote": true,

@@ -17,8 +17,9 @@
  * @module clientCredentials
  */
 
-import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
-import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
+import {encodeBase64} from '@std/encoding/base64'
+import {handleOauth2Response, normalizeScope} from '../_internal.ts'
+import type {OAuth2ClientConfig, OAuth2TokenResponse} from '../oauth2.ts'
 
 /**
  * Client Credentials Grant
@@ -41,30 +42,24 @@ import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
  */
 export const oauth2ClientCredentials = async <T>(
   config: OAuth2ClientConfig,
-  options?: {
-    /** @default 'header' */
-    credentialLocation?: 'header' | 'query'
-    fetch?: typeof fetch
-  },
+  credentialLocation: 'header' | 'query' = 'header'
 ): Promise<OAuth2TokenResponse<T>> => {
   if (!config.clientSecret) throw new Error('Missing required configuration: clientSecret')
 
-  options ??= {}
-  options.credentialLocation ??= 'header'
-
   const body = new URLSearchParams()
   body.set('grant_type', 'client_credentials')
-  if (options.credentialLocation === 'query') {
+  if (credentialLocation === 'query') {
     body.set('client_id', config.clientId)
     body.set('client_secret', config.clientSecret)
   }
   if (config.scope) body.set('scope', normalizeScope(config.scope))
 
-  const _fetch = options.fetch ?? fetch
-  const res = await _fetch(config.tokenUri, {
+  const res = await fetch(config.tokenUri, {
     method: 'POST',
     headers: {
-      ...(options.credentialLocation === 'header' && {Authorization: basicAuth(config.clientId, config.clientSecret)}),
+      ...(credentialLocation === 'header' && {
+        Authorization: `Basic ${encodeBase64(`${config.clientId}:${config.clientSecret}`)}`,
+      }),
     },
     body,
   })

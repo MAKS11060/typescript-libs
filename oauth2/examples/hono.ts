@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --env-file --watch
 
-import { createGithubOauth2, oauth2Authorize, OAuth2Exception, oauth2ExchangeCode, usePKCE } from '@maks11060/oauth2'
-import { Hono } from 'hono'
-import { logger } from 'hono/logger'
+import {Hono} from 'hono'
+import {logger} from 'hono/logger'
+import {OAuth2Exception, createGithubOauth2, oauth2Authorize, oauth2ExchangeCode, usePKCE} from './mod.ts'
 
 const stateStore = new Map<string, {codeVerifier?: string}>()
 const config = createGithubOauth2({
@@ -15,7 +15,7 @@ const app = new Hono() //
   .use(logger())
   .get('/login', (c) => {
     const state = crypto.randomUUID()
-    const uri = oauth2Authorize(config, {state})
+    const uri = oauth2Authorize(config, state)
     stateStore.set(state, {})
 
     console.log({uri: uri.toString()})
@@ -23,7 +23,7 @@ const app = new Hono() //
   })
   .get('/login/pkce', async (c) => {
     const state = crypto.randomUUID()
-    const {uri, codeVerifier} = await usePKCE(oauth2Authorize(config, {state}))
+    const {uri, codeVerifier} = await usePKCE(oauth2Authorize(config, state))
     stateStore.set(state, {codeVerifier})
 
     console.log({uri: uri.toString(), codeVerifier})

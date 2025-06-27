@@ -1,4 +1,4 @@
-import type { CreateOAuth2Config } from '../src/oauth2.ts'
+import type {CreateOAuth2Config} from '../src/oauth2.ts'
 
 /**
  * Returns the OAuth configuration for `Shikimori`
@@ -8,13 +8,13 @@ import type { CreateOAuth2Config } from '../src/oauth2.ts'
 export const createShikimoriOauth2: CreateOAuth2Config<{
   clientId: string
   clientSecret: string
-  redirectUri?: string
+  redirectUri: string | URL
   userAgent: string
   scope?: string | string[]
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
-  redirectUri: config.redirectUri,
+  redirectUri: config.redirectUri.toString(),
   authorizeUri: 'https://shikimori.one/oauth/authorize',
   tokenUri: 'https://shikimori.one/oauth/token',
   revokeUri: 'https://shikimori.one/oauth/revoke',
