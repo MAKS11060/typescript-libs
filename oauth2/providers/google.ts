@@ -9,7 +9,7 @@ import type { CreateOAuth2Config } from '../src/oauth2.ts'
 export const createGoogleOauth2: CreateOAuth2Config<{
   clientId: string
   clientSecret: string
-  redirectUri: string | URL
+  redirectUri: string
   /** @see {@link https://developers.google.com/identity/protocols/oauth2/scopes} */
   scope: string | string[]
   /**
@@ -54,7 +54,7 @@ export const createGoogleOauth2: CreateOAuth2Config<{
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
-  redirectUri: config.redirectUri?.toString(),
+  redirectUri: config.redirectUri,
   authorizeUri: 'https://accounts.google.com/o/oauth2/v2/auth',
   tokenUri: 'https://oauth2.googleapis.com/token',
   scope: config.scope,

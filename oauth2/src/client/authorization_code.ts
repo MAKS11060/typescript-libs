@@ -104,7 +104,7 @@ export const oauth2ExchangeCode = async <T>(
 export const oauth2RefreshToken = async <T>(
   config: OAuth2ClientConfig,
   options: {
-    refreshToken: string
+    refresh_token: string
     fetch?: typeof fetch
   },
 ): Promise<OAuth2TokenResponse<T>> => {
@@ -120,7 +120,7 @@ export const oauth2RefreshToken = async <T>(
   const body = new URLSearchParams()
   body.set('grant_type', 'refresh_token')
   body.set('client_id', config.clientId)
-  body.set('refresh_token', options.refreshToken)
+  body.set('refresh_token', options.refresh_token)
   if (config.clientSecret) body.set('client_secret', config.clientSecret)
 
   const _fetch = options.fetch ?? fetch

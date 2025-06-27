@@ -1,4 +1,4 @@
-import type { CreateOAuth2Config } from '@maks11060/oauth2'
+import type { CreateOAuth2Config } from '../src/oauth2.ts'
 
 /**
  * Returns the OAuth configuration for `Yandex`
@@ -8,8 +8,8 @@ import type { CreateOAuth2Config } from '@maks11060/oauth2'
  */
 export const createYandexOauth2: CreateOAuth2Config<{
   clientId: string
-  clientSecret: string
-  redirectUri: string | URL
+  clientSecret?: string
+  redirectUri?: string
   scope?: string | string[]
 
   // https://yandex.ru/dev/id/doc/ru/codes/code-url#optional
@@ -20,7 +20,7 @@ export const createYandexOauth2: CreateOAuth2Config<{
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
-  redirectUri: config?.redirectUri?.toString(),
+  redirectUri: config?.redirectUri,
   authorizeUri: 'https://oauth.yandex.ru/authorize',
   tokenUri: 'https://oauth.yandex.ru/token',
   revokeUri: 'https://oauth.yandex.ru/revoke_token',

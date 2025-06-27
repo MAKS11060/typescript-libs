@@ -7,8 +7,8 @@ import type { CreateOAuth2Config } from '../src/oauth2.ts'
  */
 export const createGithubOauth2: CreateOAuth2Config<{
   clientId: string
-  clientSecret: string
-  redirectUri: string | URL
+  clientSecret?: string
+  redirectUri?: string
   /** {@link https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps#available-scopes Oauth2 Scopes} */
   scope?: string | string[]
   /** Suggests a specific account to use for signing in and authorizing the app. */
@@ -24,7 +24,7 @@ export const createGithubOauth2: CreateOAuth2Config<{
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
-  redirectUri: config?.redirectUri?.toString(),
+  redirectUri: config?.redirectUri,
   authorizeUri: 'https://github.com/login/oauth/authorize',
   tokenUri: 'https://github.com/login/oauth/access_token',
   scope: config.scope,

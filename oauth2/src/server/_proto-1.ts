@@ -5,6 +5,7 @@ import { oauth2Authorize } from '@maks11060/oauth2/authorization'
 import { expect } from 'jsr:@std/expect/expect'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
 import { OAuth2TokenResponse } from '../oauth2.ts'
+import { isGrantType, isResponseType } from './types.ts'
 
 interface OAuth2ClientApp {
   type: 'confidential' | 'public'
@@ -20,35 +21,17 @@ interface OAuth2ServerAppService {
 }
 
 ////////////////////////////////
-type ResponseType = 'code' | 'token'
-type GrantType = 'client_credentials' | 'authorization_code' | 'refresh_token' | 'password'
-
-const isResponseType = (type: unknown): type is ResponseType => {
-  const expected = ['code', 'token']
-  return expected.includes(String(type))
-}
-
-const isGrantType = (type: unknown): type is GrantType => {
-  const expected = [
-    'client_credentials',
-    'authorization_code',
-    'refresh_token',
-    'password',
-  ]
-  return expected.includes(String(type))
-}
-
-const getRedirectUri = (app: OAuth2ClientApp, redirect_uri: string | null): URL => {
+const getRedirectUri = (client: OAuth2ClientApp, redirect_uri: string | null): URL => {
   if (redirect_uri) {
-    if (!app.redirect_uri.has(redirect_uri)) {
+    if (!client.redirect_uri.has(redirect_uri)) {
       throw new Error('Invalid redirect_uri: not registered for this client')
     }
     return new URL(redirect_uri)
   }
 
   // use default redirect
-  if (app.redirect_uri.size === 1) {
-    const uri = app.redirect_uri.values().take(1).toArray()[0]
+  if (client.redirect_uri.size === 1) {
+    const uri = client.redirect_uri.values().take(1).toArray()[0]
     return new URL(uri)
   }
 
@@ -175,7 +158,7 @@ Deno.test('createOAuth2Server()', async (t) => {
       authorizeUri: 'http://localhost/authorize',
       tokenUri: 'http://localhost/token',
       redirectUri: 'http://localhost/api/oauth2/callback',
-    }, 'STATE')
+    }, {state: 'STATE'})
 
     // server
     const authUri = oauth2Server.authorize(authorizeUri)
@@ -195,9 +178,9 @@ Deno.test('createOAuth2Server()', async (t) => {
       tokenUri: 'http://localhost/token',
       redirectUri: 'http://localhost/api/oauth2/callback',
       scope: 'abc',
-    }, 'STATE2'))
+    }, {state: 'STATE'}))
     expect(authUri?.toString()).toEqual(
-      'http://localhost/api/oauth2/callback#access_token=TOKEN&token_type=Bearer&expires_in=3600&scope=&state=STATE2',
+      'http://localhost/api/oauth2/callback#access_token=TOKEN&token_type=Bearer&expires_in=3600&scope=&state=STATE',
     )
   })
 })

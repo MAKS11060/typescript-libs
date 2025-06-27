@@ -7,8 +7,8 @@ import type { CreateOAuth2Config } from '../src/oauth2.ts'
  */
 export const createDiscordOauth2: CreateOAuth2Config<{
   clientId: string
-  clientSecret: string
-  redirectUri: string | URL
+  clientSecret?: string
+  redirectUri?: string
   /** {@link https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes Oauth2 Scopes} */
   scope: string | string[]
   /** @default 'consent' */
@@ -16,7 +16,7 @@ export const createDiscordOauth2: CreateOAuth2Config<{
 }> = (config) => ({
   clientId: config.clientId,
   clientSecret: config.clientSecret,
-  redirectUri: config.redirectUri?.toString(),
+  redirectUri: config?.redirectUri,
   authorizeUri: 'https://discord.com/oauth2/authorize',
   tokenUri: 'https://discord.com/api/oauth2/token',
   scope: config.scope,
