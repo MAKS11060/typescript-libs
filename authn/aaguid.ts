@@ -50,6 +50,6 @@ export const getKnownAAGUID = (cred: AuthnPublicKeyCredentialAttestation): AAGUI
   return (aaguidList as AAGUIDRecord)?.[id] ?? null
 }
 
-export const AAGUIDtoBytes = (aaguid: string): Uint8Array => {
+export const AAGUIDtoBytes = (aaguid: string): Uint8Array<ArrayBuffer> => {
   return decodeHex(aaguid.replaceAll('-', ''))
 }
