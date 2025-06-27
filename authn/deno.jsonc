@@ -1,0 +1,30 @@
+{
+  "name": "@maks11060/authn",
+  "version": "0.0.0",
+  "tasks": {
+    "test": "deno test",
+    "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
+    "check:types": "deno publish --allow-dirty --dry-run"
+  },
+  "imports": {
+    "@std/bytes": "jsr:@std/bytes@^1.0.6",
+    "@std/cbor": "jsr:@std/cbor@^0.1.8",
+    "@std/crypto": "jsr:@std/crypto@^1.0.5",
+    "@std/encoding": "jsr:@std/encoding@^1.0.10"
+  },
+  "exports": {
+    ".": "./authn.ts",
+    "./aaguid": "./aaguid.ts"
+  },
+  "compilerOptions": {
+    "lib": [
+      "deno.window",
+      "dom"
+    ]
+  },
+  "publish": {
+    "exclude": [
+      "**/*.test.ts"
+    ]
+  }
+}
