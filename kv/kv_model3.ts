@@ -2,13 +2,20 @@ import { printKV } from '@maks11060/kv/helper'
 import { StandardSchemaV1 } from '@standard-schema/spec'
 import { ulid } from 'jsr:@std/ulid'
 import { generate as randomUUID7 } from 'jsr:@std/uuid/unstable-v7'
-import { z } from 'zod/v4'
+import { keyof, z } from 'zod/v4'
 import { standardValidate } from './_standardValidate.ts'
 
-ulid
-randomUUID7
-
 type ExtractArray<T> = T extends Array<infer O> ? O : T
+
+type OmitOptionalFields<TObject> = {
+  [
+    K in keyof TObject as //
+    TObject[K] extends Deno.KvKeyPart //
+      ? TObject[K] extends undefined ? never
+      : K
+      : never
+  ]: TObject[K]
+}
 
 type PrimaryKeyType<T = string> = 'ulid' | 'uuid4' | 'uuid7' | (() => T)
 
@@ -44,7 +51,7 @@ type RemoveOptions = Pick<CreateOptions, 'op' | 'transaction'>
 interface KvModel<
   Input,
   Output,
-  Options extends KvModelOptions,
+  Options extends KvModelOptions<Input, Output>,
   //
   PrimaryKey extends Options['primaryKey'] = Options['primaryKey'],
   PrimaryKeyType = Output[PrimaryKey],
@@ -118,12 +125,7 @@ interface KvModel<
   //   : Promise<Output | null>
 }
 
-interface KvModelOptions<
-  Output extends DefaultSchema = DefaultSchema,
-  PrimaryKey extends keyof Output = keyof Output,
-  // PKType = keyof Output[NoInfer<PrimaryKey>],
-  PKType = PrimaryKey,
-> {
+interface KvModelOptions<Input, Output, PrimaryKey extends PropertyKey = {}> {
   /**
    * A unique name for the {@linkcode KvModel}
    *
@@ -137,6 +139,7 @@ interface KvModelOptions<
    * ```
    */
   prefix: string
+
   /**
    * Available types for {@linkcode KvModelOptions.primaryKey}:
    * 1. {@linkcode Uint8Array}
@@ -145,12 +148,21 @@ interface KvModelOptions<
    * 4. {@linkcode BigInt}
    * 5. {@linkcode Boolean}
    */
-  primaryKey: /* keyof Output */ PrimaryKey
-  primaryKeyT: PKType
+  primaryKey: keyof PrimaryKey
+
   /**
    * Configuring the primary key generator. You can also specify the primary key in the {@linkcode KvModel.create} method
-   * @default ulid */
-  primaryKeyType?: PrimaryKeyType<Output[PrimaryKey]>
+   * - `ulid`  - `timestamp` + `rand`
+   * - `uuid4` - {@linkcode crypto.randomUUID}
+   * - `uuid7` - `timestamp` + `rand`
+   * - `() => '1'`
+   *
+   * @default ulid
+   */
+  primaryKeyType: PrimaryKeyType<
+    Input[keyof PrimaryKey extends keyof OmitOptionalFields<Input> ? keyof PrimaryKey : never]
+  >
+
   /**
    * Setting up the `index`. you need to create an arbitrary `index` name and link the data
    *
@@ -211,18 +223,18 @@ type IndexReturnType<T, K extends PropertyKey> = T extends {
  * ```
  */
 const createModel = <
-Schema extends StandardSchemaV1<DefaultSchema>,
-const PK extends keyof StandardSchemaV1.InferOutput<Schema>,
-const Options extends KvModelOptions<StandardSchemaV1.InferOutput<Schema>, PK>,
+  // Schema extends StandardSchemaV1<DefaultSchema>,
+  // PK extends StandardSchemaV1.InferOutput<Schema>,
+  // Options extends KvModelOptions<StandardSchemaV1.InferOutput<Schema>, PK>,
+  Schema extends StandardSchemaV1<DefaultSchema>,
+  Input = StandardSchemaV1.InferInput<Schema>,
+  Output = StandardSchemaV1.InferOutput<Schema>,
+  PrimaryKey = OmitOptionalFields<Input>,
 >(
   kv: Deno.Kv,
   schema: Schema,
-  options: Options,
-): KvModel<
-  StandardSchemaV1.InferInput<Schema>,
-  StandardSchemaV1.InferOutput<Schema>,
-  Options
-> => {
+  options: KvModelOptions<Input, Output, PrimaryKey>,
+): KvModel<Input, Output, KvModelOptions<Input, Output, PrimaryKey>> => {
   const model: KvModelContext = {kv, schema, options}
 
   return {
@@ -384,13 +396,11 @@ Deno.test('Test 769679', async (t) => {
   const userModel = createModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyT: 'email'
-
-    // primaryKeyType: () => '',
-    // index: {
-    //   i1: {relation: 'one', key: (v) => v.username},
-    //   i2: {key: (v) => v.email},
-    // },
+    primaryKeyType: () => 1,
+    index: {
+      i1: {relation: 'one', key: (v) => v.username},
+      i2: {key: (v) => v.email},
+    },
   })
 
   const user = await userModel.create({username: 'test'})
