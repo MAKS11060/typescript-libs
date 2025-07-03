@@ -1,8 +1,7 @@
 import { getKvPage, KvPageOptions } from '@maks11060/kv/helper'
 import { StandardSchemaV1 } from '@standard-schema/spec'
+import {} from '@std/collections'
 import { chunk } from '@std/collections/chunk'
-import { intersect } from '@std/collections/intersect'
-import {  } from '@std/collections'
 import { ulid } from '@std/ulid'
 import { generate as randomUUID7 } from '@std/uuid/unstable-v7'
 import { equal } from 'jsr:@std/assert/equal'
@@ -64,7 +63,7 @@ type CreateOptions<Key = unknown> = {
 
 type UpdateOptions = Omit<CreateOptions, 'key'>
 
-type RemoveOptions = Pick<CreateOptions, 'op' | 'transaction'>
+type DeleteOptions = Pick<CreateOptions, 'op' | 'transaction'>
 
 interface KvModel<
   Schema extends StandardSchemaV1<DefaultSchema>,
@@ -219,8 +218,9 @@ interface KvModel<
     options?: UpdateOptions,
   ): Promise<Output>
 
-  remove(key: InputPrimaryKeyType, options: TransactionOption): void
-  remove(key: InputPrimaryKeyType, options?: RemoveOptions): Promise<boolean>
+  delete(key: InputPrimaryKeyType, options: TransactionOption): void
+
+  delete(key: InputPrimaryKeyType, options?: DeleteOptions): Promise<boolean>
 
   // removeByIndex<Key extends IndexKeyof<Options>>(
   //   key: Key,
@@ -344,9 +344,13 @@ const createModel = <
       return _findByIndex(model, key as string, val as any, options) as any
     },
 
-    update() {},
+    update(primaryKey, handlerOrObj, options) {
+      return _updata(model, primaryKey as Deno.KvKeyPart, handlerOrObj, options) as any
+    },
 
-    remove() {},
+    delete(primaryKey, options) {
+      return _delete(model, primaryKey as Deno.KvKeyPart, options) as any
+    },
   }
 }
 
@@ -392,7 +396,7 @@ const _indexCreate = (
   }
 }
 
-const _indexRemove = (
+const _indexDelete = (
   model: KvModelContext,
   op: Deno.AtomicOperation,
   index: Index,
@@ -515,7 +519,7 @@ const _updata = async (
     ? (await handlerOrObj(value)) ?? value
     : handlerOrObj
 
-  // merge current + new object
+  // merge(top-level) current + new object
   const newValue = standardValidate(model.schema, {
     [model.options.primaryKey]: primaryKey,
     ...curValue,
@@ -527,7 +531,6 @@ const _updata = async (
   op.set([model.options.prefix, primaryKey as Deno.KvKeyPart], newValue, options) // ['prefix', 'primaryKey'] => object
 
   // partial update index
-
   for (const indexKey in model.options.index) {
     const index = model.options.index[indexKey]
     const curSecondaryKey = index.key(curValue)
@@ -535,35 +538,55 @@ const _updata = async (
 
     // skip if index equals
     if (equal(curSecondaryKey, newSecondaryKey)) continue
+    // console.log({indexKey, curSecondaryKey, newSecondaryKey})
 
-    // delete prev index
-    const curSecondaryKeys = Array.isArray(curSecondaryKey) ? curSecondaryKey : [curSecondaryKey] // [age]
-    const newSecondaryKeys = Array.isArray(newSecondaryKey) ? newSecondaryKey : [newSecondaryKey] // [age]
+    const curSecondaryKeys = Array.isArray(curSecondaryKey) ? curSecondaryKey : [curSecondaryKey]
+    const newSecondaryKeys = Array.isArray(newSecondaryKey) ? newSecondaryKey : [newSecondaryKey]
+    // console.log({curSecondaryKeys, newSecondaryKeys})
 
+    // delete current index
+    for (const secondaryKey of curSecondaryKeys) {
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexDelete(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey)
+    }
 
-    //
+    // create new index
     for (const secondaryKey of newSecondaryKeys) {
-      // _indexCreate(model, op, newSecondaryKey)
       if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
       _indexCreate(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey, options)
     }
-
-    // for (const curValue of prevSecondaryKeys) {
-    //   if (!indexOption.relation || indexOption.relation === 'one') {
-    //     const prevKey = [_prefixKey(indexKey), curValue]
-    //     op.delete(prevKey)
-    //   } else if (indexOption.relation === 'many') {
-    //     const prevKey = [_prefixKey(indexKey), curValue, primaryKey as Deno.KvKeyPart]
-    //     op.delete(prevKey)
-    //   }
-    // }
-
   }
+
+  return options?.transaction ? newValue : _commit(model, op, newValue, 'update')
 }
 
-const _remove = async (model: KvModelContext, key: unknown, val: unknown, options?: {resolve?: boolean}) => {}
+const _delete = async (model: KvModelContext, key: Deno.KvKeyPart, options?: DeleteOptions) => {
+  const value = await _find(model, key) as Record<PropertyKey, unknown>
+  if (!value) return null
 
-const _removeByIndex = async (model: KvModelContext, key: unknown, val: unknown, options?: {}) => {}
+  // delete primary
+  const op = options?.op ?? model.kv.atomic()
+  op.delete([model.options.prefix, key as Deno.KvKeyPart]) // primary
+
+  const {[model.options.primaryKey]: primaryKey} = value
+
+  for (const indexKey in model.options.index) {
+    const index = model.options.index[indexKey]
+    const curSecondaryKey = index.key(value)
+
+    const curSecondaryKeys = Array.isArray(curSecondaryKey) ? curSecondaryKey : [curSecondaryKey]
+
+    // delete current index
+    for (const secondaryKey of curSecondaryKeys) {
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexDelete(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey)
+    }
+  }
+
+  return options?.transaction ? true : _commit(model, op, true, 'delete')
+}
+
+const _deleteByIndex = async (model: KvModelContext, key: unknown, val: unknown, options?: {}) => {}
 
 Deno.test('Test 000000', async (t) => {
   using kv = await Deno.openKv(':memory:')
@@ -574,7 +597,6 @@ Deno.test('Test 000000', async (t) => {
   const model = createModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
-    index: {},
   })
 })
 
@@ -765,6 +787,34 @@ Deno.test('Test 448353 create(transaction)', async (t) => {
   ])
 })
 
+Deno.test('Test 235235 find', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType: () => `${id++}`,
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
+    },
+  })
+
+  //
+  const user1 = await model.create({username: 'user1', age: 18})
+  const user2 = await model.create({username: 'user2', age: 18})
+
+  expect(await model.find(user1.id)).toEqual({id: '1', username: 'user1', age: 18})
+  expect(await model.find(user2.id)).toEqual({id: '2', username: 'user2', age: 18})
+  expect(await model.find('none')).toEqual(null)
+})
+
 Deno.test('Test 448354 findMany', async (t) => {
   using kv = await Deno.openKv(':memory:')
   let id = 1
@@ -817,6 +867,47 @@ Deno.test('Test 448354 findMany', async (t) => {
   expect(userListEmpty).toEqual([])
 })
 
+Deno.test('Test 499237 findByIndex', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType: () => `${id++}`,
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
+    },
+  })
+
+  //
+  await model.create({username: 'user1', age: 18})
+  await model.create({username: 'user2', age: 18})
+  await model.create({username: 'user3', age: 18})
+  await model.create({username: 'user4', age: 17})
+  await model.create({username: 'user5', age: 19})
+
+  expect(await model.findByIndex('username', 'user1')).toEqual('1')
+  expect(await model.findByIndex('username', 'user1', {resolve: true})).toEqual({id: '1', username: 'user1', age: 18})
+
+  expect(await model.findByIndex('username', 'none')).toEqual(null)
+  expect(await model.findByIndex('username', 'none', {resolve: true})).toEqual(null)
+
+  expect(await model.findByIndex('age', 18)).toEqual(['1', '2', '3'])
+  expect(await model.findByIndex('age', 17, {resolve: true})).toEqual([
+    {id: '4', username: 'user4', age: 17},
+  ])
+
+  expect(await model.findByIndex('age', 100)).toEqual([])
+  expect(await model.findByIndex('age', 100, {resolve: true})).toEqual([])
+})
+
 Deno.test('Test 453253 update', async (t) => {
   using kv = await Deno.openKv(':memory:')
   let id = 1
@@ -834,7 +925,7 @@ Deno.test('Test 453253 update', async (t) => {
     },
     index: {
       username: {key: (v) => v.username.toLowerCase()},
-      age: {relation: 'many', key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
     },
   })
 
@@ -843,6 +934,7 @@ Deno.test('Test 453253 update', async (t) => {
   expect(user).toEqual({id: '1', username: 'user1', age: 18})
 
   const updata1 = await model.update(user.id, {age: 19})
+  console.log({updata1})
   expect(updata1).toEqual({id: '1', username: 'user1', age: 19})
 
   const updata2 = await model.update(user.id, (v) => {
@@ -852,8 +944,50 @@ Deno.test('Test 453253 update', async (t) => {
 
   const updata3 = await model.update(user.id, (v) => {
     return {
+      id: 'new id', // ignore
       age: 21,
     }
   })
   expect(updata3).toEqual({id: '1', username: 'user1', age: 21})
+})
+
+Deno.test('Test 399377 delete', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType() {
+      return `${id++}`
+    },
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
+    },
+  })
+
+  //
+  await model.create({username: 'user1', age: 18})
+  await model.create({username: 'user2', age: 18})
+  await model.create({username: 'user3', age: 18})
+
+  //
+  await model.delete('1')
+
+  const op = model.atomic()
+  await model.delete('2', {op, transaction: true})
+  await model.delete('3', {op})
+
+  const userList = await model.findMany()
+  expect(userList).toEqual([])
+})
+
+Deno.test('Test 737649', async (t) => {
+
 })
