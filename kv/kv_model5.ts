@@ -1,13 +1,14 @@
 import { getKvPage, KvPageOptions } from '@maks11060/kv/helper'
 import { StandardSchemaV1 } from '@standard-schema/spec'
-import {} from '@std/collections'
 import { chunk } from '@std/collections/chunk'
-import { ulid } from '@std/ulid'
+import { ulid } from '@std/ulid/ulid'
 import { generate as randomUUID7 } from '@std/uuid/unstable-v7'
 import { equal } from 'jsr:@std/assert/equal'
 import { expect } from 'jsr:@std/expect/expect'
 import { z } from 'zod/v4'
 import { standardValidate } from './_standardValidate.ts'
+
+export const Internal = Symbol('Internal')
 
 type OmitOptionalFields<TObject> = {
   [
@@ -65,6 +66,8 @@ type UpdateOptions = Omit<CreateOptions, 'key'>
 
 type DeleteOptions = Pick<CreateOptions, 'op' | 'transaction'>
 
+type DeleteByIndexOptions = Pick<CreateOptions, 'op' | 'transaction'>
+
 interface KvModel<
   Schema extends StandardSchemaV1<DefaultSchema>,
   PrimaryKey,
@@ -76,6 +79,8 @@ interface KvModel<
   InputPrimaryKeyType = Input[PrimaryKey extends keyof Input ? PrimaryKey : never],
   OutputPrimaryKeyType = Output[PrimaryKey extends keyof Output ? PrimaryKey : never],
 > {
+  [Internal]: KvModelContext
+
   /**
    * Start `transaction`
    */
@@ -152,7 +157,7 @@ interface KvModel<
   findByIndex<Key extends IndexKeyof<Index>>(
     key: Key,
     val: IndexReturnType<Index, Key>,
-    options?: {resolve?: false},
+    options?: {resolve?: false} & KvPageOptions<OutputPrimaryKeyType>,
   ): IndexRelation<Index, Key> extends 'many' //
     ? Promise<OutputPrimaryKeyType[]>
     : Promise<OutputPrimaryKeyType | null>
@@ -177,7 +182,7 @@ interface KvModel<
   findByIndex<Key extends IndexKeyof<Index>>(
     key: Key,
     val: IndexReturnType<Index, Key>,
-    options: {resolve: true},
+    options: {resolve: true} & KvPageOptions<OutputPrimaryKeyType>,
   ): IndexRelation<Index, Key> extends 'many' //
     ? Promise<Output[]>
     : Promise<Output | null>
@@ -222,21 +227,11 @@ interface KvModel<
 
   delete(key: InputPrimaryKeyType, options?: DeleteOptions): Promise<boolean>
 
-  // removeByIndex<Key extends IndexKeyof<Options>>(
-  //   key: Key,
-  //   val: IndexReturnType<Options, Key>,
-  //   options?: {resolve?: false},
-  // ): IndexRelation<Options, Key> extends 'many' //
-  //   ? Promise<PrimaryKeyType[]>
-  //   : Promise<PrimaryKeyType | null>
-
-  // removeByIndex<Key extends IndexKeyof<Options>>(
-  //   key: Key,
-  //   val: IndexReturnType<Options, Key>,
-  //   options: TransactionOption
-  // ): IndexRelation<Options, Key> extends 'many' //
-  //   ? Promise<Output[]>
-  //   : Promise<Output | null>
+  deleteByIndex<Key extends IndexKeyof<Index>>(
+    key: Key,
+    val: IndexReturnType<Index, Key>,
+    options?: DeleteByIndexOptions & KvPageOptions<OutputPrimaryKeyType>,
+  ): Promise<boolean>
 }
 
 interface KvModelContext {
@@ -320,6 +315,8 @@ const createModel = <
   const model: KvModelContext = {kv, schema, options: options as any}
 
   return {
+    [Internal]: model,
+
     atomic() {
       return kv.atomic()
     },
@@ -340,8 +337,8 @@ const createModel = <
       return _findMany(model, options as any) as any
     },
 
-    findByIndex(key, val, options) {
-      return _findByIndex(model, key as string, val as any, options) as any
+    findByIndex(indexKey, secondaryKey, options) {
+      return _findByIndex(model, indexKey as string, secondaryKey as Deno.KvKeyPart, options) as any
     },
 
     update(primaryKey, handlerOrObj, options) {
@@ -351,10 +348,14 @@ const createModel = <
     delete(primaryKey, options) {
       return _delete(model, primaryKey as Deno.KvKeyPart, options) as any
     },
+
+    deleteByIndex(indexKey, secondaryKey, options) {
+      return _deleteByIndex(model, indexKey as string, secondaryKey as Deno.KvKeyPart, options) as any
+    },
   }
 }
 
-const generateKey = (type: KvModelContext['options']['primaryKeyType'] = 'ulid') => {
+const _generateKey = (type: KvModelContext['options']['primaryKeyType'] = 'ulid') => {
   if (type === 'ulid') {
     return ulid()
   } else if (type === 'uuid4') {
@@ -414,7 +415,7 @@ const _indexDelete = (
 }
 
 const _create = (model: KvModelContext, data: {}, options?: CreateOptions) => {
-  const key = options?.key ?? generateKey(model.options.primaryKeyType)
+  const key = options?.key ?? _generateKey(model.options.primaryKeyType)
   const op = options?.op ?? model.kv.atomic()
 
   const output = standardValidate(model.schema, {
@@ -460,7 +461,7 @@ const _findByIndex = async (
   model: KvModelContext,
   indexKey: string,
   secondaryKey: Deno.KvKeyPart,
-  options?: {resolve?: boolean},
+  options?: {resolve?: boolean} & KvPageOptions<unknown>,
 ) => {
   type Output = unknown // TODO: expose
 
@@ -474,7 +475,7 @@ const _findByIndex = async (
     const indexRes = await model.kv.get(key)
     if (!indexRes.value) return indexRes.value
     // if (!indexRes.value) throw new Error(`[KV|findByIndex] index: ${key} is undefined`)
-    return options?.resolve ? _find(model, indexRes.value) : indexRes.value
+    return options?.resolve ? _find(model, indexRes.value as Deno.KvKeyPart) : indexRes.value
   } else if (indexOption.relation === 'many') {
     const kvPage = await getKvPage(model.kv, key, options as KvPageOptions)
     // const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(kv, _key, options as KvPageOptions<PrimaryKeyType>)
@@ -586,7 +587,22 @@ const _delete = async (model: KvModelContext, key: Deno.KvKeyPart, options?: Del
   return options?.transaction ? true : _commit(model, op, true, 'delete')
 }
 
-const _deleteByIndex = async (model: KvModelContext, key: unknown, val: unknown, options?: {}) => {}
+const _deleteByIndex = async (
+  model: KvModelContext,
+  indexKey: string,
+  secondaryKey: Deno.KvKeyPart,
+  options?: DeleteByIndexOptions & KvPageOptions<unknown>,
+) => {
+  const primaryKey = await _findByIndex(model, indexKey, secondaryKey, options)
+  if (Array.isArray(primaryKey)) { // relation 'many'
+    for (const key of primaryKey) {
+      await _delete(model, key as Deno.KvKeyPart, options)
+    }
+    return true
+  } else { // relation 'one'
+    return _delete(model, primaryKey as Deno.KvKeyPart, options)
+  }
+}
 
 Deno.test('Test 000000', async (t) => {
   using kv = await Deno.openKv(':memory:')
@@ -663,7 +679,7 @@ Deno.test('Test 737423', async (t) => {
 
 Deno.test('Test 163078', async (t) => {
   using kv = await Deno.openKv(':memory:')
-  let idCounter = 0
+  let id = 0
 
   const userSchema = z.object({
     id: z.int(),
@@ -676,9 +692,7 @@ Deno.test('Test 163078', async (t) => {
   const userModel = createModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType() {
-      return idCounter++
-    },
+    primaryKeyType: () => id++,
     index: {
       i1: {relation: 'one', key: (v) => v.username},
       i2: {relation: 'one', key: (v) => {}},
@@ -765,9 +779,7 @@ Deno.test('Test 448353 create(transaction)', async (t) => {
   const model = createModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType() {
-      return `${id++}`
-    },
+    primaryKeyType: () => `${id++}`,
     index: {
       username: {key: (v) => v.username.toLowerCase()},
       age: {relation: 'many', key: (v) => v.username.toLowerCase()},
@@ -827,9 +839,7 @@ Deno.test('Test 448354 findMany', async (t) => {
   const model = createModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType() {
-      return `${id++}`
-    },
+    primaryKeyType: () => `${id++}`,
     index: {
       username: {key: (v) => v.username.toLowerCase()},
       age: {relation: 'many', key: (v) => v.username.toLowerCase()},
@@ -920,9 +930,7 @@ Deno.test('Test 453253 update', async (t) => {
   const model = createModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType() {
-      return `${id++}`
-    },
+    primaryKeyType: () => `${id++}`,
     index: {
       username: {key: (v) => v.username.toLowerCase()},
       age: {relation: 'many', key: (v) => v.age},
@@ -963,9 +971,7 @@ Deno.test('Test 399377 delete', async (t) => {
   const model = createModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType() {
-      return `${id++}`
-    },
+    primaryKeyType: () => `${id++}`,
     index: {
       username: {key: (v) => v.username.toLowerCase()},
       age: {relation: 'many', key: (v) => v.age},
@@ -988,6 +994,58 @@ Deno.test('Test 399377 delete', async (t) => {
   expect(userList).toEqual([])
 })
 
-Deno.test('Test 737649', async (t) => {
+Deno.test('Test 737649 deleteByIndex', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
 
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType: () => `${id++}`.padStart(2, '0'),
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
+    },
+  })
+
+  //
+  await model.create({username: 'user1', age: 18})
+  await model.create({username: 'user2', age: 18})
+  await model.create({username: 'user3', age: 18})
+  await model.create({username: 'user4', age: 17})
+  await model.create({username: 'user5', age: 19})
+
+  await model.deleteByIndex('username', 'user2')
+  expect(await model.findMany()).toEqual([
+    {id: '01', username: 'user1', age: 18},
+    {id: '03', username: 'user3', age: 18},
+    {id: '04', username: 'user4', age: 17},
+    {id: '05', username: 'user5', age: 19},
+  ])
+
+  await model.deleteByIndex('age', 18)
+  expect(await model.findMany()).toEqual([
+    {id: '04', username: 'user4', age: 17},
+    {id: '05', username: 'user5', age: 19},
+  ])
+
+  for (let i = 5; i < 60; i++) {
+    await model.create({username: `user${i}`, age: 18})
+  }
+
+  await model.deleteByIndex('age', 18)
+  expect(await model.findMany()).toEqual([
+    {id: '04', username: 'user4', age: 17},
+    {id: '05', username: 'user5', age: 19},
+    {id: '56', username: 'user55', age: 18},
+    {id: '57', username: 'user56', age: 18},
+    {id: '58', username: 'user57', age: 18},
+    {id: '59', username: 'user58', age: 18},
+    {id: '60', username: 'user59', age: 18},
+  ])
 })
