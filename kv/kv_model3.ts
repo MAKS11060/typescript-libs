@@ -125,7 +125,7 @@ interface KvModel<
   //   : Promise<Output | null>
 }
 
-interface KvModelOptions<Input, Output, PrimaryKey extends PropertyKey = {}> {
+interface KvModelOptions<Input, Output, PrimaryKey = {}> {
   /**
    * A unique name for the {@linkcode KvModel}
    *
@@ -184,11 +184,11 @@ interface KvModelContext {
   options: KvModelOptions
 }
 
+// Index
 interface Index<T = unknown> {
   relation?: 'one' | 'many'
   key(value: T): Deno.KvKeyPart | null | undefined | void | (Deno.KvKeyPart | null | undefined | void)[]
 }
-
 type IndexKeyof<T> = T extends {index: { [K in infer O]: Index }} ? O : never
 type IndexRelation<T, K extends PropertyKey> = T extends {
   index: { [k in K]: {relation: infer O} }
@@ -198,6 +198,19 @@ type IndexReturnType<T, K extends PropertyKey> = T extends {
   index: { [k in K]: {key(...args: unknown[]): infer O} }
 } ? ExtractArray<O> | null | undefined | void // allow empty value
   : unknown
+
+interface KvModel2<
+  Input,
+  Output,
+  PrimaryKey,
+  //
+  PrimaryKeyType = Input[keyof PrimaryKey extends keyof Input ? keyof Input : never],
+  InputWithoutKey = Omit<Input, PrimaryKey extends keyof Input ? keyof Input : never>,
+> {
+
+  create(data: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>): Promise<Output>
+
+}
 
 /**
  * @example
@@ -234,7 +247,8 @@ const createModel = <
   kv: Deno.Kv,
   schema: Schema,
   options: KvModelOptions<Input, Output, PrimaryKey>,
-): KvModel<Input, Output, KvModelOptions<Input, Output, PrimaryKey>> => {
+): KvModel2<Input, Output, PrimaryKey> => {
+  // ): KvModel<Input, O/utput, KvModelOptions<Input, Output, PrimaryKey>> => {
   const model: KvModelContext = {kv, schema, options}
 
   return {
@@ -337,7 +351,7 @@ const _remove = async (model: KvModelContext, key: unknown, val: unknown, option
 const _removeByIndex = async (model: KvModelContext, key: unknown, val: unknown, options?: {}) => {}
 
 Deno.test('Test 163078', async (t) => {
-  using kv = await Deno.openKv(':member:')
+  using kv = await Deno.openKv(':memory:')
 
   const userSchema = z.object({
     id: z.int(),
