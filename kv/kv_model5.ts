@@ -1,8 +1,11 @@
-import { getKvPage, KvPageOptions, printKV } from '@maks11060/kv/helper'
+import { getKvPage, KvPageOptions } from '@maks11060/kv/helper'
 import { StandardSchemaV1 } from '@standard-schema/spec'
 import { chunk } from '@std/collections/chunk'
+import { intersect } from '@std/collections/intersect'
+import {  } from '@std/collections'
 import { ulid } from '@std/ulid'
 import { generate as randomUUID7 } from '@std/uuid/unstable-v7'
+import { equal } from 'jsr:@std/assert/equal'
 import { expect } from 'jsr:@std/expect/expect'
 import { z } from 'zod/v4'
 import { standardValidate } from './_standardValidate.ts'
@@ -75,9 +78,14 @@ interface KvModel<
   OutputPrimaryKeyType = Output[PrimaryKey extends keyof Output ? PrimaryKey : never],
 > {
   /**
-   * Create `transaction`
+   * Start `transaction`
    */
   atomic(): Deno.AtomicOperation
+
+  /**
+   * Commit the `transaction`
+   */
+  commit(op: Deno.AtomicOperation): Promise<void>
 
   /**
    * Create `record`
@@ -88,11 +96,60 @@ interface KvModel<
    */
   create(data: InputWithoutPrimaryKey, options: CreateOptions<InputPrimaryKeyType> & TransactionOption): Output
 
+  /**
+   * Find object by `PrimaryKey`
+   * @example
+   * ```ts
+   * const user = await userModel.find('1')
+   * // {id: '1', username: 'user1'}
+   * ```
+   */
   find(key: OutputPrimaryKeyType): Promise<Output | null>
 
-  findMany(key: OutputPrimaryKeyType): Promise<Output[] | null>
+  /**
+   * Find many objects by `PrimaryKey`
+   * @example
+   * ```ts
+   * const users = await userModel.findMany() // get first `50` records
+   * users // [ {id: '1', username: 'user1'}, {id: '2', username: 'user2'} ]
+   * ```
+   *
+   * Pagination
+   * @example
+   * ```ts
+   * await model.create({username: 'user1', age: 18})
+   * await model.create({username: 'user2', age: 18})
+   * await model.create({username: 'user3', age: 17})
+   * await model.create({username: 'user4', age: 19})
+   * await model.create({username: 'user5', age: 10})
+   *
+   * const userList1 = await userModel.findMany({limit: 2})
+   * userList1 // [ {id: '1', username: 'user1', age: 18}, {id: '2', username: 'user2', age: 18} ]
+   *
+   * const lastId = userList1.at(-1)?.id! // '2'
+   * const userList2 = await userModel.findMany({limit: 2, offset: lastId})
+   * userList2 // [ {id: '3', username: 'user3', age: 17}, {id: '4', username: 'user4', age: 19} ]
+   * ```
+   */
+  findMany(options?: KvPageOptions<OutputPrimaryKeyType>): Promise<Output[]>
 
-  // no resolve
+  /**
+   * Find the `primary keys` by the `index`
+   *
+   * Relation `one`
+   * @example
+   * ```ts
+   * const userId = await userModel.findByIndex('username', 'user1')
+   * userId // '1'
+   * ```
+   *
+   * Relation `many`
+   * @example
+   * ```ts
+   * const userIds = await userModel.findByIndex('age', 18)
+   * userIds // [ '1', '2' ]
+   * ```
+   */
   findByIndex<Key extends IndexKeyof<Index>>(
     key: Key,
     val: IndexReturnType<Index, Key>,
@@ -101,7 +158,23 @@ interface KvModel<
     ? Promise<OutputPrimaryKeyType[]>
     : Promise<OutputPrimaryKeyType | null>
 
-  // resolve
+  /**
+   * Find by `index` and `resolve` object
+   *
+   * Relation `one`
+   * @example
+   * ```ts
+   * const user = await userModel.findByIndex('username', 'user1', {resolve: true})
+   * user // {id: '1', username: 'user1', age: 18}
+   * ```
+   *
+   * Relation `many`
+   * @example
+   * ```ts
+   * const users = await userModel.findByIndex('role', 'user', {resolve: true})
+   * users // [ {id: '1', username: 'user1', age: 18}, {id: '2', username: 'user2', age: 18} ]
+   * ```
+   */
   findByIndex<Key extends IndexKeyof<Index>>(
     key: Key,
     val: IndexReturnType<Index, Key>,
@@ -110,12 +183,36 @@ interface KvModel<
     ? Promise<Output[]>
     : Promise<Output | null>
 
+  /**
+   * Merge the current object with the new object
+   * @example
+   * ```ts
+   * const user = await userModel.create({username: 'user1', age: 18})
+   * user // {id: '1', username: 'user1', age: 18}
+   *
+   * const update = await userModel.update(user.id, {age: 19})
+   * updata // {id: '1', username: 'user1', age: 19}
+   * ```
+   */
   update(
     key: InputPrimaryKeyType,
     input: Partial<InputWithoutPrimaryKey>,
     options?: UpdateOptions,
   ): Promise<Output>
 
+  /**
+   * Update current object using callback
+   * @example
+   * ```ts
+   * const user = await userModel.create({username: 'user1', age: 18})
+   * user // {id: '1', username: 'user1', age: 18}
+   *
+   * const update = await userModel.update(user.id, (v) => {
+   *   v.age = 20
+   * })
+   * update // {id: '1', username: 'user1', age: 20}
+   * ```
+   */
   update(
     key: InputPrimaryKeyType,
     handler: (val: Output) => Promise<Partial<InputWithoutPrimaryKey> | void> | Partial<InputWithoutPrimaryKey> | void,
@@ -227,6 +324,10 @@ const createModel = <
       return kv.atomic()
     },
 
+    commit(op) {
+      return _commit(model, op, undefined, 'commit')
+    },
+
     create(data, options) {
       return _create(model, data, options) as any
     },
@@ -235,9 +336,17 @@ const createModel = <
       return _find(model, key as any) as any
     },
 
+    findMany(options = {}) {
+      return _findMany(model, options as any) as any
+    },
+
     findByIndex(key, val, options) {
       return _findByIndex(model, key as string, val as any, options) as any
     },
+
+    update() {},
+
+    remove() {},
   }
 }
 
@@ -283,6 +392,23 @@ const _indexCreate = (
   }
 }
 
+const _indexRemove = (
+  model: KvModelContext,
+  op: Deno.AtomicOperation,
+  index: Index,
+  indexKey: string,
+  primaryKey: Deno.KvKeyPart,
+  secondaryKey: Deno.KvKeyPart,
+) => {
+  if (!index.relation || index.relation === 'one') {
+    const key = [`${model.options.prefix}-${indexKey}`, secondaryKey]
+    op.delete(key)
+  } else if (index.relation === 'many') {
+    const key = [`${model.options.prefix}-${indexKey}`, secondaryKey, primaryKey]
+    op.delete(key)
+  }
+}
+
 const _create = (model: KvModelContext, data: {}, options?: CreateOptions) => {
   const key = options?.key ?? generateKey(model.options.primaryKeyType)
   const op = options?.op ?? model.kv.atomic()
@@ -317,6 +443,13 @@ const _find = async (model: KvModelContext, primaryKey: Deno.KvKeyPart) => {
   const _key = [model.options.prefix, primaryKey] as Deno.KvKey
   const res = await model.kv.get<Output>(_key)
   return res.value
+}
+
+const _findMany = async (model: KvModelContext, options: KvPageOptions) => {
+  type Output = unknown // TODO: expose
+
+  const kvPage = await getKvPage<Output>(model.kv, [model.options.prefix], options)
+  return kvPage.values()
 }
 
 const _findByIndex = async (
@@ -368,54 +501,142 @@ const _findByIndex = async (
   throw new Error('[KV|findByIndex] undefined behaver')
 }
 
-const _updata = async (model: KvModelContext, key: unknown, val: unknown, options?: {resolve?: boolean}) => {}
+const _updata = async (
+  model: KvModelContext,
+  key: Deno.KvKeyPart,
+  handlerOrObj: unknown,
+  options?: UpdateOptions,
+) => {
+  const value = await _find(model, key) as Record<PropertyKey, unknown>
+  if (!value) return null
+
+  const {[model.options.primaryKey]: primaryKey, ...curValue} = value
+  const {[model.options.primaryKey]: _, ..._newValue} = typeof handlerOrObj === 'function'
+    ? (await handlerOrObj(value)) ?? value
+    : handlerOrObj
+
+  // merge current + new object
+  const newValue = standardValidate(model.schema, {
+    [model.options.primaryKey]: primaryKey,
+    ...curValue,
+    ..._newValue,
+  })
+
+  // update primary
+  const op = options?.op ?? model.kv.atomic()
+  op.set([model.options.prefix, primaryKey as Deno.KvKeyPart], newValue, options) // ['prefix', 'primaryKey'] => object
+
+  // partial update index
+
+  for (const indexKey in model.options.index) {
+    const index = model.options.index[indexKey]
+    const curSecondaryKey = index.key(curValue)
+    const newSecondaryKey = index.key(newValue)
+
+    // skip if index equals
+    if (equal(curSecondaryKey, newSecondaryKey)) continue
+
+    // delete prev index
+    const curSecondaryKeys = Array.isArray(curSecondaryKey) ? curSecondaryKey : [curSecondaryKey] // [age]
+    const newSecondaryKeys = Array.isArray(newSecondaryKey) ? newSecondaryKey : [newSecondaryKey] // [age]
+
+
+    //
+    for (const secondaryKey of newSecondaryKeys) {
+      // _indexCreate(model, op, newSecondaryKey)
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexCreate(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey, options)
+    }
+
+    // for (const curValue of prevSecondaryKeys) {
+    //   if (!indexOption.relation || indexOption.relation === 'one') {
+    //     const prevKey = [_prefixKey(indexKey), curValue]
+    //     op.delete(prevKey)
+    //   } else if (indexOption.relation === 'many') {
+    //     const prevKey = [_prefixKey(indexKey), curValue, primaryKey as Deno.KvKeyPart]
+    //     op.delete(prevKey)
+    //   }
+    // }
+
+  }
+}
 
 const _remove = async (model: KvModelContext, key: unknown, val: unknown, options?: {resolve?: boolean}) => {}
 
 const _removeByIndex = async (model: KvModelContext, key: unknown, val: unknown, options?: {}) => {}
 
-Deno.test('Test 163071', async (t) => {
+Deno.test('Test 000000', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+
+  const schema = z.object({
+    id: z.string(),
+  })
+  const model = createModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    index: {},
+  })
+})
+
+Deno.test('Test 090345', async (t) => {
   using kv = await Deno.openKv(':memory:')
 
   const userSchema = z.object({
-    id: z.string(),
+    id: z.int(),
     username: z.string(),
     email: z.string().nullish().default(null),
-    get friends() {
-      return userSchema.array().optional()
-    },
+    id_str: z.string(),
+    id_u8: z.instanceof(Uint8Array),
   })
-  const userModel = createModel(kv, userSchema, {
+
+  createModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType: 'uuid7',
+    primaryKeyType: () => 1,
+  })
+  createModel(kv, userSchema, {
+    prefix: 'user',
+    primaryKey: 'username',
+    primaryKeyType: () => '', // err
+  })
+  createModel(kv, userSchema, {
+    prefix: 'user',
+    primaryKey: 'id_str',
+    primaryKeyType: () => '',
+  })
+  createModel(kv, userSchema, {
+    prefix: 'user',
+    primaryKey: 'id_u8',
+    primaryKeyType: () => crypto.getRandomValues(new Uint8Array(16)),
+  })
+})
+
+Deno.test('Test 737423', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+
+  const userSchema = z.object({
+    id: z.int(),
+    // id: z.string(),
+    username: z.string(),
+    email: z.string().nullish().default(null),
+  })
+  const model = createModel(kv, userSchema, {
+    prefix: '',
+    primaryKey: 'id',
+    primaryKeyType: () => 1,
     index: {
-      username: {relation: 'one', key: (v) => v.username},
-      email: {key: (v) => v.email},
-      friends: {relation: 'many', key: (v) => v.friends?.map((v) => v.id)},
+      i1: {key: (value) => value.username},
+      i2: {key: (value) => 123},
     },
   })
 
-  await userModel.create({username: 'abc'}) satisfies z.infer<typeof userSchema>
+  await model.create({username: ''}, {key: 1})
+  await model.create({username: ''}, {key: 1})
 
-  const user1 = await userModel.findByIndex('username', 'abc', {resolve: true})
-  if (!user1) throw new Error("findByIndex user1 not found")
-  expect(user1.id).toBeTruthy()
-  expect(user1.email).toBe(null)
-  expect(user1.username).toBe('abc')
+  await model.findByIndex('i1', '123')
+  await model.findByIndex('i2', 1)
 
-  const user2 = await userModel.create({
-    username: 'user2',
-    email: 'user2@example.com',
-    friends: [user1],
-  })
-  const user3 = await userModel.create({
-    username: 'user3',
-    email: 'user3@example.com',
-    friends: [user2, user1],
-  })
-
-  // printKV(kv)
+  await model.find(123)
 })
 
 Deno.test('Test 163078', async (t) => {
@@ -466,63 +687,173 @@ Deno.test('Test 163078', async (t) => {
   await userModel.findByIndex('i7', 1) satisfies number[] | null
 })
 
-Deno.test('Test 737423', async (t) => {
+Deno.test('Test 163071 create', async (t) => {
   using kv = await Deno.openKv(':memory:')
 
   const userSchema = z.object({
-    id: z.int(),
-    // id: z.string(),
+    id: z.string(),
     username: z.string(),
     email: z.string().nullish().default(null),
+    get friends() {
+      return userSchema.array().optional()
+    },
   })
-  const model = createModel(kv, userSchema, {
-    prefix: '',
+  const userModel = createModel(kv, userSchema, {
+    prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType: () => 1,
+    primaryKeyType: 'uuid7',
     index: {
-      i1: {key: (value) => value.username},
-      i2: {key: (value) => 123},
+      username: {relation: 'one', key: (v) => v.username},
+      email: {key: (v) => v.email},
+      friends: {relation: 'many', key: (v) => v.friends?.map((v) => v.id)},
     },
   })
 
-  await model.create({username: ''}, {key: 1})
-  await model.create({username: ''}, {key: 1})
+  await userModel.create({username: 'abc'}) satisfies z.infer<typeof userSchema>
 
-  await model.findByIndex('i1', '123')
-  await model.findByIndex('i2', 1)
+  const user1 = await userModel.findByIndex('username', 'abc', {resolve: true})
+  if (!user1) throw new Error('findByIndex user1 not found')
+  expect(user1.id).toBeTruthy()
+  expect(user1.email).toBe(null)
+  expect(user1.username).toBe('abc')
 
-  await model.find(123)
+  const user2 = await userModel.create({
+    username: 'user2',
+    email: 'user2@example.com',
+    friends: [user1],
+  })
+  const user3 = await userModel.create({
+    username: 'user3',
+    email: 'user3@example.com',
+    friends: [user2, user1],
+  })
+
+  // printKV(kv)
 })
 
-Deno.test('Test 090345', async (t) => {
+Deno.test('Test 448353 create(transaction)', async (t) => {
   using kv = await Deno.openKv(':memory:')
+  let id = 1
 
-  const userSchema = z.object({
-    id: z.int(),
+  const schema = z.object({
+    id: z.string(),
     username: z.string(),
-    email: z.string().nullish().default(null),
-    id_str: z.string(),
-    id_u8: z.instanceof(Uint8Array),
+    age: z.int().positive(),
   })
-
-  createModel(kv, userSchema, {
+  const model = createModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
-    primaryKeyType: () => 1,
+    primaryKeyType() {
+      return `${id++}`
+    },
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.username.toLowerCase()},
+    },
   })
-  createModel(kv, userSchema, {
+
+  const op = model.atomic()
+  for (let i = 0; i < 2; i++) {
+    model.create({username: `user${i}`, age: 18}, {op, transaction: true})
+  }
+  await model.commit(op)
+
+  const list = await model.findMany()
+  expect(list).toEqual([
+    {id: '1', username: 'user0', age: 18},
+    {id: '2', username: 'user1', age: 18},
+  ])
+})
+
+Deno.test('Test 448354 findMany', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
     prefix: 'user',
-    primaryKey: 'username',
-    primaryKeyType: () => '', // err
+    primaryKey: 'id',
+    primaryKeyType() {
+      return `${id++}`
+    },
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.username.toLowerCase()},
+    },
   })
-  createModel(kv, userSchema, {
+
+  await model.create({username: 'user1', age: 18})
+  await model.create({username: 'user2', age: 18})
+  await model.create({username: 'user3', age: 17})
+  await model.create({username: 'user4', age: 19})
+  await model.create({username: 'user5', age: 10})
+
+  // console.log(await model.findMany())
+  const userList1 = await model.findMany({limit: 2})
+
+  const lastId = userList1.at(-1)?.id! // '2'
+  const userList2 = await model.findMany({limit: 2, offset: lastId})
+
+  const lastId2 = userList2.at(-1)?.id! // '4'
+  const userList3 = await model.findMany({limit: 2, offset: lastId2})
+
+  expect(userList1).toEqual([
+    {id: '1', username: 'user1', age: 18},
+    {id: '2', username: 'user2', age: 18},
+  ])
+  expect(userList2).toEqual([
+    {id: '3', username: 'user3', age: 17},
+    {id: '4', username: 'user4', age: 19},
+  ])
+  expect(userList3).toEqual([
+    {id: '5', username: 'user5', age: 10},
+  ])
+
+  const userListEmpty = await model.findMany({limit: 2, offset: '5'})
+  expect(userListEmpty).toEqual([])
+})
+
+Deno.test('Test 453253 update', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
     prefix: 'user',
-    primaryKey: 'id_str',
-    primaryKeyType: () => '',
+    primaryKey: 'id',
+    primaryKeyType() {
+      return `${id++}`
+    },
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.username.toLowerCase()},
+    },
   })
-  createModel(kv, userSchema, {
-    prefix: 'user',
-    primaryKey: 'id_u8',
-    primaryKeyType: () => crypto.getRandomValues(new Uint8Array(16)),
+
+  //
+  const user = await model.create({username: 'user1', age: 18})
+  expect(user).toEqual({id: '1', username: 'user1', age: 18})
+
+  const updata1 = await model.update(user.id, {age: 19})
+  expect(updata1).toEqual({id: '1', username: 'user1', age: 19})
+
+  const updata2 = await model.update(user.id, (v) => {
+    v.age = 20
   })
+  expect(updata2).toEqual({id: '1', username: 'user1', age: 20})
+
+  const updata3 = await model.update(user.id, (v) => {
+    return {
+      age: 21,
+    }
+  })
+  expect(updata3).toEqual({id: '1', username: 'user1', age: 21})
 })
