@@ -248,7 +248,6 @@ const createModel = <
   schema: Schema,
   options: KvModelOptions<Input, Output, PrimaryKey>,
 ): KvModel2<Input, Output, PrimaryKey> => {
-  // ): KvModel<Input, O/utput, KvModelOptions<Input, Output, PrimaryKey>> => {
   const model: KvModelContext = {kv, schema, options}
 
   return {
