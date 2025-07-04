@@ -18,8 +18,7 @@
     "./kv",
     "./web",
     "./oauth2",
-    "./openapi",
-    "./authn"
+    "./openapi"
   ],
   "fmt": {
     "lineWidth": 120,
