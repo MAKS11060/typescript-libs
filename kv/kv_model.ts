@@ -106,8 +106,9 @@ interface KvModel<
    * Create `record`
    */
   create(data: InputWithoutPrimaryKey, options?: CreateOptions<InputPrimaryKeyType>): Promise<Output>
+
   /**
-   * Transaction
+   * Create `record` with `transaction`
    */
   create(data: InputWithoutPrimaryKey, options: CreateOptions<InputPrimaryKeyType> & TransactionOption): Output
 
@@ -246,12 +247,12 @@ interface KvModel<
 }
 
 interface KvModelContext {
-  kv: Parameters<typeof createModel>['0']
-  schema: Parameters<typeof createModel>['1']
-  options: Parameters<typeof createModel>['2']
+  kv: Parameters<typeof kvModel>['0']
+  schema: Parameters<typeof kvModel>['1']
+  options: Parameters<typeof kvModel>['2']
 }
 
-export const createModel = <
+export const kvModel = <
   Schema extends StandardSchemaV1<DefaultSchema>,
   Input = StandardSchemaV1.InferInput<Schema>,
   Output = StandardSchemaV1.InferOutput<Schema>,
@@ -680,34 +681,3 @@ export const indexManager = <
     create(key?: keyof TIndex): Promise<void>
   }
 }
-
-Deno.test('Test 518845 indexManager', async (t) => {
-  using kv = await Deno.openKv(':memory:')
-  let id = 1
-
-  const schema = z.object({
-    id: z.string(),
-    username: z.string(),
-    age: z.int().positive(),
-  })
-  const model = createModel(kv, schema, {
-    prefix: 'user',
-    primaryKey: 'id',
-    primaryKeyType: () => `${id++}`,
-    index: {
-      username: {key: (v) => v.username.toLowerCase()},
-      age: {relation: 'many', key: (v) => v.age},
-    },
-  })
-  const index = indexManager(model)
-
-  for (let i = 0; i < 3; i++) {
-    await model.create({username: `user${i}`, age: 18})
-  }
-
-  await index.delete()
-  expect(await model.findByIndex('age', 18)).toEqual([])
-
-  await index.create()
-  expect(await model.findByIndex('age', 18)).toEqual(['1', '2', '3'])
-})

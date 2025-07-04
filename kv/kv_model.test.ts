@@ -1,6 +1,6 @@
 import { expect } from 'jsr:@std/expect/expect'
 import { z } from 'zod/v4'
-import { createModel } from './kv_model.ts'
+import { indexManager, kvModel } from './kv_model.ts'
 
 Deno.test('Test 000000', async (t) => {
   using kv = await Deno.openKv(':memory:')
@@ -8,7 +8,7 @@ Deno.test('Test 000000', async (t) => {
   const schema = z.object({
     id: z.string(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
   })
@@ -25,22 +25,22 @@ Deno.test('Test 090345', async (t) => {
     id_u8: z.instanceof(Uint8Array),
   })
 
-  createModel(kv, userSchema, {
+  kvModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => 1,
   })
-  createModel(kv, userSchema, {
+  kvModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'username',
     primaryKeyType: () => '', // err
   })
-  createModel(kv, userSchema, {
+  kvModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id_str',
     primaryKeyType: () => '',
   })
-  createModel(kv, userSchema, {
+  kvModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id_u8',
     primaryKeyType: () => crypto.getRandomValues(new Uint8Array(16)),
@@ -56,7 +56,7 @@ Deno.test('Test 737423', async (t) => {
     username: z.string(),
     email: z.string().nullish().default(null),
   })
-  const model = createModel(kv, userSchema, {
+  const model = kvModel(kv, userSchema, {
     prefix: '',
     primaryKey: 'id',
     primaryKeyType: () => 1,
@@ -87,7 +87,7 @@ Deno.test('Test 163078', async (t) => {
       return userSchema.array().optional()
     },
   })
-  const userModel = createModel(kv, userSchema, {
+  const userModel = kvModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => id++,
@@ -132,7 +132,7 @@ Deno.test('Test 163071 create', async (t) => {
       return userSchema.array().optional()
     },
   })
-  const userModel = createModel(kv, userSchema, {
+  const userModel = kvModel(kv, userSchema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: 'uuid7',
@@ -174,7 +174,7 @@ Deno.test('Test 448353 create(transaction)', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`,
@@ -206,7 +206,7 @@ Deno.test('Test 235235 find', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`,
@@ -234,7 +234,7 @@ Deno.test('Test 448354 findMany', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`,
@@ -284,7 +284,7 @@ Deno.test('Test 499237 findByIndex', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`,
@@ -325,7 +325,7 @@ Deno.test('Test 453253 update', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`,
@@ -366,7 +366,7 @@ Deno.test('Test 399377 delete', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`,
@@ -401,7 +401,7 @@ Deno.test('Test 737649 deleteByIndex', async (t) => {
     username: z.string(),
     age: z.int().positive(),
   })
-  const model = createModel(kv, schema, {
+  const model = kvModel(kv, schema, {
     prefix: 'user',
     primaryKey: 'id',
     primaryKeyType: () => `${id++}`.padStart(2, '0'),
@@ -446,4 +446,35 @@ Deno.test('Test 737649 deleteByIndex', async (t) => {
     {id: '59', username: 'user58', age: 18},
     {id: '60', username: 'user59', age: 18},
   ])
+})
+
+Deno.test('Test 518845 indexManager', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = kvModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType: () => `${id++}`,
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
+    },
+  })
+  const index = indexManager(model)
+
+  for (let i = 0; i < 3; i++) {
+    await model.create({username: `user${i}`, age: 18})
+  }
+
+  await index.delete()
+  expect(await model.findByIndex('age', 18)).toEqual([])
+
+  await index.create()
+  expect(await model.findByIndex('age', 18)).toEqual(['1', '2', '3'])
 })

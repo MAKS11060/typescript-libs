@@ -10,8 +10,8 @@
   "exports": {
     ".": "./mod.ts",
     "./base": "./kv_base.ts",
-    "./model": "./kv_model.ts",
-    "./helper": "./kv_helper.ts"
+    "./helper": "./kv_helper.ts",
+    "./model": "./kv_model.ts"
   },
   "publish": {
     "exclude": [
