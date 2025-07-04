@@ -1,5 +1,5 @@
-import { getKvPage, KvPageOptions } from '@maks11060/kv/helper'
-import { StandardSchemaV1 } from '@standard-schema/spec'
+import { getKvPage, type KvPageOptions } from '@maks11060/kv/helper'
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { chunk } from '@std/collections/chunk'
 import { ulid } from '@std/ulid/ulid'
 import { generate as randomUUID7 } from '@std/uuid/unstable-v7'
@@ -414,7 +414,7 @@ const _indexDelete = (
   }
 }
 
-const _create = (model: KvModelContext, data: {}, options?: CreateOptions) => {
+const _create = (model: KvModelContext, data: DefaultSchema, options?: CreateOptions) => {
   const key = options?.key ?? _generateKey(model.options.primaryKeyType)
   const op = options?.op ?? model.kv.atomic()
 
@@ -561,7 +561,11 @@ const _updata = async (
   return options?.transaction ? newValue : _commit(model, op, newValue, 'update')
 }
 
-const _delete = async (model: KvModelContext, key: Deno.KvKeyPart, options?: DeleteOptions) => {
+const _delete = async (
+  model: KvModelContext,
+  key: Deno.KvKeyPart,
+  options?: DeleteOptions,
+) => {
   const value = await _find(model, key) as Record<PropertyKey, unknown>
   if (!value) return null
 
@@ -603,6 +607,99 @@ const _deleteByIndex = async (
     return _delete(model, primaryKey as Deno.KvKeyPart, options)
   }
 }
+
+// Utils
+export const indexManager = <
+  Schema extends StandardSchemaV1<DefaultSchema>,
+  Input = StandardSchemaV1.InferInput<Schema>,
+  Output = StandardSchemaV1.InferOutput<Schema>,
+  // local
+  const RequiredInput = OmitOptionalFields<Input>,
+  const PrimaryKey extends PropertyKey = keyof RequiredInput,
+  TIndex extends {[k: string]: Index<Output>} = {[k: string]: Index<Output>},
+>(_model: KvModel<Schema, PrimaryKey, TIndex>) => {
+  const model = _model[Internal]
+
+  return {
+    /**
+     * Delete `index`
+     */
+    async delete(key) {
+      const options = model.options
+      for (const indexKey in options.index) {
+        if (key && key !== indexKey) continue
+        const iter = model.kv.list({prefix: [`${options.prefix}-${indexKey}`]})
+        for await (const item of iter) {
+          await model.kv.delete(item.key)
+        }
+      }
+    },
+
+    /**
+     * Create `index`
+     */
+    async create(key) {
+      const iter = model.kv.list({prefix: [model.options.prefix]})
+      for await (const {value} of iter) {
+        const op = /* options?.op ?? */ model.kv.atomic()
+        const primaryKey = (value as any)[model.options.primaryKey] as Deno.KvKeyPart
+
+        // index
+        for (const indexKey in model.options.index) {
+          if (key && key !== indexKey) continue
+
+          const index = model.options.index[indexKey]
+          const secondaryKey = index.key(value)
+
+          const secondaryKeys = Array.isArray(secondaryKey) ? secondaryKey : [secondaryKey]
+          for (const secondaryKey of secondaryKeys) {
+            if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+            _indexCreate(model, op, index, indexKey, primaryKey, secondaryKey)
+          }
+        }
+
+        await _commit(model, op, null, 'index-create')
+      }
+    },
+  } as {
+    delete(key?: string): Promise<void>
+    delete(key?: keyof TIndex): Promise<void>
+
+    create(key?: string): Promise<void>
+    create(key?: keyof TIndex): Promise<void>
+  }
+}
+
+Deno.test('Test 518845 indexManager', async (t) => {
+  using kv = await Deno.openKv(':memory:')
+  let id = 1
+
+  const schema = z.object({
+    id: z.string(),
+    username: z.string(),
+    age: z.int().positive(),
+  })
+  const model = createModel(kv, schema, {
+    prefix: 'user',
+    primaryKey: 'id',
+    primaryKeyType: () => `${id++}`,
+    index: {
+      username: {key: (v) => v.username.toLowerCase()},
+      age: {relation: 'many', key: (v) => v.age},
+    },
+  })
+  const index = indexManager(model)
+
+  for (let i = 0; i < 3; i++) {
+    await model.create({username: `user${i}`, age: 18})
+  }
+
+  await index.delete()
+  expect(await model.findByIndex('age', 18)).toEqual([])
+
+  await index.create()
+  expect(await model.findByIndex('age', 18)).toEqual(['1', '2', '3'])
+})
 
 Deno.test('Test 000000', async (t) => {
   using kv = await Deno.openKv(':memory:')
