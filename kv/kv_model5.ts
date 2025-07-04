@@ -1,4 +1,14 @@
-import { getKvPage, type KvPageOptions } from '@maks11060/kv/helper'
+/**
+ * The {@linkcode kvModel model} creates an abstract layer for storing typed objects inside {@linkcode Deno.Kv}
+ *
+ * - CRUD operations are strongly typed
+ * - To create a {@linkcode kvModel}, you can select any library that supports the
+ *  {@link https://github.com/standard-schema/standard-schema#what-schema-libraries-implement-the-spec Standard schema}
+ * - Index support for object search
+ *
+ * @module kvModel
+ */
+
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { chunk } from '@std/collections/chunk'
 import { ulid } from '@std/ulid/ulid'
@@ -7,6 +17,7 @@ import { equal } from 'jsr:@std/assert/equal'
 import { expect } from 'jsr:@std/expect/expect'
 import { z } from 'zod/v4'
 import { standardValidate } from './_standardValidate.ts'
+import { getKvPage, type KvPageOptions } from './kv_helper.ts'
 
 export const Internal = Symbol('Internal')
 
