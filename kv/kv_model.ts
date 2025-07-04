@@ -101,12 +101,23 @@ interface KvModel<
   commit(op: Deno.AtomicOperation): Promise<void>
 
   /**
-   * Create `record`
+   * Create one `record`
+   * @example
+   * ```ts
+   * const user = userModel.create({username: 'user1', age: 18})
+   * ```
    */
   create(data: InputWithoutPrimaryKey, options?: CreateOptions<InputPrimaryKeyType>): Promise<Output>
 
   /**
-   * Create `record` with `transaction`
+   * Create one `record` with `transaction`
+   * @example
+   * ```ts
+   * const op = userModel.atomic()
+   *
+   * const user1 = userModel.create({username: 'user1', age: 18}, {op, transaction: true})
+   * const user2 = userModel.create({username: 'user2', age: 18}, {op})
+   * ```
    */
   create(data: InputWithoutPrimaryKey, options: CreateOptions<InputPrimaryKeyType> & TransactionOption): Output
 
@@ -233,10 +244,35 @@ interface KvModel<
     options?: UpdateOptions,
   ): Promise<Output>
 
-  delete(key: InputPrimaryKeyType, options: TransactionOption): void
-
+  /**
+   * Delete one `record`
+   * @example
+   * ```ts
+   * await model.delete('1')
+   * ```
+   */
   delete(key: InputPrimaryKeyType, options?: DeleteOptions): Promise<boolean>
 
+  /**
+   * Delete one `record` with `transaction`
+   * @example
+   * ```ts
+   * await userModel.delete('1')
+   *
+   * const op = model.atomic()
+   * await userModel.delete('2', {op, transaction: true})
+   * await userModel.delete('3', {op})
+   * ```
+   */
+  delete(key: InputPrimaryKeyType, options: TransactionOption): void
+
+  /**
+   * Delete by `index`
+   * @example
+   * ```ts
+   * await userModel.deleteByIndex('username', 'user1')
+   * ```
+   */
   deleteByIndex<Key extends IndexKeyof<Index>>(
     key: Key,
     val: IndexReturnType<Index, Key>,
@@ -618,7 +654,39 @@ const _deleteByIndex = async (
   }
 }
 
-// Utils
+/**
+ * Utils for create or delete `index`
+ *
+ * @example
+ * ```ts
+ * using kv = await Deno.openKv(':memory:')
+ *
+ * const schema = z.object({
+ *   id: z.string(),
+ *   username: z.string(),
+ *   age: z.int().positive(),
+ * })
+ * const model = kvModel(kv, schema, {
+ *   prefix: 'user',
+ *   primaryKey: 'id',
+ *   index: {
+ *     username: {key: (v) => v.username.toLowerCase()},
+ *     age: {relation: 'many', key: (v) => v.age},
+ *   },
+ * })
+ * const index = indexManager(model)
+ *
+ * for (let i = 0; i < 3; i++) {
+ *   await model.create({username: `user${i}`, age: 18})
+ * }
+ *
+ * await index.delete()
+ * await model.findByIndex('age', 18) // []
+ *
+ * await index.create()
+ * await model.findByIndex('age', 18)) // ['1', '2', '3']
+ * ```
+ */
 export const indexManager = <
   Schema extends StandardSchemaV1<DefaultSchema>,
   Input = StandardSchemaV1.InferInput<Schema>,
