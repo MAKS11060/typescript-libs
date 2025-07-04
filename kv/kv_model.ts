@@ -654,6 +654,15 @@ const _deleteByIndex = async (
   }
 }
 
+interface IndexManager<
+  TIndex extends {[k: string]: Index<unknown>},
+> {
+  delete(key?: string): Promise<void>
+  delete(key?: keyof TIndex): Promise<void>
+  create(key?: string): Promise<void>
+  create(key?: keyof TIndex): Promise<void>
+}
+
 /**
  * Utils for create or delete `index`
  *
@@ -695,7 +704,7 @@ export const indexManager = <
   const RequiredInput = OmitOptionalFields<Input>,
   const PrimaryKey extends PropertyKey = keyof RequiredInput,
   TIndex extends {[k: string]: Index<Output>} = {[k: string]: Index<Output>},
->(_model: KvModel<Schema, PrimaryKey, TIndex>) => {
+>(_model: KvModel<Schema, PrimaryKey, TIndex>): IndexManager<TIndex> => {
   const model = _model[Internal]
 
   return {
@@ -739,11 +748,5 @@ export const indexManager = <
         await _commit(model, op, null, 'index-create')
       }
     },
-  } as {
-    delete(key?: string): Promise<void>
-    delete(key?: keyof TIndex): Promise<void>
-
-    create(key?: string): Promise<void>
-    create(key?: keyof TIndex): Promise<void>
   }
 }
