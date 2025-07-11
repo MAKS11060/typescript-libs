@@ -49,37 +49,45 @@ export type ClientDataJSON = {
 
 /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data */
 export type AuthenticatorData = {
-  /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#rpidhash */
+  /**
+   * SHA-256 hash of the `RP ID`
+   *
+   * [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#rpidhash)
+   */
   rpIdHash: Uint8Array<ArrayBuffer>
   /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags */
   flags: {
-    /** User Present */
-    up: boolean
-    /** User Verified */
-    uv: boolean
-    /** Backup Eligibility */
-    be: boolean
-    /** Backup State */
-    bs: boolean
-    /** Attested credential data present */
-    at: boolean
-    /** Extension data present */
-    ed: boolean
+    /** `UP` User Present */
+    userPresent: boolean
+    /** `UV` User Verified */
+    userVerified: boolean
+    /** `BE` Backup Eligibility */
+    backupEligibility: boolean
+    /** `BS` Backup State */
+    backupState: boolean
+    /** `AT` Attested credential Data */
+    attestedCredentialData: boolean
+    /** `ED` Extension data */
+    extensionData: boolean
   }
   /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#signcount */
-  counter: number
+  signCount: number
   /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata */
-  attestedCredentialData: null | {
+  attestedCredentialData?: {
     /** The Authenticator Attestation Globally Unique Identifier */
-    AAGUID: Uint8Array<ArrayBuffer>
+    aaguid: Uint8Array<ArrayBuffer>
     credentialIdLength: number
-    /**  A unique identifier for this credential so that it can be requested for future authentications */
+    /** A unique identifier for this credential so that it can be requested for future authentications */
     credentialId: Uint8Array<ArrayBuffer>
     /** A `COSE`-encoded public key */
     credentialPublicKey: Uint8Array<ArrayBuffer>
   }
-  // if flags.ed === true
-  // get extensions() {} // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#extensions
+  /**
+   * An optional `CBOR` map containing the response outputs from extensions processed by the authenticator
+   *
+   * [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#extensions)
+   */
+  extensions?: Uint8Array<ArrayBuffer>
 }
 
 /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject */

@@ -104,10 +104,17 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
       106, 191, 133, 190, 174,  35, 190,
       235, 239, 172,  58
     ]),
-    flags: {up: true, uv: true, be: true, bs: true, at: true, ed: false},
-    counter: 0,
+    flags: {
+      userPresent: true,
+      userVerified: true,
+      backupEligibility: true,
+      backupState: true,
+      attestedCredentialData: true,
+      extensionData: false,
+    },
+    signCount: 0,
     attestedCredentialData: {
-      AAGUID: new Uint8Array([
+      aaguid: new Uint8Array([
         234,
         155,
         141,
@@ -224,6 +231,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
         54,
       ]),
     },
+    extensions: undefined,
   })
 
   expect(cred.attestation).toEqual({
@@ -238,10 +246,17 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
         106, 191, 133, 190, 174,  35, 190,
         235, 239, 172,  58
       ]),
-      flags: {up: true, uv: true, be: true, bs: true, at: true, ed: false},
-      counter: 0,
+      flags: {
+        userPresent: true,
+        userVerified: true,
+        backupEligibility: true,
+        backupState: true,
+        attestedCredentialData: true,
+        extensionData: false,
+      },
+      signCount: 0,
       attestedCredentialData: {
-        AAGUID: new Uint8Array([234, 155, 141, 102, 77, 1, 29, 33, 60, 228, 182, 180, 140, 181, 117, 212]),
+        aaguid: new Uint8Array([234, 155, 141, 102, 77, 1, 29, 33, 60, 228, 182, 180, 140, 181, 117, 212]),
         credentialIdLength: 16,
         credentialId: new Uint8Array([247, 125, 80, 27, 13, 105, 160, 239, 207, 175, 230, 129, 188, 120, 97, 203]),
         // deno-fmt-ignore
@@ -258,7 +273,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     },
   })
 
-  console.log(structuredClone(cred))
+  // console.log(structuredClone(cred))
 })
 
 Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
@@ -309,14 +324,22 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
       106, 191, 133, 190, 174,  35, 190,
       235, 239, 172,  58
     ]),
-    flags: {up: true, uv: true, be: false, bs: false, at: false, ed: false},
-    counter: 2,
-    attestedCredentialData: null,
+    flags: {
+      userPresent: true,
+      userVerified: true,
+      backupEligibility: false,
+      backupState: false,
+      attestedCredentialData: false,
+      extensionData: false,
+    },
+    signCount: 2,
+    attestedCredentialData: undefined,
+    extensions: undefined,
   })
 
   expect(await verifySignature(cred, publicKey)).toBeTruthy()
 
-  console.log(structuredClone(cred))
+  // console.log(structuredClone(cred))
 })
 
 Deno.test('verify assertion signature', async (t) => {

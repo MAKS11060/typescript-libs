@@ -14,7 +14,7 @@
 import { decodeHex } from '@std/encoding/hex'
 import type { AuthnPublicKeyCredentialAttestation } from './types.ts'
 
-import aaguidList from './aaguid.json' with {type: 'json'}
+import aaguidList from './aaguid.json' with { type: 'json' }
 
 export interface AAGUID {
   name: string
@@ -46,7 +46,7 @@ export const formatAAGUID = (bytes: Uint8Array): string => {
  * ```
  */
 export const getAAGUID = (cred: AuthnPublicKeyCredentialAttestation): string => {
-  return formatAAGUID(cred.attestation.authData.attestedCredentialData?.AAGUID!)
+  return formatAAGUID(cred.attestation.authData.attestedCredentialData?.aaguid!)
 }
 
 /**
