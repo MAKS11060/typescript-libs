@@ -1,5 +1,5 @@
 {
-  "name": "@maks11060/authn",
+  "name": "@maks11060/webauthn",
   "version": "0.0.0",
   "tasks": {
     "test": "deno test",
@@ -13,7 +13,7 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10"
   },
   "exports": {
-    ".": "./authn.ts",
+    ".": "./mod.ts",
     "./aaguid": "./aaguid.ts"
   },
   "compilerOptions": {

@@ -1,5 +1,12 @@
 /**
+ * Lib for work with passkey provider AAGUID.
+ *
+ * List of known passkey providers from
  * https://github.com/passkeydeveloper/passkey-authenticator-aaguids/blob/main/aaguid.json
+ *
+ * - `formatAAGUID()` - convert raw aaguid to `uuid` format
+ * - `getAAGUID(cred)` - extract aaguid in `uuid` format from `publicKeyCredentialFromJSON()`
+ * - `getKnownAAGUID(cred)` - get known provider name and svg icon
  *
  * @module aaguid
  */

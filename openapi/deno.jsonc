@@ -9,7 +9,7 @@
   "imports": {
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
-    "zod": "npm:zod@^3.25.64"
+    "zod": "npm:zod@^4.0.5"
   },
   "exports": {
     ".": "./mod.ts",
