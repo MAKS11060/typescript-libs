@@ -7,9 +7,9 @@
  * Based on types from `lib.dom`
  * ```json
  * "compilerOptions": {
- *  "lib": [
- *    "dom"
- *  ]
+ *   "lib": [
+ *     "dom"
+ *   ]
  * }
  * ```
  *
@@ -67,8 +67,11 @@
  *   verifyRpIdHash,
  *   verifySignature,
  * } from '@maks11060/webauthn'
+ *
  * const cred = publicKeyCredentialFromJSON(data) // Parse PublicKeyCredential from JSON format
  * console.log(cred)
+ *
+ * if (!await verifyRpIdHash(cred, 'example.com')) throw new Error('invalid RpId')
  *
  * // https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Attestation_and_Assertion
  * // register passkey
@@ -76,14 +79,29 @@
  *   console.log(cred.authData)
  *   console.log(cred.authData.attestedCredentialData)
  *   const publicKey = await getPublicKey(cred)
+ *
+ *   // save passkey data
+ *   registerPasskey({
+ *     passkeyUserId: 'passkeyUserId',
+ *     publicKey: cred.publicKey,
+ *     publicKeyAlg: cred.publicKeyAlgorithm,
+ *     backedUp: cred.attestation.authData.flags.bs,
+ *     aaguid: cred.attestation.authData.attestedCredentialData?.AAGUID,
+ *     transports: cred.transports,
+ *   })
+ *
+ *   return // success / create session or add passkey to account
  * }
  *
  * // login with passkey
  * if (isAssertion(cred)) {
- *   console.log(cred)
- *   console.log(cred.authData)
  *   console.log(cred.assertion)
- *   console.log(cred.assertion.userHandle)
+ *
+ *   const passkey = findPasskeyById(cred.rawId)
+ *   const publicKey = await getPublicKey({publicKey: passkey.publicKey, publicKeyAlgorithm: passkey.publicKeyAlg})
+ *   if (!await verifySignature(cred, publicKey))  throw new Error('invalid signature')
+ *
+ *   return // success / create session
  * }
  * ```
  *
