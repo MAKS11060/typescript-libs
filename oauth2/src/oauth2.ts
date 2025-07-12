@@ -142,5 +142,5 @@ export interface OAuth2ExchangeCodeOptions {
  * ```
  */
 export type CreateOAuth2Config<T extends Record<string, unknown> = {redirectUri: string | URL}> = (
-  config: T
+  config: T,
 ) => OAuth2ClientConfig

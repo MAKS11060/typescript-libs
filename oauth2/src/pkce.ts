@@ -11,7 +11,7 @@
  * @module PKCE
  */
 
-import {encodeBase64Url} from '@std/encoding/base64url'
+import { encodeBase64Url } from '@std/encoding/base64url'
 
 /**
  * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.
@@ -54,7 +54,7 @@ const sha256 = (data: string) => crypto.subtle.digest('SHA-256', encoder.encode(
  * ```
  */
 export const createPkceChallenge = async (
-  method: PkceChallenge['codeChallengeMethod'] = 'S256'
+  method: PkceChallenge['codeChallengeMethod'] = 'S256',
 ): Promise<PkceChallenge> => {
   const codeVerifier = encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
   const codeChallenge = method === 'S256' ? encodeBase64Url(await sha256(codeVerifier)) : codeVerifier
@@ -84,7 +84,7 @@ export const createPkceChallenge = async (
  */
 export const usePKCE = async (
   uri: URL,
-  method?: PkceChallenge['codeChallengeMethod']
+  method?: PkceChallenge['codeChallengeMethod'],
 ): Promise<{uri: URL; codeVerifier: string}> => {
   const {codeChallenge, codeChallengeMethod, codeVerifier} = await createPkceChallenge(method)
   uri.searchParams.set('code_challenge', codeChallenge)
