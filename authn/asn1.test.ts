@@ -1,5 +1,4 @@
 import { decodeBase64Url } from '@std/encoding/base64url'
-import { encodeHex } from '@std/encoding/hex'
 import { expect } from 'jsr:@std/expect/expect'
 import { asn1Parse } from './asn1.ts'
 
@@ -9,7 +8,7 @@ Deno.test('ASN.1 parse ECDSA', async (t) => {
   )
 
   // console.log(asn1Parse(signature))
-  console.log(encodeHex(signature))
+  // console.log(encodeHex(signature))
 
   // deno-fmt-ignore
   expect(asn1Parse(signature)).toEqual(new Uint8Array([
