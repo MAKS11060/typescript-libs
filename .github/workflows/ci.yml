@@ -26,9 +26,9 @@ jobs:
       - name: Test
         run: >
           deno test --parallel
-            authn/
-            kv/
-            openapi/
+          authn/
+          kv/
+          openapi/
 
   publish-dry-run:
     runs-on: ubuntu-latest
