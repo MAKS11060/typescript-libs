@@ -14,7 +14,7 @@
 import { decodeHex } from '@std/encoding/hex'
 import type { AuthnPublicKeyCredentialAttestation } from './types.ts'
 
-import aaguidList from './aaguid.json' with { type: 'json' }
+import aaguidList from './aaguid.json' with {type: 'json'}
 
 export interface AAGUID {
   name: string
