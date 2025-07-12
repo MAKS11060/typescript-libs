@@ -63,4 +63,3 @@ export const normalizeOAuth2Token = (token: OAuth2TokenResponse): OAuth2Token =>
  * Checks if a given token object is normalized and conforms to the {@linkcode OAuth2Token} structure.
  */
 export const isNormalized = (token: OAuth2TokenResponse | OAuth2Token): token is OAuth2Token => 'accessToken' in token
-
