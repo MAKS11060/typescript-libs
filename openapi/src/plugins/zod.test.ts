@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno test -A --watch
 
 import { expect } from 'jsr:@std/expect/expect'
-import z from 'zod/v4'
+import z from 'zod'
 import '../../../debug/yaml.ts'
 import { zodPlugin } from './zod.ts'
 
@@ -34,9 +34,9 @@ Deno.test('zodPlugin()', async (t) => {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         additionalProperties: false,
         properties: {
-          friend: {$ref: '#/components/schemas/User'},
           id: {$ref: '#/components/schemas/ID'},
           username: {type: 'string'},
+          friend: {$ref: '#/components/schemas/User'},
         },
         required: ['id', 'username', 'friend'],
         type: 'object',

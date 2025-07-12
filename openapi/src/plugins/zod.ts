@@ -10,18 +10,38 @@ export const zodPlugin = (): SchemaPlugin<z.ZodType> => {
     addSchema(schema) {
       return {
         resolve() {
-          // return z.toJSONSchema(schema, {
-          //   metadata: registry,
-          // })
+          const jsonSchema = z.toJSONSchema(schema, {
+            metadata: registry,
+            override(ctx) {
+              // console.log(ctx.zodSchema.def)
 
-          // https://github.com/colinhacks/zod/commit/72623011510be94e37fdc669e1bdecc983987edb
-          return z.toJSONSchema(schema, {
-            external: {
-              registry,
-              defs: {},
-              uri: (id: string) => `#/components/schemas/${id}`,
+              for (const key in ctx.jsonSchema.properties) {
+                const prop = ctx.jsonSchema.properties[key] as {$ref?: string}
+
+                if (prop.$ref) {
+                  if (prop.$ref.startsWith('#/$defs/')) { // use register store
+                    const id = prop.$ref.slice('#/$defs/'.length)
+                    prop.$ref = `#/components/schemas/${id}`
+                  }
+
+                  if (prop.$ref === '#' && registry.get(schema)?.id) { // self
+                    prop.$ref = `#/components/schemas/${registry.get(schema)?.id}`
+                  }
+                }
+              }
             },
-          } as any)
+          })
+
+          // post processing
+          // use global $defs
+          const defs = jsonSchema['$defs']
+          for (const key in defs) {
+            if (registry._idmap.has(key)) delete defs[key]
+          }
+          if (!Object.keys(defs ?? {}).length) delete jsonSchema['$defs']
+
+          delete jsonSchema.id
+          return jsonSchema
         },
       }
     },
@@ -29,9 +49,15 @@ export const zodPlugin = (): SchemaPlugin<z.ZodType> => {
       registry.add(schema, {id: name})
     },
     getSchemas() {
-      return z.toJSONSchema(registry, {
+      const jsonSchemas = z.toJSONSchema(registry, {
         uri: (id) => `#/components/schemas/${id}`,
       })
+
+      for (const key in jsonSchemas.schemas) {
+        delete jsonSchemas.schemas[key].$id
+      }
+
+      return jsonSchemas
     },
   }
 }
