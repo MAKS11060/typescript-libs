@@ -1,6 +1,7 @@
 # Deno-libs
 
 [![JSR Score](https://jsr.io/badges/@maks11060)](https://jsr.io/@maks11060)
+[![CI](https://github.com/MAKS11060/typescript-libs/actions/workflows/ci.yml/badge.svg)](https://github.com/MAKS11060/typescript-libs/actions/workflows/ci.yml)
 
 | Package                                    |                           Link                           |
 | ------------------------------------------ | :------------------------------------------------------: |
