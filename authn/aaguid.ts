@@ -1,5 +1,12 @@
 /**
+ * Lib for work with passkey provider AAGUID.
+ *
+ * List of known passkey providers from
  * https://github.com/passkeydeveloper/passkey-authenticator-aaguids/blob/main/aaguid.json
+ *
+ * - `formatAAGUID()` - convert raw aaguid to `uuid` format
+ * - `getAAGUID(cred)` - extract aaguid in `uuid` format from `publicKeyCredentialFromJSON()`
+ * - `getKnownAAGUID(cred)` - get known provider name and svg icon
  *
  * @module aaguid
  */
@@ -7,7 +14,7 @@
 import { decodeHex } from '@std/encoding/hex'
 import type { AuthnPublicKeyCredentialAttestation } from './types.ts'
 
-import aaguidList from './aaguid.json' with {type: 'json'}
+import aaguidList from './aaguid.json' with { type: 'json' }
 
 export interface AAGUID {
   name: string
@@ -39,7 +46,7 @@ export const formatAAGUID = (bytes: Uint8Array): string => {
  * ```
  */
 export const getAAGUID = (cred: AuthnPublicKeyCredentialAttestation): string => {
-  return formatAAGUID(cred.attestation.authData.attestedCredentialData?.AAGUID!)
+  return formatAAGUID(cred.attestation.authData.attestedCredentialData?.aaguid!)
 }
 
 /**

@@ -11,8 +11,8 @@
     "@std/collections": "jsr:@std/collections@^1.0.9",
     "@std/ulid": "jsr:@std/ulid@^1.0.0",
     "@std/yaml": "jsr:@std/yaml@^1.0.7",
-    "hono": "npm:hono@4.7.11",
-    "zod": "npm:zod@3.25.64"
+    "hono": "npm:hono@4.8.4",
+    "zod": "npm:zod@^4.0.5"
   },
   "workspace": [
     "./kv",
@@ -23,7 +23,7 @@
   ],
   "fmt": {
     "lineWidth": 120,
-    "newLineKind": "system",
+    "newLineKind": "crlf",
     "quoteProps": "asNeeded",
     "semiColons": false,
     "singleQuote": true,

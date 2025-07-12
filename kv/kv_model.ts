@@ -12,75 +12,50 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { chunk } from '@std/collections/chunk'
 import { ulid } from '@std/ulid/ulid'
+import { generate as randomUUID7 } from '@std/uuid/unstable-v7'
+import { equal } from '@std/assert/equal'
 import { standardValidate } from './_standardValidate.ts'
 import { getKvPage, type KvPageOptions } from './kv_helper.ts'
 
-type Array2Union<T> = T extends Array<infer O> ? O : T
+export const Internal = Symbol('Internal')
 
-type GetPrimitiveKey<TObject> = {
+type OmitOptionalFields<TObject> = {
   [
-    K in keyof TObject as TObject[K] extends Deno.KvKeyPart ? undefined extends TObject[K] ? never
+    K in keyof TObject as //
+    TObject[K] extends Deno.KvKeyPart //
+      ? TObject[K] extends undefined ? never
       : K
       : never
   ]: TObject[K]
 }
 
-type PrimaryKeyType = 'ulid' | 'uuid4' | (() => string)
+// type DefaultSchema = {}
+type DefaultSchema = Record<PropertyKey, unknown>
 
-export type ModelOptions<
-  Schema extends StandardSchemaV1,
-  IndexKey extends string,
-  Output = StandardSchemaV1.InferOutput<Schema>,
-> = {
-  /** A unique name for the `model` */
-  prefix: string
-  /**
-   * Available types for `primaryKey`:
-   * 1. {@linkcode Uint8Array}
-   * 2. {@linkcode String}
-   * 3. {@linkcode Number}
-   * 4. {@linkcode BigInt}
-   * 5. {@linkcode Boolean}
-   */
-  primaryKey: keyof GetPrimitiveKey<Output>
-  /** @default 'ulid' */
-  primaryKeyType?: PrimaryKeyType
-  /**
-   * Mapping data to create an `index`
-   *
-   * @example
-   * ```ts
-   * {
-   *   username: {
-   *     key: (user) => user.username.toLowerCase()
-   *   }
-   * }
-   * ```
-   */
-  index: IndexOptions<IndexKey, Output>
+// Index
+type ExtractArray<T> = T extends Array<infer O> ? O : T
+interface Index<T = unknown> {
+  relation?: 'one' | 'many'
+  /** */
+  key(v: T): Deno.KvKeyPart | null | undefined | void | (Deno.KvKeyPart | null | undefined | void)[]
+}
+type IndexKeyof<T> = T extends { [K in infer O]: Index } ? O : never
+type IndexRelation<T, K extends PropertyKey> = T extends { [k in K]: {relation: infer O} } ? O
+  : unknown
+type IndexReturnType<T, K extends PropertyKey> = T extends {
+  [k in K]: {key(...args: unknown[]): infer O}
+} ? ExtractArray<O> | null | undefined | void // allow empty value
+  : unknown
+
+// KvModel Methods
+type TransactionOption = {
+  /** override `AtomicOperation` for one transaction */
+  op: Deno.AtomicOperation
+  /** Prevents saves. To combine into one transaction */
+  transaction: true
 }
 
-type IndexOptions<IndexKey extends string, Output> = {
-  [K in IndexKey]: {
-    /** @default one */
-    relation?: 'one' | 'many'
-    key: (value: Output) => Deno.KvKeyPart | Deno.KvKeyPart[]
-  }
-}
-
-type IndexOptionsResult<Index extends IndexOptions<any, any>> = {
-  [K in keyof Index]: {
-    type: Index[K]['relation'] extends 'many' ? 'many' : 'one'
-    key: ReturnType<Index[K]['key']>
-  }
-}
-
-type ChoiceOption<T extends 'one' | 'many', One, Many> = T extends 'one' //
-  ? One
-  : T extends 'many' ? Many
-  : never
-
-type CreateOptions<Key> = {
+type CreateOptions<Key = unknown> = {
   /** Set `Primary` key */
   key?: Key
   /** expireIn in `milliseconds` */
@@ -96,487 +71,682 @@ type CreateOptions<Key> = {
   transaction?: boolean
 }
 
-type TransactionOption = {
-  /** override `AtomicOperation` for one transaction */
-  op: Deno.AtomicOperation
-  /** Prevents saves. To combine into one transaction */
-  transaction: true
+type UpdateOptions = Omit<CreateOptions, 'key'>
+
+type DeleteOptions = Pick<CreateOptions, 'op' | 'transaction'>
+
+type DeleteByIndexOptions = Pick<CreateOptions, 'op' | 'transaction'>
+
+interface KvModel<
+  Schema extends StandardSchemaV1<DefaultSchema>,
+  PrimaryKey,
+  Index,
+  // local
+  Input = StandardSchemaV1.InferInput<Schema>,
+  Output = StandardSchemaV1.InferOutput<Schema>,
+  InputWithoutPrimaryKey = Omit<Input, PrimaryKey extends keyof Input ? PrimaryKey : never>,
+  InputPrimaryKeyType = Input[PrimaryKey extends keyof Input ? PrimaryKey : never],
+  OutputPrimaryKeyType = Output[PrimaryKey extends keyof Output ? PrimaryKey : never],
+> {
+  [Internal]: KvModelContext
+
+  /**
+   * Start `transaction`
+   */
+  atomic(): Deno.AtomicOperation
+
+  /**
+   * Commit the `transaction`
+   */
+  commit(op: Deno.AtomicOperation): Promise<void>
+
+  /**
+   * Create one `record`
+   * @example
+   * ```ts
+   * const user = userModel.create({username: 'user1', age: 18})
+   * ```
+   */
+  create(data: InputWithoutPrimaryKey, options?: CreateOptions<InputPrimaryKeyType>): Promise<Output>
+
+  /**
+   * Create one `record` with `transaction`
+   * @example
+   * ```ts
+   * const op = userModel.atomic()
+   *
+   * const user1 = userModel.create({username: 'user1', age: 18}, {op, transaction: true})
+   * const user2 = userModel.create({username: 'user2', age: 18}, {op})
+   * ```
+   */
+  create(data: InputWithoutPrimaryKey, options: CreateOptions<InputPrimaryKeyType> & TransactionOption): Output
+
+  /**
+   * Find object by `PrimaryKey`
+   * @example
+   * ```ts
+   * const user = await userModel.find('1')
+   * // {id: '1', username: 'user1'}
+   * ```
+   */
+  find(key: OutputPrimaryKeyType): Promise<Output | null>
+
+  /**
+   * Find many objects by `PrimaryKey`
+   * @example
+   * ```ts
+   * const users = await userModel.findMany() // get first `50` records
+   * users // [ {id: '1', username: 'user1'}, {id: '2', username: 'user2'} ]
+   * ```
+   *
+   * Pagination
+   * @example
+   * ```ts
+   * await model.create({username: 'user1', age: 18})
+   * await model.create({username: 'user2', age: 18})
+   * await model.create({username: 'user3', age: 17})
+   * await model.create({username: 'user4', age: 19})
+   * await model.create({username: 'user5', age: 10})
+   *
+   * const userList1 = await userModel.findMany({limit: 2})
+   * userList1 // [ {id: '1', username: 'user1', age: 18}, {id: '2', username: 'user2', age: 18} ]
+   *
+   * const lastId = userList1.at(-1)?.id! // '2'
+   * const userList2 = await userModel.findMany({limit: 2, offset: lastId})
+   * userList2 // [ {id: '3', username: 'user3', age: 17}, {id: '4', username: 'user4', age: 19} ]
+   * ```
+   */
+  findMany(options?: KvPageOptions<OutputPrimaryKeyType>): Promise<Output[]>
+
+  /**
+   * Find the `primary keys` by the `index`
+   *
+   * Relation `one`
+   * @example
+   * ```ts
+   * const userId = await userModel.findByIndex('username', 'user1')
+   * userId // '1'
+   * ```
+   *
+   * Relation `many`
+   * @example
+   * ```ts
+   * const userIds = await userModel.findByIndex('age', 18)
+   * userIds // [ '1', '2' ]
+   * ```
+   */
+  findByIndex<Key extends IndexKeyof<Index>>(
+    key: Key,
+    val: IndexReturnType<Index, Key>,
+    options?: {resolve?: false} & KvPageOptions<OutputPrimaryKeyType>,
+  ): IndexRelation<Index, Key> extends 'many' //
+    ? Promise<OutputPrimaryKeyType[]>
+    : Promise<OutputPrimaryKeyType | null>
+
+  /**
+   * Find by `index` and `resolve` object
+   *
+   * Relation `one`
+   * @example
+   * ```ts
+   * const user = await userModel.findByIndex('username', 'user1', {resolve: true})
+   * user // {id: '1', username: 'user1', age: 18}
+   * ```
+   *
+   * Relation `many`
+   * @example
+   * ```ts
+   * const users = await userModel.findByIndex('role', 'user', {resolve: true})
+   * users // [ {id: '1', username: 'user1', age: 18}, {id: '2', username: 'user2', age: 18} ]
+   * ```
+   */
+  findByIndex<Key extends IndexKeyof<Index>>(
+    key: Key,
+    val: IndexReturnType<Index, Key>,
+    options: {resolve: true} & KvPageOptions<OutputPrimaryKeyType>,
+  ): IndexRelation<Index, Key> extends 'many' //
+    ? Promise<Output[]>
+    : Promise<Output | null>
+
+  /**
+   * Merge the current object with the new object
+   * @example
+   * ```ts
+   * const user = await userModel.create({username: 'user1', age: 18})
+   * user // {id: '1', username: 'user1', age: 18}
+   *
+   * const update = await userModel.update(user.id, {age: 19})
+   * updata // {id: '1', username: 'user1', age: 19}
+   * ```
+   */
+  update(
+    key: InputPrimaryKeyType,
+    input: Partial<InputWithoutPrimaryKey>,
+    options?: UpdateOptions,
+  ): Promise<Output>
+
+  /**
+   * Update current object using callback
+   * @example
+   * ```ts
+   * const user = await userModel.create({username: 'user1', age: 18})
+   * user // {id: '1', username: 'user1', age: 18}
+   *
+   * const update = await userModel.update(user.id, (v) => {
+   *   v.age = 20
+   * })
+   * update // {id: '1', username: 'user1', age: 20}
+   * ```
+   */
+  update(
+    key: InputPrimaryKeyType,
+    handler: (val: Output) => Promise<Partial<InputWithoutPrimaryKey> | void> | Partial<InputWithoutPrimaryKey> | void,
+    options?: UpdateOptions,
+  ): Promise<Output>
+
+  /**
+   * Delete one `record`
+   * @example
+   * ```ts
+   * await model.delete('1')
+   * ```
+   */
+  delete(key: InputPrimaryKeyType, options?: DeleteOptions): Promise<boolean>
+
+  /**
+   * Delete one `record` with `transaction`
+   * @example
+   * ```ts
+   * await userModel.delete('1')
+   *
+   * const op = model.atomic()
+   * await userModel.delete('2', {op, transaction: true})
+   * await userModel.delete('3', {op})
+   * ```
+   */
+  delete(key: InputPrimaryKeyType, options: TransactionOption): void
+
+  /**
+   * Delete by `index`
+   * @example
+   * ```ts
+   * await userModel.deleteByIndex('username', 'user1')
+   * ```
+   */
+  deleteByIndex<Key extends IndexKeyof<Index>>(
+    key: Key,
+    val: IndexReturnType<Index, Key>,
+    options?: DeleteByIndexOptions & KvPageOptions<OutputPrimaryKeyType>,
+  ): Promise<boolean>
 }
 
-const compareArrays = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((el, index) => el === b[index])
+interface KvModelContext {
+  kv: Parameters<typeof kvModel>['0']
+  schema: Parameters<typeof kvModel>['1']
+  options: Parameters<typeof kvModel>['2']
+}
 
-/**
- * Allows you to create a {@linkcode kvModel} for {@linkcode Deno.Kv} using your favorite validation library that supports the
- * {@link https://github.com/standard-schema/standard-schema#what-schema-libraries-implement-the-spec Standard schema}
- *
- * @example
- * ```ts
- * import {z} from 'zod'
- * import {kvModel} from '@maks11060/kv'
- *
- * const kv = await Deno.openKv()
- *
- * const userSchema = z.object({
- *   id: z.string(),
- *   username: z.string(),
- *   flags: z.array(z.string()),
- * })
- *
- * const userModel = kvModel(kv, userSchema, {
- *   prefix: 'user',
- *   primaryKey: 'id',
- *   index: {
- *     username: {
- *       relation: 'one',
- *       key: (user) => user.username.toLowerCase(),
- *     },
- *     role: {
- *       relation: 'many',
- *       key: (user) => user.flags,
- *     },
- *   },
- * })
- * ```
- */
 export const kvModel = <
-  Schema extends StandardSchemaV1, //
-  Options extends ModelOptions<Schema, string>,
+  Schema extends StandardSchemaV1<DefaultSchema>,
+  Input = StandardSchemaV1.InferInput<Schema>,
+  Output = StandardSchemaV1.InferOutput<Schema>,
+  // local
+  const RequiredInput = OmitOptionalFields<Input>,
+  const PrimaryKey extends PropertyKey = keyof RequiredInput,
+  TIndex extends {[k: string]: Index<Output>} = {[k: string]: Index<Output>},
 >(
   kv: Deno.Kv,
+  /**
+   * Any schema library that supports {@link https://github.com/standard-schema/standard-schema Standard Schema}
+   */
   schema: Schema,
-  modelOptions: Options,
-) => {
-  type Input = StandardSchemaV1.InferInput<Schema>
-  type Output = StandardSchemaV1.InferOutput<Schema>
-
-  type IndexMap = IndexOptionsResult<Options['index']> // {a: IndexOptions, b: IndexOptions}
-  type IndexKey = keyof Options['index'] // 'a' | 'b'
-
-  type PrimaryKey = Options['primaryKey']
-  type PrimaryKeyType = Output[PrimaryKey]
-  type InputWithoutKey = Omit<Input, PrimaryKey>
-
-  // PrimaryKey generator
-  let generateKey = ulid
-  if (modelOptions.primaryKeyType === 'uuid4') {
-    generateKey = crypto.randomUUID
-  } else if (typeof modelOptions.primaryKeyType === 'function') {
-    generateKey = modelOptions.primaryKeyType
-  }
-
-  const _prefixKey = (indexKey: string) => `${modelOptions.prefix}-${indexKey}`
-
-  const _commit = async <T>(op: Deno.AtomicOperation, val: T, type: string) => {
-    const res = await op.commit()
-    if (!res.ok) {
-      console.error(`%c[KV|${type}|${modelOptions.prefix}]`, 'color: green', 'Error')
-      throw new Error('Commit failed', {cause: 'duplicate detected'})
-    }
-
-    return val as T
-  }
-
-  // CREATE
-  type Create = {
-    /**
-     * Create transaction
-     * @example
-     * ```ts
-     * const op = userModel.atomic()
-     *
-     * const user2 = userModel.create({username: 'user2', flags: ['user']}, {op, transaction: true})
-     * const user3 = await userModel.create({username: 'user3', flags: ['user']}, {op})
-     * ```
-     */
-    (input: InputWithoutKey, options: CreateOptions<PrimaryKeyType> & TransactionOption): Output
-    /**
-     * Create one record
-     * @example
-     * ```ts
-     * const user1 = userModel.create({username: 'user1', flags: ['user']})
-     * ```
-     */
-    (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>): Promise<Output>
-  }
-
-  const create: Create = (input: InputWithoutKey, options?: CreateOptions<PrimaryKeyType>): any => {
-    const key = options?.key ?? generateKey()
-    const op = options?.op ?? kv.atomic()
-
-    const output = standardValidate(schema, {
-      ...input,
-      [modelOptions.primaryKey]: key,
-    })
-
-    // primary
-    const primaryKey = output[modelOptions.primaryKey] as Deno.KvKeyPart // primaryKey
-    op.set([modelOptions.prefix, primaryKey], output, options) // ['prefix', 'primaryKey'] => object
-
-    // index
-    for (const indexKey in modelOptions.index) {
-      const indexOption = modelOptions.index[indexKey]
-      const _secondaryKey = indexOption.key(output) // indexVal
-
-      for (const secondaryKey of Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]) {
-        if (!indexOption.relation || indexOption.relation === 'one') {
-          const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey] // ['prefix-indexKey', 'indexVal']
-          op.set(key, primaryKey, options) // key => primaryKey
-          if (!options?.force) op.check({key, versionstamp: null})
-        } else if (indexOption.relation === 'many') {
-          const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey] // ['prefix-indexKey', 'indexVal', 'primaryKey']
-          op.set(key, null, options) // key => null
-          if (!options?.force) op.check({key, versionstamp: null})
-        }
-      }
-    }
-
-    return options?.transaction ? output : _commit(op, output, 'create')
-  }
-
-  // FIND
   /**
-   * Find object by primary key
-   * @example
-   * ```ts
-   * const user = await userModel.find('user1')
-   * // {id: "01JMBM2B8EAQS0JNH44GT1TYEK", username: "user1", flags: ["user"]}
-   * ```
+   * Model options
    */
-  const find = async (key: PrimaryKeyType) => {
-    const _key = [modelOptions.prefix, key] as Deno.KvKey
-    const res = await kv.get<Output>(_key)
-    return res.value
-  }
-
-  /**
-   * Find many objects by primary key
-   * @example
-   * ```ts
-   * const users = await userModel.findMany({})
-   * // [ {id: "01JMBM2B8EAQS0JNH44GT1TYEK", username: "user1", flags: ["user"]} ]
-   * ```
-   */
-  const findMany = async (options: KvPageOptions<PrimaryKeyType>) => {
-    const kvPage = await getKvPage<Output, PrimaryKeyType>(kv, [modelOptions.prefix], options)
-    return kvPage.values()
-  }
-
-  // FIND by index
-  type FindResolve = {resolve: true}
-  type FindNoResolve = {resolve?: false}
-  type FindByIndex = {
-    // Find primary keys
+  options: {
     /**
-     * Relation `one`
-     * @example
-     * ```ts
-     * const userId = await userModel.findByIndex('username', 'user1')
-     * // 01JMBH8DSKHC48VWE2VXMMRQNP
-     * ```
+     * A unique name for the {@linkcode KvModel}
      *
-     * Relation `many`
      * @example
      * ```ts
-     * const userIds = await userModel.findByIndex('role', 'user')
-     * // [ "01JMBH8DSKHC48VWE2VXMMRQNP" ]
+     * // In KV
+     * kv.set([PREFIX, 'PRIMARY_KEY'], PAYLOAD)
+     * // Index
+     * kv.set([`${PREFIX}-${INDEX_NAME}`, SECONDARY_KEY], PRIMARY_KEY) //       relation === one
+     * kv.set([`${PREFIX}-${INDEX_NAME}`, SECONDARY_KEY, PRIMARY_KEY], null) // relation === many
      * ```
      */
-    <Key extends IndexKey>(
-      key: Key,
-      value: Array2Union<IndexMap[Key]['key']>,
-      options?: ChoiceOption<
-        IndexMap[Key]['type'], //
-        FindNoResolve,
-        FindNoResolve & KvPageOptions<PrimaryKeyType>
-      >,
-    ): Promise<
-      ChoiceOption<
-        IndexMap[Key]['type'], //
-        PrimaryKeyType | null,
-        PrimaryKeyType[]
-      >
-    >
-    // Find and resolve primary object
+    prefix: string
+
     /**
-     * Relation `one`
-     * @example
-     * ```ts
-     * const user = await userModel.findByIndex('username', 'user1', {resolve: true})
-     * // {id: "01JMBH8DSKHC48VWE2VXMMRQNP", username: "user1", flags: [ "user" ]}
-     * ```
+     * Available types for `primaryKey`:
+     * 1. {@linkcode Uint8Array}
+     * 2. {@linkcode String}
+     * 3. {@linkcode Number}
+     * 4. {@linkcode BigInt}
+     * 5. {@linkcode Boolean}
+     */
+    primaryKey: PrimaryKey
+
+    /**
+     * Configuring the primary key generator. You can also specify the primary key in the {@linkcode KvModel.create} method
+     * - `ulid`  - `timestamp` + `rand`
+     * - `uuid4` - {@linkcode crypto.randomUUID}
+     * - `uuid7` - `timestamp` + `rand`
+     * - `() => '1'`
      *
-     * Relation `many`
-     * @example
-     * ```ts
-     * const users = await userModel.findByIndex('role', 'user', {resolve: true})
-     * // [ {id: "01JMBH8DSKHC48VWE2VXMMRQNP", username: "user1", flags: [ "user" ]} ]
-     * ```
+     * @default ulid
      */
-    <Key extends IndexKey>(
-      key: Key,
-      value: Array2Union<IndexMap[Key]['key']>,
-      options: ChoiceOption<
-        IndexMap[Key]['type'], //
-        FindResolve,
-        FindResolve & KvPageOptions<PrimaryKeyType>
-      >,
-    ): Promise<
-      ChoiceOption<
-        IndexMap[Key]['type'], //
-        Output | null,
-        Output[]
-      >
-    >
-  }
+    primaryKeyType?:
+      | 'ulid'
+      | 'uuid4'
+      | 'uuid7'
+      | (() => RequiredInput[PrimaryKey extends keyof RequiredInput ? PrimaryKey : never])
 
-  // TODO: add cache for resolver
-  const findByIndex: FindByIndex = async (indexKey: string, secondaryKey, options): Promise<any> => {
-    const indexOption = modelOptions.index[indexKey]
-
-    if (!indexOption.relation || indexOption.relation === 'one') {
-      const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
-      const indexRes = await kv.get<PrimaryKeyType>(key)
-      // if (!indexRes.value) throw new Error(`[KV|findByIndex] index: ${key} is undefined`)
-      if (!indexRes.value) return indexRes.value
-      return options?.resolve ? find(indexRes.value) : indexRes.value
-    } else if (indexOption.relation === 'many') {
-      const key = [_prefixKey(indexKey), secondaryKey]
-      const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(kv, key, options as KvPageOptions<PrimaryKeyType>)
-
-      if (options?.resolve) {
-        // kvPage[30] => kvPage[10][3] => kvPage.map(page.key => [prefix, primaryKey]) => kv.getMany()
-        const res = await Promise.all(
-          chunk(await kvPage.kvEntries(), 10).map((page) => {
-            return kv.getMany<Output[]>(
-              page.map(({key}) => {
-                return [modelOptions.prefix, key.at(-1)!]
-              }),
-            )
-          }),
-        )
-
-        return res
-          .flat()
-          .filter((v) => v.versionstamp)
-          .map((v) => v.value)
-      }
-
-      // kvPage.map(page.key => primaryKey)
-      // return kvPage.map((v) => v.key.at(-1)! /* primaryKey */)
-      return (await kvPage.keys()).map((v) => v.at(-1)! /* primaryKey */)
-    }
-
-    throw new Error('[KV|findByIndex] undefined behaver')
-  }
-
-  // UPDATE
-  type UpdateOptions = Omit<CreateOptions<never>, 'key'>
-  type Update = {
     /**
+     * Setting up the `index`. you need to create an arbitrary `index` name and link the data
+     *
      * @example
      * ```ts
-     * const user1 = await userModel.findByIndex('username', 'user1')
-     * if (user1) await userModel.update(user1, {role: ['abc', 'admin']})
-     * ```
-     */
-    (key: PrimaryKeyType, input: Partial<InputWithoutKey>, options?: UpdateOptions): Promise<Output>
-    /**
-     * @example
-     * ```ts
-     * const user1 = await userModel.findByIndex('username', 'user1')
-     * if (user1) {
-     *   await userModel.update(user1, () => {
-     *     return {role: ['abc', 'admin']}
-     *   })
+     * {
+     *   username: {
+     *     key: (user) => user.username.toLowerCase()
+     *   },
      * }
      * ```
      */
-    (
-      key: PrimaryKeyType,
-      handler: (value: Output) => Promise<Partial<InputWithoutKey>> | Partial<InputWithoutKey> | Promise<void> | void,
-      options?: UpdateOptions,
-    ): Promise<Output>
-  }
-
-  const update: Update = async (key, handler, options) => {
-    const value = await find(key)
-    if (!value) return null
-
-    const {[modelOptions.primaryKey]: primaryKey, ...curValue} = value
-    const {[modelOptions.primaryKey]: _, ...newValueRaw} = typeof handler === 'function'
-      ? (await handler(value)) ?? value
-      : handler
-
-    // make new obj
-    const newValue = standardValidate(schema, {
-      [modelOptions.primaryKey]: primaryKey,
-      // ...value,
-      ...curValue,
-      ...newValueRaw,
-    })
-
-    // primary
-    const op = options?.op ?? kv.atomic()
-    op.set([modelOptions.prefix, primaryKey as Deno.KvKeyPart], newValue, options) // ['prefix', 'primaryKey'] => object
-
-    // index
-    for (const indexKey in modelOptions.index) {
-      const indexOption = modelOptions.index[indexKey]
-      const _secondaryKey = indexOption.key(newValue) // indexVal
-      const _prevSecondaryKey = indexOption.key(curValue /* value */) // prev indexVal
-
-      // skip unchanged index
-      if (_secondaryKey === _prevSecondaryKey) continue
-      // TODO: improve duplicate detection. ['a', 'b'] === ['b', 'a']
-      if (Array.isArray(_secondaryKey) && Array.isArray(_prevSecondaryKey)) {
-        if (compareArrays(_secondaryKey, _prevSecondaryKey)) continue
-      }
-
-      // TODO: Test u8array as index
-
-      const secondaryKeys = Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]
-      const prevSecondaryKeys = (Array.isArray(_prevSecondaryKey) ? _prevSecondaryKey : [_prevSecondaryKey]).filter(
-        (v) => !secondaryKeys.includes(v),
-      )
-
-      // delete prev index
-      for (const curValue of prevSecondaryKeys) {
-        if (!indexOption.relation || indexOption.relation === 'one') {
-          const prevKey = [_prefixKey(indexKey), curValue]
-          op.delete(prevKey)
-        } else if (indexOption.relation === 'many') {
-          const prevKey = [_prefixKey(indexKey), curValue, primaryKey as Deno.KvKeyPart]
-          op.delete(prevKey)
-        }
-      }
-
-      // create new index
-      for (const secondaryKey of secondaryKeys) {
-        if (!indexOption.relation || indexOption.relation === 'one') {
-          const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
-          op.set(key, primaryKey, options) // key => primaryKey
-          if (!options?.force) op.check({key, versionstamp: null})
-        } else if (indexOption.relation === 'many') {
-          const key = [_prefixKey(indexKey), secondaryKey, primaryKey as Deno.KvKeyPart] // ['prefix-indexKey', 'indexVal', 'primaryKey']
-          op.set(key, null, options) // key => null
-          if (!options?.force) op.check({key, versionstamp: null})
-        }
-      }
-    }
-
-    return options?.transaction ? newValue : _commit(op, newValue, 'update')
-  }
-
-  // DELETE
-  type RemoveOptions = Pick<CreateOptions<never>, 'op' | 'transaction'>
-  type RemoveByIndexOptions = RemoveOptions
-
-  const remove = async (key: PrimaryKeyType, options?: RemoveOptions) => {
-    const value = await find(key)
-    if (!value) return null
-
-    const op = options?.op ?? kv.atomic()
-    op.delete([modelOptions.prefix, key as Deno.KvKeyPart]) // primary
-
-    const {[modelOptions.primaryKey]: primaryKey} = value
-
-    // index
-    for (const indexKey in modelOptions.index) {
-      const indexOption = modelOptions.index[indexKey]
-      const _secondaryKey = indexOption.key(value) // indexVal
-
-      for (const secondaryKey of Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]) {
-        if (!indexOption.relation || indexOption.relation === 'one') {
-          const key = [_prefixKey(indexKey), secondaryKey] // ['prefix-indexKey', 'indexVal']
-          op.delete(key)
-        } else if (indexOption.relation === 'many') {
-          const key = [_prefixKey(indexKey), secondaryKey, primaryKey as Deno.KvKeyPart] // ['prefix-indexKey', 'indexVal', 'primaryKey']
-          op.delete(key)
-        }
-      }
-    }
-
-    return options?.transaction ? true : _commit(op, true, 'remove')
-  }
-
-  const removeByIndex = async <Key extends IndexKey>(
-    key: Key,
-    value: Array2Union<IndexMap[Key]['key']>,
-    options?: ChoiceOption<
-      IndexMap[Key]['type'],
-      RemoveByIndexOptions,
-      RemoveByIndexOptions & KvPageOptions<PrimaryKeyType>
-    >,
-  ) => {
-    const op = options?.op ?? kv.atomic()
-    const res = await findByIndex(key, value, options as any)
-    const indexOption = modelOptions.index[key as string]
-
-    if (!indexOption.relation || indexOption.relation === 'one') {
-      return await remove(res as PrimaryKeyType)
-    } else if (indexOption.relation === 'many') {
-      for (const item of res as PrimaryKeyType[]) {
-        await remove(item, {op, transaction: true})
-      }
-      // return true
-    }
-
-    return options?.transaction ? true : _commit(op, true, 'removeByIndex')
-  }
-
-  const index = {
-    wipe: async (key?: IndexKey) => {
-      for (const indexKey in modelOptions.index) {
-        const iter = kv.list({prefix: [_prefixKey(indexKey)]})
-        for await (const item of iter) {
-          if (key) {
-            if (_prefixKey(key as string) === item.key.at(0)) {
-              await kv.delete(item.key)
-            }
-          } else {
-            await kv.delete(item.key)
-          }
-        }
-      }
-    },
-    create: async (options?: CreateOptions<PrimaryKeyType>) => {
-      const iter = kv.list<Output>({prefix: [modelOptions.prefix]})
-      for await (const {value} of iter) {
-        const op = options?.op ?? kv.atomic()
-        const primaryKey = value[modelOptions.primaryKey] as Deno.KvKeyPart // primaryKey
-
-        // index
-        for (const indexKey in modelOptions.index) {
-          const indexOption = modelOptions.index[indexKey]
-          const _secondaryKey = indexOption.key(value) // indexVal
-
-          for (const secondaryKey of Array.isArray(_secondaryKey) ? _secondaryKey : [_secondaryKey]) {
-            if (!indexOption.relation || indexOption.relation === 'one') {
-              const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey] // ['prefix-indexKey', 'indexVal']
-              op.set(key, primaryKey, options) // key => primaryKey
-              if (!options?.force) op.check({key, versionstamp: null})
-            } else if (indexOption.relation === 'many') {
-              const key = [`${modelOptions.prefix}-${indexKey}`, secondaryKey, primaryKey] // ['prefix-indexKey', 'indexVal', 'primaryKey']
-              op.set(key, null, options) // key => null
-              if (!options?.force) op.check({key, versionstamp: null})
-            }
-          }
-        }
-
-        await _commit(op, null, 'index-create')
-      }
-    },
-  }
+    index?: TIndex
+  },
+): KvModel<Schema, PrimaryKey, TIndex> => {
+  const model: KvModelContext = {kv, schema, options: options as any}
 
   return {
-    index,
-    atomic: () => kv.atomic(),
-    create,
-    find,
-    findMany,
-    findByIndex,
-    update,
-    remove,
-    removeByIndex,
+    [Internal]: model,
+
+    atomic() {
+      return kv.atomic()
+    },
+
+    commit(op) {
+      return _commit(model, op, undefined, 'commit')
+    },
+
+    create(data, options) {
+      return _create(model, data, options) as any
+    },
+
+    find(key) {
+      return _find(model, key as any) as any
+    },
+
+    findMany(options = {}) {
+      return _findMany(model, options as any) as any
+    },
+
+    findByIndex(indexKey, secondaryKey, options) {
+      return _findByIndex(model, indexKey as string, secondaryKey as Deno.KvKeyPart, options) as any
+    },
+
+    update(primaryKey, handlerOrObj, options) {
+      return _updata(model, primaryKey as Deno.KvKeyPart, handlerOrObj, options) as any
+    },
+
+    delete(primaryKey, options) {
+      return _delete(model, primaryKey as Deno.KvKeyPart, options) as any
+    },
+
+    deleteByIndex(indexKey, secondaryKey, options) {
+      return _deleteByIndex(model, indexKey as string, secondaryKey as Deno.KvKeyPart, options) as any
+    },
+  }
+}
+
+const _generateKey = (type: KvModelContext['options']['primaryKeyType'] = 'ulid') => {
+  if (type === 'ulid') {
+    return ulid()
+  } else if (type === 'uuid4') {
+    return crypto.randomUUID()
+  } else if (type === 'uuid7') {
+    return randomUUID7()
+  } else if (typeof type === 'function') {
+    return type()
+  }
+  throw new Error('Generate Key error')
+}
+
+const _commit = async <T>(model: KvModelContext, op: Deno.AtomicOperation, val: T, action: string) => {
+  const res = await op.commit()
+  if (!res.ok) {
+    console.error(`%c[KV|${action}|${model.options.prefix}]`, 'color: green', 'Error')
+    throw new Error('Commit failed', {cause: `duplicate detected. Try with 'force' options`})
+  }
+
+  return val as T
+}
+
+const _indexCreate = (
+  model: KvModelContext,
+  op: Deno.AtomicOperation,
+  index: Index,
+  indexKey: string,
+  primaryKey: Deno.KvKeyPart,
+  secondaryKey: Deno.KvKeyPart,
+  options?: {expireIn?: number; force?: boolean},
+) => {
+  if (!index.relation || index.relation === 'one') {
+    const key = [`${model.options.prefix}-${indexKey}`, secondaryKey]
+    op.set(key, primaryKey, options)
+  } else if (index.relation === 'many') {
+    const key = [`${model.options.prefix}-${indexKey}`, secondaryKey, primaryKey]
+    op.set(key, null, options)
+    if (!options?.force) op.check({key, versionstamp: null})
+  }
+}
+
+const _indexDelete = (
+  model: KvModelContext,
+  op: Deno.AtomicOperation,
+  index: Index,
+  indexKey: string,
+  primaryKey: Deno.KvKeyPart,
+  secondaryKey: Deno.KvKeyPart,
+) => {
+  if (!index.relation || index.relation === 'one') {
+    const key = [`${model.options.prefix}-${indexKey}`, secondaryKey]
+    op.delete(key)
+  } else if (index.relation === 'many') {
+    const key = [`${model.options.prefix}-${indexKey}`, secondaryKey, primaryKey]
+    op.delete(key)
+  }
+}
+
+const _create = (model: KvModelContext, data: DefaultSchema, options?: CreateOptions) => {
+  const key = options?.key ?? _generateKey(model.options.primaryKeyType)
+  const op = options?.op ?? model.kv.atomic()
+
+  const output = standardValidate(model.schema, {
+    ...data,
+    [model.options.primaryKey]: key,
+  })
+
+  // primary
+  const primaryKey = output[model.options.primaryKey] as Deno.KvKeyPart
+  op.set([model.options.prefix, primaryKey], output, options)
+
+  // index
+  for (const indexKey in model.options.index) {
+    const index = model.options.index[indexKey]
+    const secondaryKey = index.key(output)
+
+    const secondaryKeys = Array.isArray(secondaryKey) ? secondaryKey : [secondaryKey]
+    for (const secondaryKey of secondaryKeys) {
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexCreate(model, op, index, indexKey, primaryKey, secondaryKey, options)
+    }
+  }
+
+  return options?.transaction ? output : _commit(model, op, output, 'create')
+}
+
+const _find = async (model: KvModelContext, primaryKey: Deno.KvKeyPart) => {
+  type Output = unknown // TODO: expose
+
+  const _key = [model.options.prefix, primaryKey] as Deno.KvKey
+  const res = await model.kv.get<Output>(_key)
+  return res.value
+}
+
+const _findMany = async (model: KvModelContext, options: KvPageOptions) => {
+  type Output = unknown // TODO: expose
+
+  const kvPage = await getKvPage<Output>(model.kv, [model.options.prefix], options)
+  return kvPage.values()
+}
+
+const _findByIndex = async (
+  model: KvModelContext,
+  indexKey: string,
+  secondaryKey: Deno.KvKeyPart,
+  options?: {resolve?: boolean} & KvPageOptions<unknown>,
+) => {
+  type Output = unknown // TODO: expose
+
+  if (!model.options.index?.[indexKey]) throw new Error('[KV|findByIndex] Index key not found')
+  if (secondaryKey === null || secondaryKey === undefined) return null
+
+  const indexOption = model.options.index[indexKey]
+  const key = [`${model.options.prefix}-${indexKey}`, secondaryKey] // ['prefix-indexKey', 'indexVal']
+
+  if (!indexOption.relation || indexOption.relation === 'one') {
+    const indexRes = await model.kv.get(key)
+    if (!indexRes.value) return indexRes.value
+    // if (!indexRes.value) throw new Error(`[KV|findByIndex] index: ${key} is undefined`)
+    return options?.resolve ? _find(model, indexRes.value as Deno.KvKeyPart) : indexRes.value
+  } else if (indexOption.relation === 'many') {
+    const kvPage = await getKvPage(model.kv, key, options as KvPageOptions)
+    // const kvPage = await getKvPage<PrimaryKeyType, PrimaryKeyType>(kv, _key, options as KvPageOptions<PrimaryKeyType>)
+
+    if (options?.resolve) {
+      // kvPage[30] => kvPage[10][3] => kvPage.map(page.key => [prefix, primaryKey]) => kv.getMany()
+      const res = await Promise.all(
+        chunk(await kvPage.kvEntries(), 10).map((page) => {
+          return model.kv.getMany<Output[]>(
+            page.map(({key}) => {
+              return [model.options.prefix, key.at(-1)!]
+            }),
+          )
+        }),
+      )
+
+      return res
+        .flat()
+        .filter((v) => v.versionstamp)
+        .map((v) => v.value)
+    }
+
+    // kvPage.map(page.key => primaryKey)
+    // return kvPage.map((v) => v.key.at(-1)! /* primaryKey */)
+    return (await kvPage.keys()).map((v) => v.at(-1)! /* primaryKey */)
+  }
+
+  throw new Error('[KV|findByIndex] undefined behaver')
+}
+
+const _updata = async (
+  model: KvModelContext,
+  key: Deno.KvKeyPart,
+  handlerOrObj: unknown,
+  options?: UpdateOptions,
+) => {
+  const value = await _find(model, key) as Record<PropertyKey, unknown>
+  if (!value) return null
+
+  const {[model.options.primaryKey]: primaryKey, ...curValue} = value
+  const {[model.options.primaryKey]: _, ..._newValue} = typeof handlerOrObj === 'function'
+    ? (await handlerOrObj(value)) ?? value
+    : handlerOrObj
+
+  // merge(top-level) current + new object
+  const newValue = standardValidate(model.schema, {
+    [model.options.primaryKey]: primaryKey,
+    ...curValue,
+    ..._newValue,
+  })
+
+  // update primary
+  const op = options?.op ?? model.kv.atomic()
+  op.set([model.options.prefix, primaryKey as Deno.KvKeyPart], newValue, options) // ['prefix', 'primaryKey'] => object
+
+  // partial update index
+  for (const indexKey in model.options.index) {
+    const index = model.options.index[indexKey]
+    const curSecondaryKey = index.key(curValue)
+    const newSecondaryKey = index.key(newValue)
+
+    // skip if index equals
+    if (equal(curSecondaryKey, newSecondaryKey)) continue
+    // console.log({indexKey, curSecondaryKey, newSecondaryKey})
+
+    const curSecondaryKeys = Array.isArray(curSecondaryKey) ? curSecondaryKey : [curSecondaryKey]
+    const newSecondaryKeys = Array.isArray(newSecondaryKey) ? newSecondaryKey : [newSecondaryKey]
+    // console.log({curSecondaryKeys, newSecondaryKeys})
+
+    // delete current index
+    for (const secondaryKey of curSecondaryKeys) {
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexDelete(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey)
+    }
+
+    // create new index
+    for (const secondaryKey of newSecondaryKeys) {
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexCreate(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey, options)
+    }
+  }
+
+  return options?.transaction ? newValue : _commit(model, op, newValue, 'update')
+}
+
+const _delete = async (
+  model: KvModelContext,
+  key: Deno.KvKeyPart,
+  options?: DeleteOptions,
+) => {
+  const value = await _find(model, key) as Record<PropertyKey, unknown>
+  if (!value) return null
+
+  // delete primary
+  const op = options?.op ?? model.kv.atomic()
+  op.delete([model.options.prefix, key as Deno.KvKeyPart]) // primary
+
+  const {[model.options.primaryKey]: primaryKey} = value
+
+  for (const indexKey in model.options.index) {
+    const index = model.options.index[indexKey]
+    const curSecondaryKey = index.key(value)
+
+    const curSecondaryKeys = Array.isArray(curSecondaryKey) ? curSecondaryKey : [curSecondaryKey]
+
+    // delete current index
+    for (const secondaryKey of curSecondaryKeys) {
+      if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+      _indexDelete(model, op, index, indexKey, primaryKey as Deno.KvKeyPart, secondaryKey)
+    }
+  }
+
+  return options?.transaction ? true : _commit(model, op, true, 'delete')
+}
+
+const _deleteByIndex = async (
+  model: KvModelContext,
+  indexKey: string,
+  secondaryKey: Deno.KvKeyPart,
+  options?: DeleteByIndexOptions & KvPageOptions<unknown>,
+) => {
+  const primaryKey = await _findByIndex(model, indexKey, secondaryKey, options)
+  if (Array.isArray(primaryKey)) { // relation 'many'
+    for (const key of primaryKey) {
+      await _delete(model, key as Deno.KvKeyPart, options)
+    }
+    return true
+  } else { // relation 'one'
+    return _delete(model, primaryKey as Deno.KvKeyPart, options)
+  }
+}
+
+interface IndexManager<
+  TIndex extends {[k: string]: Index<unknown>},
+> {
+  delete(key?: string): Promise<void>
+  delete(key?: keyof TIndex): Promise<void>
+  create(key?: string): Promise<void>
+  create(key?: keyof TIndex): Promise<void>
+}
+
+/**
+ * Utils for create or delete `index`
+ *
+ * @example
+ * ```ts
+ * using kv = await Deno.openKv(':memory:')
+ *
+ * const schema = z.object({
+ *   id: z.string(),
+ *   username: z.string(),
+ *   age: z.int().positive(),
+ * })
+ * const model = kvModel(kv, schema, {
+ *   prefix: 'user',
+ *   primaryKey: 'id',
+ *   index: {
+ *     username: {key: (v) => v.username.toLowerCase()},
+ *     age: {relation: 'many', key: (v) => v.age},
+ *   },
+ * })
+ * const index = indexManager(model)
+ *
+ * for (let i = 0; i < 3; i++) {
+ *   await model.create({username: `user${i}`, age: 18})
+ * }
+ *
+ * await index.delete()
+ * await model.findByIndex('age', 18) // []
+ *
+ * await index.create()
+ * await model.findByIndex('age', 18)) // ['1', '2', '3']
+ * ```
+ */
+export const indexManager = <
+  Schema extends StandardSchemaV1<DefaultSchema>,
+  Input = StandardSchemaV1.InferInput<Schema>,
+  Output = StandardSchemaV1.InferOutput<Schema>,
+  // local
+  const RequiredInput = OmitOptionalFields<Input>,
+  const PrimaryKey extends PropertyKey = keyof RequiredInput,
+  TIndex extends {[k: string]: Index<Output>} = {[k: string]: Index<Output>},
+>(_model: KvModel<Schema, PrimaryKey, TIndex>): IndexManager<TIndex> => {
+  const model = _model[Internal]
+
+  return {
+    /**
+     * Delete `index`
+     */
+    async delete(key) {
+      const options = model.options
+      for (const indexKey in options.index) {
+        if (key && key !== indexKey) continue
+        const iter = model.kv.list({prefix: [`${options.prefix}-${indexKey}`]})
+        for await (const item of iter) {
+          await model.kv.delete(item.key)
+        }
+      }
+    },
+
+    /**
+     * Create `index`
+     */
+    async create(key) {
+      const iter = model.kv.list({prefix: [model.options.prefix]})
+      for await (const {value} of iter) {
+        const op = /* options?.op ?? */ model.kv.atomic()
+        const primaryKey = (value as any)[model.options.primaryKey] as Deno.KvKeyPart
+
+        // index
+        for (const indexKey in model.options.index) {
+          if (key && key !== indexKey) continue
+
+          const index = model.options.index[indexKey]
+          const secondaryKey = index.key(value)
+
+          const secondaryKeys = Array.isArray(secondaryKey) ? secondaryKey : [secondaryKey]
+          for (const secondaryKey of secondaryKeys) {
+            if (secondaryKey === null || secondaryKey === undefined) continue // skip nullish
+            _indexCreate(model, op, index, indexKey, primaryKey, secondaryKey)
+          }
+        }
+
+        await _commit(model, op, null, 'index-create')
+      }
+    },
   }
 }

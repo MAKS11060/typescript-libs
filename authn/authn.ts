@@ -15,35 +15,18 @@ import type {
   PublicKeyCredentialResponseAttestation,
 } from './types.ts'
 
-/** Default `pubKeyCredParams` for `navigator.credentials.create()` */
+/**
+ * Default `pubKeyCredParams` for `navigator.credentials.create()`
+ *
+ * - Ed25519
+ * - ECDSA P-256
+ * - RSASSA-PKCS1-v1_5 SHA-256
+ */
 export const PubKeyCredParams = [
   {type: 'public-key', alg: -8}, //   Ed25519
   {type: 'public-key', alg: -7}, //   ECDSA              P-256
   {type: 'public-key', alg: -257}, // RSASSA-PKCS1-v1_5  SHA-256
 ] as PublicKeyCredentialParameters[]
-
-const encoder = new TextEncoder()
-
-const toUint8Array = (source: BufferSource): Uint8Array => {
-  if (source instanceof Uint8Array) {
-    return source // Already a Uint8Array
-  } else if (source instanceof ArrayBuffer || source instanceof SharedArrayBuffer) {
-    return new Uint8Array(source)
-  } else if (ArrayBuffer.isView(source)) { // Covers other TypedArrays and DataView
-    return new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
-  }
-
-  throw new Error('Unsupported BufferSource type')
-}
-
-const sha256 = async (input: string | Uint8Array) => {
-  return new Uint8Array(
-    await crypto.subtle.digest(
-      'SHA-256',
-      typeof input === 'string' ? encoder.encode(input) : input,
-    ),
-  )
-}
 
 const alg = new Map([
   [-7, {name: 'ECDSA', namedCurve: 'P-256'}], // ECDSA with P-256 and SHA-256
@@ -68,6 +51,29 @@ const verifyOptionsByKey = new Map([
   ['ECDSA', {name: 'ECDSA', hash: 'SHA-256'}],
   ['RSASSA-PKCS1-v1_5', {name: 'RSASSA-PKCS1-v1_5'}],
 ])
+
+const encoder = new TextEncoder()
+
+const toUint8Array = (source: BufferSource): Uint8Array => {
+  if (source instanceof Uint8Array) {
+    return source // Already a Uint8Array
+  } else if (source instanceof ArrayBuffer || source instanceof SharedArrayBuffer) {
+    return new Uint8Array(source)
+  } else if (ArrayBuffer.isView(source)) { // Covers other TypedArrays and DataView
+    return new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
+  }
+
+  throw new Error('Unsupported BufferSource type')
+}
+
+const sha256 = async (input: string | Uint8Array) => {
+  return new Uint8Array(
+    await crypto.subtle.digest(
+      'SHA-256',
+      typeof input === 'string' ? encoder.encode(input) : input,
+    ),
+  )
+}
 
 /**
  * @example
@@ -148,23 +154,28 @@ const parseAuthenticatorData = (_authenticatorData: string | Uint8Array): Authen
   return {
     rpIdHash: authenticatorData.slice(0, 32),
     flags: {
-      up: !!(view.getUint8(32) & (1 << 0)),
-      uv: !!(view.getUint8(32) & (1 << 2)),
-      be: !!(view.getUint8(32) & (1 << 3)),
-      bs: !!(view.getUint8(32) & (1 << 4)),
-      at: !!(view.getUint8(32) & (1 << 6)),
-      ed: !!(view.getUint8(32) & (1 << 7)),
+      userPresent: !!(view.getUint8(32) & (1 << 0)),
+      userVerified: !!(view.getUint8(32) & (1 << 2)),
+      backupEligibility: !!(view.getUint8(32) & (1 << 3)),
+      backupState: !!(view.getUint8(32) & (1 << 4)),
+      attestedCredentialData: !!(view.getUint8(32) & (1 << 6)),
+      extensionData: !!(view.getUint8(32) & (1 << 7)),
     },
-    counter: view.getUint32(33, false), // Big-endian
+    signCount: view.getUint32(33, false), // Big-endian
     get attestedCredentialData(): AuthenticatorData['attestedCredentialData'] {
-      if (!this.flags.at) return null
-      const credentialIdLength = view.getUint16(53)
+      if (!this.flags.attestedCredentialData) return
+      const credentialIdLength = view.getUint16(53) // 53,54
       return {
-        AAGUID: authenticatorData.slice(37, 37 + 16),
+        aaguid: authenticatorData.slice(37, 53),
         credentialIdLength,
         credentialId: authenticatorData.slice(55, 55 + credentialIdLength),
         credentialPublicKey: authenticatorData.slice(55 + credentialIdLength),
       }
+    },
+    get extensions() {
+      if (!this.flags.extensionData) return
+      const credentialIdLength = this.flags.attestedCredentialData ? view.getUint16(53) : 0
+      return authenticatorData.slice(37 + credentialIdLength)
     },
   }
 }
@@ -193,18 +204,17 @@ const parseAttestation = (response: PublicKeyCredentialResponseAttestation) => {
  *
  * // Server
  * const cred = publicKeyCredentialFromJSON(data)
- *
  * console.log(cred)
+ * console.log(cred.authData)
+ *
  * if (isAttestation(cred)) {
- *   console.log(cred.authData)
  *   console.log(cred.authData.attestedCredentialData)
  *   const publicKey = await getPublicKey(cred)
  * }
+ *
  * if (isAssertion(cred)) {
  *   console.log(cred)
  *   console.log(cred.authData)
- *   console.log(cred.assertion)
- *   console.log(cred.assertion.userHandle)
  * }
  * ```
  */

@@ -1,34 +1,46 @@
 /**
  * Useful utilities for {@linkcode Deno.Kv}
  *
- * @example
+ * @example Create `kvModel`
  * ```ts
- * import {kvProvider} from '@maks11060/kv'
- * import {z} from 'zod'
+ * import {kvModel} from '@maks11060/kv'
+ * import {z} from 'zod/v4'
  *
- * const kv = await Deno.openKv()
- * const kvLib = kvProvider(kv)
+ * using kv = await Deno.openKv(':memory:')
  *
  * const userSchema = z.object({
  *   id: z.string(),
  *   username: z.string(),
- *   role: z.array(z.string()),
+ *   email: z.string().nullish().default(null),
+ *   age: z.int().positive(),
  * })
  *
- * const userModel = kvLib.model(userSchema, {
+ * const userModel = kvModel(kv, userSchema, {
  *   prefix: 'user',
  *   primaryKey: 'id',
+ *   primaryKeyType: 'uuid7',
  *   index: {
  *     username: {
- *       relation: 'one',
- *       key: (user) => user.username.toLowerCase(),
+ *       key: (v) => v.username,
  *     },
- *     role: {
+ *     email: {
+ *       key: (v) => v.email,
+ *     },
+ *     age: {
  *       relation: 'many',
- *       key: (user) => user.role,
+ *       key: (v) => v.age,
  *     },
  *   },
  * })
+ *
+ * const user1 = await userModel.create({username: 'user1', age: 18})
+ * user1 // { id: "0197d2e1-9379-7d5f-a7d2-e2dcc8b4ac9d", username: "user1", email: null, age: 18 }
+ *
+ * const userId = await userModel.findByIndex('username', 'user1', {resolve: true})
+ * userId // "0197d2e1-9379-7d5f-a7d2-e2dcc8b4ac9d"
+ *
+ * const user = await userModel.findByIndex('username', 'user1', {resolve: true})
+ * user // { id: "0197d2e1-9379-7d5f-a7d2-e2dcc8b4ac9d", username: "user1", email: null, age: 18 }
  * ```
  *
  * @example
@@ -51,7 +63,6 @@
  * @module
  */
 
-export * from './kv.ts'
 export * from './kv_base.ts'
 export * from './kv_helper.ts'
 export * from './kv_model.ts'
