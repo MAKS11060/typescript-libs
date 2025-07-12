@@ -3,10 +3,37 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - '**.ts'
+      - '**.json{c}'
+
   pull_request:
     branches: [main]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          cache: true
+
+      - name: Test
+        run: >
+          deno test --parallel
+          authn/
+          kv/
+          openapi/
+
   publish-dry-run:
     runs-on: ubuntu-latest
     timeout-minutes: 10

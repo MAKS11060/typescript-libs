@@ -4,7 +4,7 @@ import { expect } from 'jsr:@std/expect/expect'
 import { fromKvIterator, getKvPage } from './kv_helper.ts'
 
 Deno.test('kvLib', async (t) => {
-  const kv = await Deno.openKv(':memory:')
+  using kv = await Deno.openKv(':memory:')
 
   for (let i = -5; i < 5; i++) {
     await kv.set(['key', i], i + 5)
@@ -22,12 +22,10 @@ Deno.test('kvLib', async (t) => {
     })
     expect(keys.length).toEqual(5)
   })
-
-  kv.close()
 })
 
 Deno.test('getKvPage', async (t) => {
-  const kv = await Deno.openKv(':memory:')
+  using kv = await Deno.openKv(':memory:')
 
   for (let i = 1; i < 10; i++) {
     await kv.set(['post', i], `${i}`)
@@ -108,5 +106,4 @@ Deno.test('getKvPage', async (t) => {
     const kvPage = await getKvPage(kv, ['post'], {})
     expect(await kvPage.values()).toEqual(['1', '2', '3', '4', '5', '6', '7', '8', '9'])
   }
-  kv.close()
 })

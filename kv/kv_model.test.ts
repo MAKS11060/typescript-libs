@@ -340,7 +340,6 @@ Deno.test('Test 453253 update', async (t) => {
   expect(user).toEqual({id: '1', username: 'user1', age: 18})
 
   const updata1 = await model.update(user.id, {age: 19})
-  console.log({updata1})
   expect(updata1).toEqual({id: '1', username: 'user1', age: 19})
 
   const updata2 = await model.update(user.id, (v) => {
