@@ -24,7 +24,7 @@ jobs:
           cache: true
 
       - name: Test
-        run: |
+        run: >
           deno test --parallel
             authn/
             kv/
