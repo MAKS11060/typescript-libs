@@ -17,30 +17,34 @@ Deno.test('zodPlugin()', async (t) => {
     },
   })
 
-  plugin.addSchema(user)
+  const schema1 = z.string().transform((v) => v.length).pipe(z.number())
+  const schema2 = schema1.transform((len) => len > 5).pipe(z.boolean())
+  const schema3 = z.object({
+    schema1,
+    schema2,
+    user,
+  })
 
   plugin.addSchemaGlobal(ID, 'ID')
   plugin.addSchemaGlobal(user, 'User')
 
-  expect(plugin.getSchemas()).toEqual({
-    schemas: {
-      ID: {
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
-        exclusiveMinimum: 0,
-        maximum: 9007199254740991,
-        type: 'integer',
+  expect(plugin.getSchemas().schemas).toEqual({
+    ID: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      exclusiveMinimum: 0,
+      maximum: 9007199254740991,
+      type: 'integer',
+    },
+    User: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      additionalProperties: false,
+      properties: {
+        id: {$ref: '#/components/schemas/ID'},
+        username: {type: 'string'},
+        friend: {$ref: '#/components/schemas/User'},
       },
-      User: {
-        $schema: 'https://json-schema.org/draft/2020-12/schema',
-        additionalProperties: false,
-        properties: {
-          id: {$ref: '#/components/schemas/ID'},
-          username: {type: 'string'},
-          friend: {$ref: '#/components/schemas/User'},
-        },
-        required: ['id', 'username', 'friend'],
-        type: 'object',
-      },
+      required: ['id', 'username', 'friend'],
+      type: 'object',
     },
   })
 
@@ -51,6 +55,7 @@ Deno.test('zodPlugin()', async (t) => {
     maximum: 9007199254740991,
   })
 
+  // console.log(plugin.addSchema(user).resolve())
   expect(plugin.addSchema(user).resolve()).toEqual({
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     type: 'object',
@@ -60,6 +65,370 @@ Deno.test('zodPlugin()', async (t) => {
       friend: {$ref: '#/components/schemas/User'},
     },
     required: ['id', 'username', 'friend'],
+    additionalProperties: false,
+  })
+
+  //
+  plugin.addSchemaGlobal(schema1, 'schema1')
+  plugin.addSchemaGlobal(schema2, 'schema2')
+  plugin.addSchemaGlobal(schema3, 'schema3')
+
+  // console.log(plugin.addSchema(schema3).resolve())
+  expect(plugin.addSchema(schema3).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {
+      schema1: {$ref: '#/components/schemas/schema1'},
+      schema2: {$ref: '#/components/schemas/schema2'},
+      user: {$ref: '#/components/schemas/User'},
+    },
+    required: ['schema1', 'schema2', 'user'],
+    additionalProperties: false,
+  })
+
+  console.log(plugin.getSchemas().schemas)
+})
+
+Deno.test('zodPlugin() io', async (t) => {
+  const plugin = zodPlugin()
+
+  const email = z.email()
+  const emailOrUsername = z.string().transform((v: string) => {
+    return email.safeParse(v).success //
+      ? ({type: 'email', value: v} as const)
+      : ({type: 'username', value: v} as const)
+  }).pipe(z.discriminatedUnion('type', [
+    z.object({type: z.literal('email'), value: email}),
+    z.object({type: z.literal('username'), value: z.string()}),
+  ]))
+
+  const loginSchema = z.object({
+    login: emailOrUsername,
+    password: z.string(),
+  })
+
+  // plugin.addSchema(loginSchema, {io: 'input'})
+  // plugin.addSchemaGlobal(loginSchema, 'loginSchema')
+  // plugin.addSchemaGlobal(z.number().pipe(z.coerce.string()), 'test1')
+
+  // console.log(plugin.getSchemas().schemas)
+
+  // expect(plugin.getSchemas()).toEqual()
+})
+
+Deno.test('zodPlugin() global io output (default)', async (t) => {
+  const plugin = zodPlugin({})
+
+  const schema1 = z.number().pipe(z.coerce.string())
+  expect(plugin.addSchema(schema1, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'number',
+  })
+  expect(plugin.addSchema(schema1, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'string',
+  })
+
+  const schema2 = z.object({schema1})
+  expect(plugin.addSchema(schema2, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'number'}},
+    required: ['schema1'],
+  })
+  expect(plugin.addSchema(schema2, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'string'}},
+    required: ['schema1'],
+    additionalProperties: false,
+  })
+
+  const schema3 = schema2.pipe(z.transform((v) => v.schema1.length)).pipe(z.number())
+  expect(plugin.addSchema(schema3, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'number'}},
+    required: ['schema1'],
+  })
+  expect(plugin.addSchema(schema3, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'number',
+  })
+
+  //
+  plugin.addSchemaGlobal(schema1, 'schema1')
+  plugin.addSchemaGlobal(schema2, 'schema2')
+  plugin.addSchemaGlobal(schema3, 'schema3')
+
+  expect(plugin.getSchemas().schemas).toEqual({
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'string',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {schema1: {$ref: '#/components/schemas/schema1'}},
+      required: ['schema1'],
+      additionalProperties: false,
+    },
+    schema3: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+  })
+})
+
+Deno.test('zodPlugin() global io input', async (t) => {
+  const plugin = zodPlugin({io: 'input'})
+
+  const schema1 = z.number().pipe(z.coerce.string())
+  expect(plugin.addSchema(schema1, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'number',
+  })
+  expect(plugin.addSchema(schema1, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'string',
+  })
+
+  const schema2 = z.object({schema1})
+  expect(plugin.addSchema(schema2, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'number'}},
+    required: ['schema1'],
+  })
+  expect(plugin.addSchema(schema2, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'string'}},
+    required: ['schema1'],
+    additionalProperties: false,
+  })
+
+  const schema3 = schema2.pipe(z.transform((v) => v.schema1.length)).pipe(z.number())
+  expect(plugin.addSchema(schema3, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'number'}},
+    required: ['schema1'],
+  })
+  expect(plugin.addSchema(schema3, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'number',
+  })
+
+  //
+  plugin.addSchemaGlobal(schema1, 'schema1')
+  plugin.addSchemaGlobal(schema2, 'schema2')
+  plugin.addSchemaGlobal(schema3, 'schema3')
+
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {schema1: {$ref: '#/components/schemas/schema1'}},
+      required: ['schema1'],
+    },
+    schema3: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $ref: '#/components/schemas/schema2',
+    },
+  })
+})
+
+Deno.test('zodPlugin() global io mixed', async (t) => {
+  const plugin = zodPlugin()
+
+  const schema1 = z.number().pipe(z.coerce.string())
+  const schema2 = z.object({schema1})
+  const schema3 = schema2.pipe(z.transform((v) => v.schema1.length)).pipe(z.number())
+
+  //
+  plugin.addSchemaGlobal(schema1, 'schema1', {io: 'input'})
+  plugin.addSchemaGlobal(schema2, 'schema2')
+  plugin.addSchemaGlobal(schema3, 'schema3', {io: 'input'})
+
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {schema1: {$ref: '#/components/schemas/schema1'}},
+      required: ['schema1'],
+      additionalProperties: false,
+    },
+    schema3: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $ref: '#/components/schemas/schema2',
+    },
+  })
+})
+
+Deno.test('zodPlugin() global io mixed 2', async (t) => {
+  const plugin = zodPlugin()
+
+  const schema1 = z.string().transform((v) => v.length).pipe(z.number())
+  const schema2 = schema1.transform((len) => len > 5).pipe(z.boolean())
+
+  //
+  plugin.addSchemaGlobal(schema1, 'schema1')
+  plugin.addSchemaGlobal(schema1, 'schema1input', {io: 'input'})
+  plugin.addSchemaGlobal(schema2, 'schema2')
+  plugin.addSchemaGlobal(schema2, 'schema2input', {io: 'input'})
+
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+    schema1input: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'string',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'boolean',
+    },
+    schema2input: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      $ref: '#/components/schemas/schema1input',
+    },
+  })
+})
+
+Deno.test('zodPlugin() global io mixed 3', async (t) => {
+  const plugin = zodPlugin()
+
+  const email = z.email()
+  const emailOrUsername = z.string().transform((v: string) => {
+    return email.safeParse(v).success //
+      ? ({type: 'email', value: v} as const)
+      : ({type: 'username', value: v} as const)
+  }).pipe(z.discriminatedUnion('type', [
+    z.object({type: z.literal('email'), value: email}),
+    z.object({type: z.literal('username'), value: z.string()}),
+  ]))
+
+  const loginUser = z.object({
+    login: emailOrUsername,
+    password: z.string(),
+  })
+
+  //
+  plugin.addSchemaGlobal(emailOrUsername, 'emailOrUsername', {io: 'input'})
+  plugin.addSchemaGlobal(loginUser, 'loginUser')
+  plugin.addSchemaGlobal(loginUser, 'loginUserSchema', {io: 'input'})
+
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    emailOrUsername: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'string',
+    },
+    loginUser: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        login: {$ref: '#/components/schemas/emailOrUsername'},
+        password: {type: 'string'},
+      },
+      required: ['login', 'password'],
+      additionalProperties: false,
+    },
+    loginUserSchema: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        login: {$ref: '#/components/schemas/emailOrUsername'},
+        password: {type: 'string'},
+      },
+      required: ['login', 'password'],
+    },
+  })
+})
+
+Deno.test('zodPlugin() global io mixed 4', async (t) => {
+  const plugin = zodPlugin()
+
+  const schema1 = z.string().transform((v) => v.length).pipe(z.number())
+  const schema2 = schema1.transform((len) => len > 5).pipe(z.boolean())
+  const schema3 = z.object({schema1, schema2})
+
+  //
+  plugin.addSchemaGlobal(schema1, 'schema1')
+  plugin.addSchemaGlobal(schema2, 'schema2')
+  plugin.addSchemaGlobal(schema3, 'schema3')
+
+  console.log(plugin.addSchema(schema1, {io: 'input'}).resolve())
+  console.log(plugin.addSchema(schema2, {io: 'input'}).resolve())
+  console.log(plugin.addSchema(schema3, {io: 'input'}).resolve())
+
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'boolean',
+    },
+    schema3: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        schema1: {$ref: '#/components/schemas/schema1'},
+        schema2: {$ref: '#/components/schemas/schema2'},
+      },
+      required: ['schema1', 'schema2'],
+      additionalProperties: false,
+    },
+  })
+
+  expect(plugin.addSchema(schema1, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'string',
+  })
+  expect(plugin.addSchema(schema2, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'string',
+  })
+  expect(plugin.addSchema(schema3, {io: 'input'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {schema1: {type: 'string'}, schema2: {type: 'string'}},
+    required: ['schema1', 'schema2'],
+  })
+
+  expect(plugin.addSchema(schema1, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'number',
+  })
+  expect(plugin.addSchema(schema2, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'boolean',
+  })
+  expect(plugin.addSchema(schema3, {io: 'output'}).resolve()).toEqual({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    properties: {
+      schema1: {$ref: '#/components/schemas/schema1'},
+      schema2: {$ref: '#/components/schemas/schema2'},
+    },
+    required: ['schema1', 'schema2'],
     additionalProperties: false,
   })
 })

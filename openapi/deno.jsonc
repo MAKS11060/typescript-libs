@@ -1,6 +1,10 @@
 {
   "name": "@maks11060/openapi",
+<<<<<<< HEAD
   "version": "0.1.0",
+=======
+  "version": "0.1.1",
+>>>>>>> main
   "tasks": {
     "test": "deno test",
     "test-dev": "deno test --no-check --watch",
