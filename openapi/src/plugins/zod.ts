@@ -5,14 +5,12 @@ const componentName = '#/components/schemas'
 
 export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> => {
   const registry = z.registry<z.core.JSONSchemaMeta>()
-  // const ioMode = new WeakMap<WeakKey, 'input' | 'output'>()
   const ioModeGlobal = new Map<string, 'input' | 'output'>()
 
   return {
     vendor: z.any()['~standard']['vendor'],
     registry: true,
     addSchema(schema, options) {
-      // if (options?.io) ioMode.set(schema, options?.io)
       return {
         resolve() {
           const jsonSchema = z.toJSONSchema(schema, {
