@@ -5,6 +5,7 @@ const componentName = '#/components/schemas'
 
 export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> => {
   const registry = z.registry<z.core.JSONSchemaMeta>()
+  const registryInput = z.registry<z.core.JSONSchemaMeta>()
   const ioModeGlobal = new Map<string, 'input' | 'output'>()
 
   return {
@@ -48,8 +49,12 @@ export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> 
       }
     },
     addSchemaGlobal(schema, name: string, options) {
-      if (options?.io === 'input') ioModeGlobal.set(name, options?.io)
-      registry.add(schema, {id: name})
+      if (options?.io === 'input') {
+        ioModeGlobal.set(name, options?.io)
+        registryInput.add(schema, {id: name})
+      } else {
+        registry.add(schema, {id: name})
+      }
     },
     getSchemas() {
       const jsonSchemas = z.toJSONSchema(registry, {
@@ -63,12 +68,12 @@ export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> 
 
       // overwrite using input schema
       if (ioModeGlobal.size) {
-        const jsonSchemasInput = z.toJSONSchema(registry, {
+        const jsonSchemasInput = z.toJSONSchema(registryInput, {
           uri: (id) => `${componentName}/${id}`,
           io: 'input',
           reused: 'inline',
         })
-        for (const key in jsonSchemas.schemas) {
+        for (const key in jsonSchemasInput.schemas) {
           delete jsonSchemasInput.schemas[key].$id
         }
         for (const [name] of ioModeGlobal) {

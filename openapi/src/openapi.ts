@@ -231,21 +231,21 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
   }
 
   const _toSchema = (schema: MaybeRef<AddSchema> | unknown) => {
+    if (isRef<AddSchema>(schema)) {
+      const {value, ref} = deRef(schema)
+      const name = value.name ?? components.get(value.schema!)
+      return {$ref: `#/components/schemas/${name}`, ...ref}
+    }
+
     // raw schema
     if (components.has(schema as any)) {
       const name = components.get(schema as any)
       return {$ref: `#/components/schemas/${name}`}
     }
 
-    if (isRef(schema)) {
-      const {value, ref} = deRef<AddSchema>(schema as any)
-      const name = components.get(value.schema!)
-      return {$ref: `#/components/schemas/${name}`, ...ref}
-    }
-
-    for (const item of config.plugins?.schema || []) {
-      if (item.vendor === (schema as any)?.['~standard']?.vendor) {
-        const {resolve} = item.addSchema(schema)
+    for (const plugin of config.plugins?.schema || []) {
+      if (plugin.vendor === (schema as any)?.['~standard']?.vendor) {
+        const {resolve} = plugin.addSchema(schema)
         return resolve()
       }
     }
@@ -337,7 +337,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
     toYAML(options?: YAML.StringifyOptions) {
       return YAML.stringify(this.toDoc(), options)
     },
-    toDoc() {
+    toDoc(): any {
       return {
         openapi: '3.1.1',
         ...toRest(config, {
@@ -400,7 +400,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       return pathItem
     },
 
-    addSchema(name, schema) {
+    addSchema(name, schema, io) {
       isValidComponentName(name)
       if (internal.components.schemas.has(name)) {
         throw new Error(`Component name is already used: ${name}`)
@@ -409,19 +409,23 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       // register the schema using the plugin
       for (const plugin of config.plugins?.schema ?? []) {
         if (plugin.vendor === (schema as StandardSchemaV1)?.['~standard']?.vendor) {
-          plugin.addSchemaGlobal(schema, name)
+          plugin.addSchemaGlobal(schema, name, {io})
           components.set(schema!, name)
           internal.components.schemas.set(name, schema)
+
           return createRef({
             schema,
+            name,
           })
         }
       }
 
+      // register schema as object
       components.set(schema!, name)
       internal.components.schemas.set(name, schema)
       return createRef({
         schema,
+        name
       })
     },
 

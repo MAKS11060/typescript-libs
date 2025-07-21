@@ -117,6 +117,44 @@ export interface ServerVariableObject {
   description?: string
 }
 
+interface OpenAPIDoc {
+  openapi: `${string}.${string}.${string}`
+  info: InfoObject
+  tags?: TagObject[]
+  servers?: ServerObject[]
+  externalDocs?: string
+  jsonSchemaDialect?: string
+  paths: Record<
+    string,
+    Record<'get' | 'put' | 'post' | 'head' | 'patch' | 'trace' | 'delete' | 'options', {
+      tags?: string[]
+      summary?: string
+      description?: string
+      externalDocs?: ExternalDocumentationObject
+      operationId?: string
+      deprecated?: boolean
+      parameters?: any[]
+      requestBody?: any
+      responses?: any
+      security?: any
+      servers?: any[]
+    }>
+  >
+  components: Record<
+    | 'schemas'
+    | 'responses'
+    | 'parameters'
+    | 'headers'
+    | 'examples'
+    | 'pathItems'
+    | 'requestBodies'
+    | 'securitySchemas'
+    | 'links'
+    | 'callbacks',
+    Record<string, unknown>
+  >
+}
+
 //////////////// Config
 export interface OpenAPIConfig {
   /**
@@ -183,7 +221,7 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
   }
 
   /** Generates an OpenAPI schema */
-  toDoc(): any
+  toDoc(): OpenAPIDoc
   /** Generates an OpenAPI schema in `json` format */
   toJSON(pretty?: boolean): string
   /** Generates an OpenAPI schema in `yaml` format */
@@ -213,7 +251,11 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
    *   schemas: # <-- HERE
    * ```
    */
-  addSchema<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(name: string, schema: T): Ref<AddSchema<T>>
+  addSchema<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
+    name: string,
+    schema: T,
+    io?: 'input',
+  ): Ref<AddSchema<T>>
 
   /**
    * Add a `schemas` to components
@@ -574,8 +616,9 @@ export interface AddRequestBody<Config extends OpenAPIConfig = OpenAPIConfig> {
 export interface AddRequestBodyContent<T = unknown> extends AddResponseContent<T> {}
 
 export interface AddSchema<T = unknown> {
-  // [Internal]: {schema: T}
   schema: T
+  /** Schema name */
+  name: string
 }
 
 export interface Example<T = unknown> {

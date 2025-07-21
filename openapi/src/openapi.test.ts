@@ -359,383 +359,105 @@ Deno.test('createDoc() paths', async (t) => {
   })
 })
 
-// Deno.test('Test', async (t) => {
-//   const doc = createDoc({
-//     info: {
-//       title: 'test',
-//       version: '1',
-//     },
-//   })
+Deno.test('createDoc() schemas io', async (t) => {
+  const doc = createDoc({
+    plugins: {schema: [zodPlugin()]},
+    info: {title: 'test', version: '1'},
+  })
 
-//   const testQueryParam = doc.addParameter('Test', 'query', 'q', (t) => {
-//     t.required() //
-//       .schema({type: 'string'})
-//       .example('Example1', (t) => t.value('123'))
-//   })
+  const email = z.email()
+  const emailOrUsername = z.string().transform((v: string) => {
+    if (email.safeParse(v).success) {
+      return {type: 'email', value: v} as const
+    }
+    return {type: 'username', value: v} as const
+  }).pipe(z.discriminatedUnion('type', [
+    z.object({type: z.literal('email'), value: email}),
+    z.object({type: z.literal('username'), value: z.string()}),
+  ]))
 
-//   // doc.addPathItem('test', (t) => {
-//   // t.parameter(testQueryParam)
-//   // })
+  const password = z.string().min(8).max(64)
+  const authLoginSchema = z.object({
+    login: emailOrUsername,
+    password,
+  })
 
-//   // console.log(doc.toDoc())
-//   // console.log(doc.toYAML())
-// })
+  // doc.addSchema('authLoginSchemaIn', authLoginSchemaIn, 'input')
+  const output = doc.addSchema('authLoginSchema', authLoginSchema)
+  const input = doc.addSchema('authLoginSchemaIn', authLoginSchema, 'input')
 
-// Deno.test('Test 1', async (t) => {
-//   const doc = createDoc({
-//     info: {
-//       title: 'test',
-//       version: '1',
-//     },
-//   })
+  doc.addPath('/login')
+    .post((t) => {
+      // t.requestBody((t) => t.content('application/json', authLoginSchema))
+      t.requestBody((t) => t.content('application/json', input))
+      t.response(200, (t) => t.content('application/json', output))
+      t.response(201, (t) => t.content('application/json', authLoginSchema))
+    })
 
-//   const testSchema = doc.addSchema('Test', {})
-//   const testExample = doc.addExample('Test', (t) => {
-//     t.summary('summary')
-//     t.describe('description')
-//     t.value('val1')
-//   })
-//   const testResponse = doc.addResponse('Test', (t) => {
-//     t.describe('description')
-//     t.content('application/json', {type: 'string'})
-//     t.header('x-header', (t) => {
-//       t.schema({type: 'string'}) //
-//         .example('Example_1', (t) => t.value('123'))
-//         .example('Example_2', testExample)
-//     })
-//   })
-//   const testRequestBody = doc.addRequestBody('Test', (t) => {
-//     t.describe('description')
-//     t.content('application/json', {type: 'string'}) //
-//       .example('Example_1', (t) => t.value('123'))
-//       .example('Example_2', testExample)
-//     t.required()
-//   })
+  // const res = doc.toDoc()
+  // console.log(res.paths['/login'].post.requestBody.content)
+  // console.log(res.paths['/login'].post.responses[200].content)
 
-//   const testQueryParam = doc.addParameter('Test', 'query', 'q', (t) => {
-//     t.required() //
-//       .schema({type: 'string'})
-//       .example('Example_1', (t) => t.value('123'))
-//       .example('Example_2', testExample)
-//   })
-
-//   const testPath = doc.addPathItem('Test', (t) => {
-//     t.get((t) => {
-//       t.requestBody(testRequestBody)
-//       t.response(200, testResponse)
-//       t.parameter(testQueryParam)
-//     })
-//   })
-
-//   const anon = doc.addSecuritySchema.anonymous()
-//   const oauth2 = doc.addSecuritySchema.oauth2('OAuth2', {
-//     implicit: {
-//       authorizationUrl: '',
-//       scopes: {
-//         read: '',
-//         write: '',
-//       },
-//     },
-//   })
-
-//   doc.security(anon)
-//   doc.security(oauth2, ['read'])
-
-//   console.log(doc.toJSON(true))
-//   expect(doc.toDoc()).toEqual({
-//     openapi: '3.1.1',
-//     info: {
-//       title: 'test',
-//       version: '1',
-//     },
-//     security: [
-//       {},
-//       {
-//         OAuth2: ['read'],
-//       },
-//     ],
-//     paths: {},
-//     components: {
-//       responses: {
-//         Test: {
-//           description: 'description',
-//           headers: {
-//             'x-header': {
-//               schema: {
-//                 type: 'string',
-//               },
-//               examples: {
-//                 Example_1: {
-//                   value: '123',
-//                 },
-//                 Example_2: {
-//                   $ref: '#/components/examples/Test',
-//                 },
-//               },
-//             },
-//           },
-//           content: {
-//             'application/json': {
-//               schema: {
-//                 type: 'string',
-//               },
-//             },
-//           },
-//         },
-//       },
-//       parameters: {
-//         Test: {
-//           in: 'query',
-//           name: 'q',
-//           required: true,
-//           schema: {
-//             type: 'string',
-//           },
-//           examples: {
-//             Example_1: {
-//               value: '123',
-//             },
-//             Example_2: {
-//               $ref: '#/components/examples/Test',
-//             },
-//           },
-//         },
-//       },
-//       examples: {
-//         Test: {
-//           summary: 'summary',
-//           description: 'description',
-//           value: 'val1',
-//         },
-//       },
-//       requestBodies: {
-//         Test: {
-//           description: 'description',
-//           required: true,
-//           content: {
-//             'application/json': {
-//               schema: {
-//                 type: 'string',
-//               },
-//               examples: {
-//                 Example_1: {
-//                   value: '123',
-//                 },
-//                 Example_2: {
-//                   $ref: '#/components/examples/Test',
-//                 },
-//               },
-//             },
-//           },
-//         },
-//       },
-//       securitySchemes: {
-//         OAuth2: {
-//           type: 'oauth2',
-//           flows: {
-//             implicit: {
-//               authorizationUrl: '',
-//               scopes: {
-//                 read: '',
-//                 write: '',
-//               },
-//             },
-//           },
-//         },
-//       },
-//       pathItems: {
-//         Test: {
-//           get: {
-//             parameters: [
-//               {
-//                 $ref: '#/components/parameters/Test',
-//               },
-//             ],
-//             requestBody: {
-//               $ref: '#/components/requestBodies/Test',
-//             },
-//             responses: {
-//               '200': {
-//                 $ref: '#/components/responses/Test',
-//               },
-//             },
-//           },
-//         },
-//       },
-//     },
-//   })
-// })
-
-// Deno.test('Parameters', async (t) => {
-//   const doc = createDoc({
-//     plugins: {
-//       schema: [zodPlugin()],
-//     },
-//     info: {title: 'test', version: '1'},
-//   })
-
-//   const queryParam2 = doc.addParameter('Param2', 'query', 'param2', (t) => {
-//     t.schema(z.number())
-//   })
-
-//   doc
-//     .addPath('/1') //
-//     .parameter('query', 'param1', (t) => {
-//       t.schema(z.number())
-//     })
-//     .get((t) => {
-//       t.parameter(queryParam2)
-//       t.parameter('query', 'param3', (t) => t.schema(z.number()))
-//     })
-
-//   doc
-//     .addPath('/2/{param1}/{param2}', {
-//       param2: (t) => t.schema(z.number()),
-//     }) //
-//     .parameter('query', 'param1', (t) => {
-//       t.schema(z.number())
-//     })
-//     .get((t) => {
-//       t.parameter(queryParam2)
-//       t.parameter('query', 'param3', (t) => t.schema(z.number()))
-//     })
-
-//   doc.addParameter('ParamWithContent', 'query', 'content', (t) => {
-//     t.content(
-//       'application/json',
-//       z.object({
-//         key: z.string(),
-//       }),
-//     )
-//   })
-
-//   console.log(doc.toJSON(true))
-//   expect(doc.toDoc()).toEqual({
-//     openapi: '3.1.1',
-//     info: {
-//       title: 'test',
-//       version: '1',
-//     },
-//     paths: {
-//       '/1': {
-//         parameters: [
-//           {
-//             in: 'query',
-//             name: 'param1',
-//             schema: {
-//               $schema: 'https://json-schema.org/draft/2020-12/schema',
-//               type: 'number',
-//             },
-//           },
-//         ],
-//         get: {
-//           parameters: [
-//             {
-//               $ref: '#/components/parameters/Param2',
-//             },
-//             {
-//               in: 'query',
-//               name: 'param3',
-//               schema: {
-//                 $schema: 'https://json-schema.org/draft/2020-12/schema',
-//                 type: 'number',
-//               },
-//             },
-//           ],
-//         },
-//       },
-//       '/2/{param1}/{param2}': {
-//         parameters: [
-//           {
-//             in: 'path',
-//             name: 'param1',
-//             required: true,
-//             schema: {
-//               type: 'string',
-//             },
-//           },
-//           {
-//             in: 'path',
-//             name: 'param2',
-//             required: true,
-//             schema: {
-//               $schema: 'https://json-schema.org/draft/2020-12/schema',
-//               type: 'number',
-//             },
-//           },
-//           {
-//             in: 'query',
-//             name: 'param1',
-//             schema: {
-//               $schema: 'https://json-schema.org/draft/2020-12/schema',
-//               type: 'number',
-//             },
-//           },
-//         ],
-//         get: {
-//           parameters: [
-//             {
-//               $ref: '#/components/parameters/Param2',
-//             },
-//             {
-//               in: 'query',
-//               name: 'param3',
-//               schema: {
-//                 $schema: 'https://json-schema.org/draft/2020-12/schema',
-//                 type: 'number',
-//               },
-//             },
-//           ],
-//         },
-//       },
-//     },
-//     components: {
-//       schemas: {},
-//       parameters: {
-//         Param2: {
-//           in: 'query',
-//           name: 'param2',
-//           schema: {
-//             $schema: 'https://json-schema.org/draft/2020-12/schema',
-//             type: 'number',
-//           },
-//         },
-//         ParamWithContent: {
-//           in: 'query',
-//           name: 'content',
-//           content: {
-//             'application/json': {
-//               schema: {
-//                 $schema: 'https://json-schema.org/draft/2020-12/schema',
-//                 type: 'object',
-//                 properties: {
-//                   key: {
-//                     type: 'string',
-//                   },
-//                 },
-//                 required: ['key'],
-//                 additionalProperties: false,
-//               },
-//             },
-//           },
-//         },
-//       },
-//     },
-//   })
-// })
-
-// Deno.test('createDoc() schemas', async (t) => {
-//   const doc = createDoc({
-//     plugins: {schema: [zodPlugin()]},
-//     info: {title: 'test', version: '1'},
-//   })
-
-//   const ID = z.int().positive()
-//   const user = z.object({
-//     id: ID,
-//     username: z.string(),
-//   })
-
-//   console.log(doc.addSchemas({ID, user}))
-//   console.log(doc.toYAML())
-// })
+  // console.log(doc.toJSON())
+  expect(doc.toDoc()).toEqual({
+    openapi: '3.1.1',
+    info: {title: 'test', version: '1'},
+    paths: {
+      '/login': {
+        post: {
+          requestBody: {content: {'application/json': {schema: {$ref: '#/components/schemas/authLoginSchemaIn'}}}},
+          responses: {
+            '200': {
+              description: 'Response 200',
+              content: {'application/json': {schema: {$ref: '#/components/schemas/authLoginSchema'}}},
+            },
+            '201': {
+              description: 'Response 201',
+              content: {'application/json': {schema: {$ref: '#/components/schemas/authLoginSchemaIn'}}},
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        authLoginSchema: {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: {
+            login: {
+              anyOf: [{
+                type: 'object',
+                properties: {
+                  type: {type: 'string', const: 'email'},
+                  value: {
+                    type: 'string',
+                    format: 'email',
+                    pattern:
+                      "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                  },
+                },
+                required: ['type', 'value'],
+                additionalProperties: false,
+              }, {
+                type: 'object',
+                properties: {type: {type: 'string', const: 'username'}, value: {type: 'string'}},
+                required: ['type', 'value'],
+                additionalProperties: false,
+              }],
+            },
+            password: {type: 'string', minLength: 8, maxLength: 64},
+          },
+          required: ['login', 'password'],
+          additionalProperties: false,
+        },
+        authLoginSchemaIn: {
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: {login: {type: 'string'}, password: {type: 'string', minLength: 8, maxLength: 64}},
+          required: ['login', 'password'],
+        },
+      },
+    },
+  })
+})
