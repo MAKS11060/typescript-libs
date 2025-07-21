@@ -86,7 +86,45 @@ Deno.test('zodPlugin()', async (t) => {
     additionalProperties: false,
   })
 
-  console.log(plugin.getSchemas().schemas)
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    ID: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'integer',
+      exclusiveMinimum: 0,
+      maximum: 9007199254740991,
+    },
+    User: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        id: {$ref: '#/components/schemas/ID'},
+        username: {type: 'string'},
+        friend: {$ref: '#/components/schemas/User'},
+      },
+      required: ['id', 'username', 'friend'],
+      additionalProperties: false,
+    },
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'boolean',
+    },
+    schema3: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        schema1: {$ref: '#/components/schemas/schema1'},
+        schema2: {$ref: '#/components/schemas/schema2'},
+        user: {$ref: '#/components/schemas/User'},
+      },
+      required: ['schema1', 'schema2', 'user'],
+      additionalProperties: false,
+    },
+  })
 })
 
 Deno.test('zodPlugin() io', async (t) => {
@@ -256,7 +294,7 @@ Deno.test('zodPlugin() global io mixed 1', async (t) => {
   plugin.addSchemaGlobal(schema2, 'schema2')
   plugin.addSchemaGlobal(schema3, 'schema3', {io: 'input'})
 
-  console.log(plugin.getSchemas().schemas)
+  // console.log(plugin.getSchemas().schemas)
   expect(plugin.getSchemas().schemas).toEqual({
     schema2: {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -391,9 +429,9 @@ Deno.test('zodPlugin() global io mixed 4', async (t) => {
   plugin.addSchemaGlobal(schema2, 'schema2')
   plugin.addSchemaGlobal(schema3, 'schema3')
 
-  console.log(plugin.addSchema(schema1, {io: 'input'}).resolve())
-  console.log(plugin.addSchema(schema2, {io: 'input'}).resolve())
-  console.log(plugin.addSchema(schema3, {io: 'input'}).resolve())
+  // console.log(plugin.addSchema(schema1, {io: 'input'}).resolve())
+  // console.log(plugin.addSchema(schema2, {io: 'input'}).resolve())
+  // console.log(plugin.addSchema(schema3, {io: 'input'}).resolve())
 
   // console.log(plugin.getSchemas().schemas)
   expect(plugin.getSchemas().schemas).toEqual({
