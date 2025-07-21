@@ -86,7 +86,45 @@ Deno.test('zodPlugin()', async (t) => {
     additionalProperties: false,
   })
 
-  console.log(plugin.getSchemas().schemas)
+  // console.log(plugin.getSchemas().schemas)
+  expect(plugin.getSchemas().schemas).toEqual({
+    ID: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'integer',
+      exclusiveMinimum: 0,
+      maximum: 9007199254740991,
+    },
+    User: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        id: {$ref: '#/components/schemas/ID'},
+        username: {type: 'string'},
+        friend: {$ref: '#/components/schemas/User'},
+      },
+      required: ['id', 'username', 'friend'],
+      additionalProperties: false,
+    },
+    schema1: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'number',
+    },
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'boolean',
+    },
+    schema3: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {
+        schema1: {$ref: '#/components/schemas/schema1'},
+        schema2: {$ref: '#/components/schemas/schema2'},
+        user: {$ref: '#/components/schemas/User'},
+      },
+      required: ['schema1', 'schema2', 'user'],
+      additionalProperties: false,
+    },
+  })
 })
 
 Deno.test('zodPlugin() io', async (t) => {
@@ -244,11 +282,11 @@ Deno.test('zodPlugin() global io input', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() global io mixed', async (t) => {
+Deno.test('zodPlugin() global io mixed 1', async (t) => {
   const plugin = zodPlugin()
 
   const schema1 = z.number().pipe(z.coerce.string())
-  const schema2 = z.object({schema1})
+  const schema2 = z.object({schema1, schema2: schema1.optional()})
   const schema3 = schema2.pipe(z.transform((v) => v.schema1.length)).pipe(z.number())
 
   //
@@ -258,20 +296,25 @@ Deno.test('zodPlugin() global io mixed', async (t) => {
 
   // console.log(plugin.getSchemas().schemas)
   expect(plugin.getSchemas().schemas).toEqual({
+    schema2: {
+      $schema: 'https://json-schema.org/draft/2020-12/schema',
+      type: 'object',
+      properties: {schema1: {type: 'string'}, schema2: {type: 'string'}},
+      required: ['schema1'],
+      additionalProperties: false,
+    },
     schema1: {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'number',
     },
-    schema2: {
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      type: 'object',
-      properties: {schema1: {$ref: '#/components/schemas/schema1'}},
-      required: ['schema1'],
-      additionalProperties: false,
-    },
     schema3: {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
-      $ref: '#/components/schemas/schema2',
+      type: 'object',
+      properties: {
+        schema1: {$ref: '#/components/schemas/schema1'},
+        schema2: {$ref: '#/components/schemas/schema1'},
+      },
+      required: ['schema1'],
     },
   })
 })
@@ -330,31 +373,45 @@ Deno.test('zodPlugin() global io mixed 3', async (t) => {
   //
   plugin.addSchemaGlobal(emailOrUsername, 'emailOrUsername', {io: 'input'})
   plugin.addSchemaGlobal(loginUser, 'loginUser')
-  plugin.addSchemaGlobal(loginUser, 'loginUserSchema', {io: 'input'})
+  plugin.addSchemaGlobal(loginUser, 'loginUserInput', {io: 'input'})
 
-  // console.log(plugin.getSchemas().schemas)
+  // console.log(JSON.stringify(plugin.getSchemas().schemas))
   expect(plugin.getSchemas().schemas).toEqual({
-    emailOrUsername: {
-      $schema: 'https://json-schema.org/draft/2020-12/schema',
-      type: 'string',
-    },
     loginUser: {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
       properties: {
-        login: {$ref: '#/components/schemas/emailOrUsername'},
+        login: {
+          anyOf: [{
+            type: 'object',
+            properties: {
+              type: {type: 'string', const: 'email'},
+              value: {
+                type: 'string',
+                format: 'email',
+                pattern:
+                  "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+              },
+            },
+            required: ['type', 'value'],
+            additionalProperties: false,
+          }, {
+            type: 'object',
+            properties: {type: {type: 'string', const: 'username'}, value: {type: 'string'}},
+            required: ['type', 'value'],
+            additionalProperties: false,
+          }],
+        },
         password: {type: 'string'},
       },
       required: ['login', 'password'],
       additionalProperties: false,
     },
-    loginUserSchema: {
+    emailOrUsername: {$schema: 'https://json-schema.org/draft/2020-12/schema', type: 'string'},
+    loginUserInput: {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       type: 'object',
-      properties: {
-        login: {$ref: '#/components/schemas/emailOrUsername'},
-        password: {type: 'string'},
-      },
+      properties: {login: {$ref: '#/components/schemas/emailOrUsername'}, password: {type: 'string'}},
       required: ['login', 'password'],
     },
   })
@@ -372,9 +429,9 @@ Deno.test('zodPlugin() global io mixed 4', async (t) => {
   plugin.addSchemaGlobal(schema2, 'schema2')
   plugin.addSchemaGlobal(schema3, 'schema3')
 
-  console.log(plugin.addSchema(schema1, {io: 'input'}).resolve())
-  console.log(plugin.addSchema(schema2, {io: 'input'}).resolve())
-  console.log(plugin.addSchema(schema3, {io: 'input'}).resolve())
+  // console.log(plugin.addSchema(schema1, {io: 'input'}).resolve())
+  // console.log(plugin.addSchema(schema2, {io: 'input'}).resolve())
+  // console.log(plugin.addSchema(schema3, {io: 'input'}).resolve())
 
   // console.log(plugin.getSchemas().schemas)
   expect(plugin.getSchemas().schemas).toEqual({

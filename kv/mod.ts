@@ -4,7 +4,7 @@
  * @example Create `kvModel`
  * ```ts
  * import {kvModel} from '@maks11060/kv'
- * import {z} from 'zod/v4'
+ * import {z} from 'zod'
  *
  * using kv = await Deno.openKv(':memory:')
  *
