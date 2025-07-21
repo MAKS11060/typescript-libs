@@ -425,7 +425,7 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
       internal.components.schemas.set(name, schema)
       return createRef({
         schema,
-        name
+        name,
       })
     },
 
