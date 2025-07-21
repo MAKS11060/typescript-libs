@@ -87,4 +87,3 @@
 
 export { createDoc, getInternal, getOperationIds, getPaths } from './src/openapi.ts'
 export { type OpenAPI, type OpenAPIConfig, type SchemaPlugin } from './src/types.ts'
-
