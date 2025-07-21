@@ -2,7 +2,7 @@
 
 import { zodPlugin } from '@maks11060/openapi/zod'
 import { expect } from 'jsr:@std/expect/expect'
-import z from 'zod/v4'
+import z from 'zod'
 import { createDoc } from './openapi.ts'
 
 Deno.test('createDoc()', async (t) => {
