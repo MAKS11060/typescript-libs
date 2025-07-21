@@ -26,11 +26,20 @@ export interface OpenAPIRules {
 }
 
 //////////////// Plugins
+export interface SchemaPluginConfig {
+  /**
+   * Whether to extract the `"input"` or `"output"` type. Relevant to transforms, Error converting schema to JSONz, defaults, coerced primitives, etc.
+   * - `"output"` - Default. Convert the output schema.
+   * - `"input"` - Convert the input schema.
+   */
+  io?: 'input' | 'output'
+}
+
 export interface SchemaPlugin<T = unknown> {
   vendor: string
   registry: boolean
-  addSchema(schema: T): {resolve(): any}
-  addSchemaGlobal(schema: T, name: string): void
+  addSchema(schema: T, options?: SchemaPluginConfig): {resolve(): any}
+  addSchemaGlobal(schema: T, name: string, options?: SchemaPluginConfig): void
   getSchemas(): {schemas: Record<string, any>}
 }
 
