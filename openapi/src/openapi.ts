@@ -316,14 +316,10 @@ export const createDoc = <const T extends OpenAPIConfig>(config: OpenAPIConfig &
         const name = components.get(value)!
 
         // allow no-auth
-        if (value.type === 'none') {
-          return {}
-        }
-        if (value.type === 'oauth2') {
-          scopes ??= []
-          return {[name]: scopes}
-        }
-        return {[name]: {}}
+        if (value.type === 'none') return {}
+        if (value.type === 'oauth2') return {[name]: scopes ?? []}
+        if (value.type === 'openIdConnect') return {[name]: scopes ?? []}
+        return {[name]: []}
       })
       .toArray()
   }
