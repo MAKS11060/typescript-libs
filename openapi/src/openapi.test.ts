@@ -461,3 +461,133 @@ Deno.test('createDoc() schemas io', async (t) => {
     },
   })
 })
+
+Deno.test('createDoc() security', async (t) => {
+  const doc = createDoc({
+    info: {title: 'test', version: '1'},
+  })
+
+  const anon = doc.addSecuritySchema.anonymous()
+
+  const httpBasic = doc.addSecuritySchema.http('Basic', 'basic')
+
+  const httpBearerToken = doc.addSecuritySchema.http('Bearer', 'bearer', 'JWT')
+
+  const apiKey = doc.addSecuritySchema.apiKey('Key', 'header', 'api-key')
+
+  const mtls = doc.addSecuritySchema.mutualTLS('mtls')
+
+  const oauth2 = doc.addSecuritySchema.oauth2('petstore_auth', {
+    implicit: {
+      authorizationUrl: 'https://example.com/api/oauth/dialog',
+      scopes: {
+        'write:pets': 'modify pets in your account',
+        'read:pets': 'read your pets',
+      },
+    },
+    authorizationCode: {
+      authorizationUrl: 'https://example.com/api/oauth/dialog',
+      tokenUrl: 'https://example.com/api/oauth/token',
+      scopes: {
+        'write:pets': 'modify pets in your account',
+        'read:pets': 'read your pets',
+      },
+    },
+  })
+
+  const openIdConnect = doc.addSecuritySchema.openIdConnect('OIDC', 'https://example.com')
+
+  doc.security(anon)
+  doc.security(httpBasic)
+  doc.security(httpBearerToken)
+  doc.security(apiKey)
+  doc.security(mtls)
+  doc.security(oauth2, ['write:pets', 'read:pets'])
+  doc.security(openIdConnect, ['write', 'read'])
+
+  doc.addPath('/api/user')
+    .get((t) => {
+      t.security(anon)
+      t.security(httpBasic)
+      t.security(httpBearerToken)
+      t.security(apiKey)
+      t.security(mtls)
+      t.security(oauth2, ['write:pets', 'read:pets'])
+      t.security(openIdConnect, ['write', 'read'])
+    })
+
+  // console.log(doc.toJSON(true))
+  expect(doc.toDoc()).toEqual({
+    openapi: '3.1.1',
+    info: {title: 'test', version: '1'},
+    security: [
+      {},
+      {Basic: []},
+      {Bearer: []},
+      {Key: []},
+      {mtls: []},
+      {petstore_auth: ['write:pets', 'read:pets']},
+      {OIDC: ['write', 'read']},
+    ],
+    paths: {
+      '/api/user': {
+        get: {
+          security: [
+            {},
+            {Basic: []},
+            {Bearer: []},
+            {Key: []},
+            {mtls: []},
+            {petstore_auth: ['write:pets', 'read:pets']},
+            {OIDC: ['write', 'read']},
+          ],
+        },
+      },
+    },
+    components: {
+      securitySchemes: {
+        Basic: {
+          type: 'http',
+          scheme: 'basic',
+        },
+        Bearer: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+        Key: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'api-key',
+        },
+        mtls: {
+          type: 'mutualTLS',
+        },
+        petstore_auth: {
+          type: 'oauth2',
+          flows: {
+            implicit: {
+              authorizationUrl: 'https://example.com/api/oauth/dialog',
+              scopes: {
+                'write:pets': 'modify pets in your account',
+                'read:pets': 'read your pets',
+              },
+            },
+            authorizationCode: {
+              authorizationUrl: 'https://example.com/api/oauth/dialog',
+              tokenUrl: 'https://example.com/api/oauth/token',
+              scopes: {
+                'write:pets': 'modify pets in your account',
+                'read:pets': 'read your pets',
+              },
+            },
+          },
+        },
+        OIDC: {
+          type: 'openIdConnect',
+          openIdConnectUrl: 'https://example.com',
+        },
+      },
+    },
+  })
+})
