@@ -343,14 +343,17 @@ export interface OpenAPI<Config extends OpenAPIConfig = OpenAPIConfig> {
 
   /** The object contains methods for creating `security schemes` */
   addSecuritySchema: AddSecuritySchema
+
   /** Apply a `security` scheme to the whole document */
   security<E>(
     schema: Ref<Security<string, E>>,
-    scopes?: GetRules<Config, 'security', true> extends false ? ExtractScopesFromFlows<E>[] | string[]
+    scopes?: GetRules<Config, 'security', true> extends false //
+      ? ExtractScopesFromFlows<E>[] | string[]
       : ExtractScopesFromFlows<E>[],
   ): void
   /** Apply a `security` scheme to the whole document */
   security(securitySchema: Ref<Security<string>>): void
+  security(securitySchema: Ref<Security<'openIdConnect'>>, scopes?: string[]): void
 }
 
 export interface AddPath<Config extends OpenAPIConfig = OpenAPIConfig> {
@@ -561,6 +564,7 @@ export interface AddOperation<Config extends OpenAPIConfig = OpenAPIConfig> {
   ): void
   /** Apply the `security` scheme to the operation */
   security(securitySchema: Ref<Security<string>>): void
+  security(securitySchema: Ref<Security<'openIdConnect'>>, scopes?: string[]): void
 
   /** Add a `server` specific to the operation */
   server<URI extends string>(server: ServerObject<URI>): void
