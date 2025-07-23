@@ -11,7 +11,8 @@
  * @module PKCE
  */
 
-import { encodeBase64Url } from '@std/encoding/base64url'
+import { decodeBase64Url, encodeBase64Url } from '@std/encoding/base64url'
+import { timingSafeEqual } from 'jsr:@std/crypto/timing-safe-equal'
 
 /**
  * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.
@@ -35,7 +36,7 @@ export interface PkceChallenge {
 
 const encoder = new TextEncoder()
 
-const sha256 = (data: string) => crypto.subtle.digest('SHA-256', encoder.encode(data))
+const sha256 = async (data: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(data)))
 
 /**
  * Creates a PKCE (Proof Key for Code Exchange) challenge.
@@ -90,4 +91,14 @@ export const usePKCE = async (
   uri.searchParams.set('code_challenge', codeChallenge)
   uri.searchParams.set('code_challenge_method', codeChallengeMethod)
   return {uri, codeVerifier}
+}
+
+//
+export const pkceVerify = async (pkce: PkceChallenge): Promise<boolean> => {
+  if (pkce.codeChallengeMethod === 'S256') {
+    return timingSafeEqual(await sha256(pkce.codeVerifier), decodeBase64Url(pkce.codeChallenge))
+  } else if (pkce.codeChallengeMethod === 'plain') {
+    return pkce.codeVerifier === pkce.codeChallenge
+  }
+  return false
 }
