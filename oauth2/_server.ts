@@ -1,8 +1,10 @@
 import {
   oauth2Authorize,
   OAuth2ClientConfig,
+  oauth2ClientCredentials,
   OAuth2Exception,
   oauth2ExchangeCode,
+  oauth2Password,
   oauth2RefreshToken,
   OAuth2TokenResponse,
   PkceChallenge,
@@ -10,8 +12,10 @@ import {
   usePKCE,
 } from '@maks11060/oauth2'
 import { oauth2Implicit } from '@maks11060/oauth2/implicit'
+import { decodeBase64 } from '@std/encoding/base64'
 import { encodeBase64Url } from '@std/encoding/base64url'
 import { Hono } from 'hono'
+import { expect } from 'jsr:@std/expect/expect'
 import { ErrorMap } from './src/error.ts'
 
 const RESPONSE_TYPE = 'response_type'
@@ -48,6 +52,12 @@ const generateToken = (options?: {expires_in?: number; refresh?: boolean}): OAut
     expires_in: options?.expires_in ?? 3600,
     ...(options?.refresh && {refresh_token: crypto.randomUUID()}),
   }
+}
+
+const parseBasicAuth = (authorization?: string) => {
+  if (!authorization?.startsWith('Basic')) return
+  const [username, password] = new TextDecoder().decode(decodeBase64(authorization.slice(6))).split(':', 2)
+  return {username, password}
 }
 
 interface OAuth2AppConfig {
@@ -125,14 +135,27 @@ const createOAuth2Server = (options: {
         store: OAuth2StorageData
       }): OAuth2TokenResponse | Promise<OAuth2TokenResponse>
     }
+    /** obtain new token using refresh_token */
     refreshToken?(data: {
       refresh_token: string
       client_id: string
     }): OAuth2TokenResponse | Promise<OAuth2TokenResponse>
 
-    implicit?: {}
-    password?: {}
-    credentials?: {}
+    implicit?(data: {
+      client: OAuth2AppConfig
+    }): OAuth2TokenResponse | Promise<OAuth2TokenResponse>
+
+    password?(data: {
+      client_id: string
+      client_secret: string
+      username: string
+      password: string
+    }): OAuth2TokenResponse | Promise<OAuth2TokenResponse>
+
+    credentials?(data: {
+      client_id: string
+      client_secret: string
+    }): OAuth2TokenResponse | Promise<OAuth2TokenResponse>
   }
 }) => {
   return {
@@ -195,9 +218,13 @@ const createOAuth2Server = (options: {
       } else if (responseType === 'token') {
         const body = new URLSearchParams()
 
-        body.set('access_token', 'TOKEN')
-        body.set('token_type', 'Bearer')
-        body.set('expires_in', String(3600))
+        const token = await options.grants.implicit?.({client})!
+
+        body.set('access_token', token.access_token)
+        body.set('token_type', token.token_type)
+        body.set('expires_in', String(token.expires_in))
+        if (token.scope) body.set('expires_in', token.scope)
+
         // PKCE
         if (codeChallenge && codeChallengeMethod) {
           codeChallenge && body.set('code_challenge', codeChallenge)
@@ -228,7 +255,7 @@ const createOAuth2Server = (options: {
         }
         | {grant_type: 'refresh_token'; client_id: string; refresh_token: string}
         | {grant_type: 'client_credentials'; client_id: string; client_secret: string}
-        | {grant_type: 'password'; username: string; password: string; client_id: string; client_secret: string},
+        | {grant_type: 'password'; client_id: string; client_secret: string; username: string; password: string},
     ) {
       // const grantType = uri.searchParams.get('grant_type')
       const grantType = data.grant_type
@@ -239,6 +266,8 @@ const createOAuth2Server = (options: {
         (grantType === 'password' && !options.grants?.password) ||
         (grantType === 'client_credentials' && !options.grants?.credentials)
       ) throw new OAuth2Exception(ErrorMap.unsupported_grant_type)
+
+      const client = await options.getClient(data.client_id)
 
       if (grantType === 'authorization_code') {
         const store = await options.storage.get(data.code)!
@@ -269,6 +298,7 @@ const createOAuth2Server = (options: {
           }),
         }
       }
+
       if (grantType === 'refresh_token') {
         const {client_id, refresh_token} = data
 
@@ -277,11 +307,21 @@ const createOAuth2Server = (options: {
           token: await options.grants.refreshToken?.({client_id, refresh_token})!,
         }
       }
+
       if (grantType === 'password') {
-        return {grantType}
+        const {client_id, client_secret, username, password} = data
+        return {
+          grantType,
+          token: await options.grants.password?.({client_id, client_secret, username, password}),
+        }
       }
+
       if (grantType === 'client_credentials') {
-        return {grantType}
+        const {client_id, client_secret} = data
+        return {
+          grantType,
+          token: await options.grants.credentials?.({client_id, client_secret}),
+        }
       }
 
       throw new OAuth2Exception(ErrorMap.server_error)
@@ -341,7 +381,21 @@ Deno.test('Test 442915', async (t) => {
 
         throw new OAuth2Exception(ErrorMap.access_denied)
       },
-      implicit: {},
+      implicit() {
+        const token = generateToken()
+        return token
+      },
+      password(data) {
+        // console.log({data})
+        if (data.username === 'user1' && data.password === 'pass2') {
+          return generateToken()
+        }
+        throw new OAuth2Exception(ErrorMap.access_denied)
+      },
+      credentials(data) {
+        // console.log({data})
+        return generateToken()
+      },
     },
     storage: {
       async create(data) {
@@ -362,11 +416,12 @@ Deno.test('Test 442915', async (t) => {
     return c.redirect(authorizeUri)
   })
   app.post('/oauth2/token', async (c) => {
+    const auth = parseBasicAuth(c.req.header('Authorization'))!
     const {
       grant_type,
       code,
-      client_id,
-      client_secret,
+      client_id = auth.username,
+      client_secret = auth.password,
       redirect_uri,
       code_verifier: codeVerifier,
       state,
@@ -376,6 +431,9 @@ Deno.test('Test 442915', async (t) => {
       username,
       password,
     } = Object.fromEntries(await c.req.formData()) as Record<string, string>
+
+    // client_id ??= auth.username
+    // client_secret ??= auth.password
 
     if (grant_type === 'authorization_code') {
       const data = await server.token({
@@ -403,7 +461,6 @@ Deno.test('Test 442915', async (t) => {
         client_secret,
         username,
         password,
-        // client_secret,
       })
       return c.json(data.token)
     }
@@ -432,17 +489,19 @@ Deno.test('Test 442915', async (t) => {
 
     // step2 / get token
     const token = await oauth2ExchangeCode(oauth2ClientConfig, {
+      fetch: app.request as typeof fetch,
       code: uri.searchParams.get('code')!,
       codeVerifier,
-      fetch: app.request as typeof fetch,
     })
-    console.log(token)
+    expect(token.access_token).toBeTruthy()
+    expect(token.token_type).toEqual('Bearer')
 
     const refreshedToken = await oauth2RefreshToken(oauth2ClientConfig, {
       refresh_token: token.refresh_token!,
       fetch: app.request as typeof fetch,
     })
-    console.log(refreshedToken)
+    expect(refreshedToken.access_token).toBeTruthy()
+    expect(refreshedToken.token_type).toEqual('Bearer')
   })
 
   await t.step('oauth2Implicit()', async (t) => {
@@ -459,14 +518,24 @@ Deno.test('Test 442915', async (t) => {
     // console.log(uri.hash)
   })
 
-  // await t.step('oauth2Password()', async (t) => {
-  //   const token = await oauth2Password(oauth2ClientConfig, {
-  //     username: 'user',
-  //     password: 'pass',
-  //     fetch: app.request as typeof fetch,
-  //   })
-  //   console.log(token)
-  // })
+  await t.step('oauth2Password()', async (t) => {
+    const token = await oauth2Password(oauth2ClientConfig, {
+      fetch: app.request as typeof fetch,
+      username: 'user1',
+      password: 'pass2',
+    })
+
+    expect(token.access_token).toBeTruthy()
+    expect(token.token_type).toEqual('Bearer')
+  })
+
+  await t.step('oauth2ClientCredentials()', async (t) => {
+    const token = await oauth2ClientCredentials(oauth2ClientConfig, {
+      fetch: app.request as typeof fetch,
+    })
+    expect(token.access_token).toBeTruthy()
+    expect(token.token_type).toEqual('Bearer')
+  })
 })
 
 Deno.test('Test 442914', async (t) => {
