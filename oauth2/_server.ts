@@ -19,123 +19,186 @@ const CLIENT_ID = 'client_id'
 const CLIENT_SECRET = 'client_secret'
 const REDIRECT_URI = 'redirect_uri'
 
-Deno.test('Test 426464', async (t) => {
-  const app = new Hono() //
+interface OAuth2AppConfig {
+  type?: 'confidential' | 'public'
+  appName: string
+  clientId: string
+  clientSecret: string
+  redirectUri: string[]
+}
 
+const getClient = (clientId: string): OAuth2AppConfig => {
   const redirectUri = 'http://localhost/oauth2/callback'
-  const oauth2ClientConfig: OAuth2ClientConfig = {
-    clientId: 'CLIENT_ID',
-    clientSecret: 'CLIENT_SECRET',
-    authorizeUri: 'http://example.com/authorize',
-    tokenUri: 'http://example.com/oauth2/token',
-    // redirectUri,
+  const apps: OAuth2AppConfig[] = [
+    {
+      appName: 'app1',
+      clientId: '1',
+      clientSecret: 'SECRET',
+      redirectUri: [redirectUri],
+    },
+    {
+      type: 'confidential',
+      appName: 'app2',
+      clientId: '2',
+      clientSecret: 'SECRET',
+      redirectUri: [redirectUri],
+    },
+    {
+      type: 'public',
+      appName: 'app3',
+      clientId: '3',
+      clientSecret: 'SECRET',
+      redirectUri: [redirectUri],
+    },
+  ]
+
+  const app = apps.find((app) => app.clientId === clientId)
+  if (!app) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+  return app
+}
+
+const getClientRedirectUri = (client: OAuth2AppConfig, redirect_uri?: string | null): string => {
+  if (redirect_uri) {
+    if (!client.redirectUri.includes(redirect_uri)) {
+      throw new OAuth2Exception(ErrorMap.invalid_request)
+    }
+    return redirect_uri
   }
 
-  // Server
-  app.get('/authorize', (c) => {
-    const uri = new URL(c.req.url)
-    const responseType = uri.searchParams.get(RESPONSE_TYPE)! as 'code'
-    const clientId = uri.searchParams.get(CLIENT_ID)!
-    const clientRedirectUri = uri.searchParams.get('redirect_uri')
-    const state = uri.searchParams.get('state')
+  // default redirect
+  if (client.redirectUri.length === 1) {
+    return client.redirectUri[0]
+  }
+  throw new OAuth2Exception(ErrorMap.invalid_request)
+}
 
-    //
-    const callbackURI = new URL(clientRedirectUri ?? redirectUri)
-    callbackURI.searchParams.set('code', 'CODE')
-    state && callbackURI.searchParams.set('state', state)
+// Helpers
+const ResponseType = [
+  'code',
+  'token',
+] as const
+const GrantType = [
+  'client_credentials',
+  'authorization_code',
+  'refresh_token',
+  'password',
+] as const
 
-    return c.redirect(callbackURI)
-  })
-  app.post('/oauth2/token', (c) => {
-    const uri = new URL(c.req.url)
+export type ResponseType = typeof ResponseType[number]
+export type GrantType = typeof GrantType[number]
 
-    const code = uri.searchParams.get('code')
-    const state = uri.searchParams.get('state')
+export const isResponseType = (type: unknown): type is ResponseType => {
+  return ResponseType.includes(String(type) as ResponseType)
+}
+export const isGrantType = (type: unknown): type is GrantType => {
+  return GrantType.includes(String(type) as GrantType)
+}
 
-    return c.json(
-      {
-        token_type: 'Bearer',
-        access_token: 'abc',
-      } satisfies OAuth2TokenResponse,
-    )
-  })
+const createOAuth2Server = (options: {
+  getClient(clientId: string): OAuth2AppConfig
+}) => {
+  return {
+    authorizeCheck() {},
+    authorize(uri: URL) {
+      const response_type = uri.searchParams.get('response_type')
+      if (!isResponseType(response_type)) throw new OAuth2Exception(ErrorMap.invalid_request)
 
-  // Client / code
-  const authorizeUri = oauth2Authorize(oauth2ClientConfig)
-  // console.log(authorizeUri.toString())
+      const client_id = uri.searchParams.get('client_id')
+      if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request)
 
-  // step 1
-  const res = await app.request(authorizeUri)
-  const uri = new URL(res.headers.get('location')!)
-
-  // step 2
-  const token = await oauth2ExchangeCode(oauth2ClientConfig, {
-    code: uri.searchParams.get('code')!,
-    fetch: app.request as typeof fetch,
-  })
-  // console.log(token)
-})
+      const client = options.getClient(client_id)
+      if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+    },
+    token() {},
+  }
+}
 
 Deno.test('Test 442914', async (t) => {
   const app = new Hono() //
+  const oauth2AppConfig = getClient('1')
 
-  const redirectUri = 'http://localhost/oauth2/callback'
   const oauth2ClientConfig: OAuth2ClientConfig = {
-    clientId: 'CLIENT_ID',
-    clientSecret: 'CLIENT_SECRET',
+    clientId: oauth2AppConfig.clientId,
+    clientSecret: oauth2AppConfig.clientSecret,
+    redirectUri: oauth2AppConfig.redirectUri[0],
     authorizeUri: 'http://example.com/authorize',
     tokenUri: 'http://example.com/oauth2/token',
-    // redirectUri,
     pkce: true,
   }
 
   // Server
-  const pkceStore = new Map<string, {challenge: string; method: 'S256' | 'plain'}>()
+  const store = new Map<string, {
+    code: string
+    clientId: string
+    redirectUri: string
+    codeChallenge: string | null
+    codeChallengeMethod: 'S256' | 'plain' | null
+    expiresAt: Temporal.Instant
+  }>()
+
   app.get('/authorize', async (c) => {
     const uri = new URL(c.req.url)
-    const responseType = uri.searchParams.get(RESPONSE_TYPE)! as 'code'
+    const responseType = uri.searchParams.get(RESPONSE_TYPE)! as ResponseType
     const clientId = uri.searchParams.get(CLIENT_ID)!
     const clientRedirectUri = uri.searchParams.get(REDIRECT_URI)
     const state = uri.searchParams.get(STATE)
+
+    const client = getClient(clientId)
+    const redirectUri = getClientRedirectUri(client, clientRedirectUri)
 
     const code = encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
 
     // PKCE
     const codeChallenge = uri.searchParams.get('code_challenge')
     const codeChallengeMethod = uri.searchParams.get('code_challenge_method')! as PkceChallenge['codeChallengeMethod']
-    if (codeChallenge && codeChallengeMethod) {
-      pkceStore.set(code, {challenge: codeChallenge, method: codeChallengeMethod})
-    }
 
     // save: code + client_id + pkce
+    store.set(code, {
+      code,
+      clientId,
+      redirectUri,
+      codeChallenge,
+      codeChallengeMethod,
+      expiresAt: Temporal.Now.instant().add({minutes: 10}),
+    })
 
     // res
-    const callbackURI = new URL(clientRedirectUri ?? redirectUri)
-    callbackURI.searchParams.set(CODE, code)
-    state && callbackURI.searchParams.set(STATE, state)
+    const callbackUri = new URL(redirectUri)
+    callbackUri.searchParams.set(CODE, code)
+    state && callbackUri.searchParams.set(STATE, state)
 
-    return c.redirect(callbackURI)
+    return c.redirect(callbackUri)
   })
+
   app.post('/oauth2/token', async (c) => {
     const {
+      code,
       grant_type,
       client_id,
-      code,
       client_secret,
       redirect_uri,
       code_verifier: codeVerifier,
-    } = await c.req.parseBody() as Record<string, string>
+    } = Object.fromEntries(await c.req.formData()) as Record<string, string>
+
+    // get from store
+    const {expiresAt, codeChallenge, codeChallengeMethod, clientId, redirectUri} = store.get(code)!
+
+    const isExpired = Temporal.Instant.compare(Temporal.Now.instant(), expiresAt) > 0
+    if (isExpired) throw new OAuth2Exception(ErrorMap.invalid_request, 'Code is expired')
 
     // PKCE
-    const pkce = pkceStore.get(code)
-    if (pkce && codeVerifier) {
-      if (!await pkceVerify({codeChallenge: pkce.challenge, codeChallengeMethod: pkce.method, codeVerifier})) {
+    if (codeChallenge && codeChallengeMethod && codeVerifier) {
+      if (!await pkceVerify({codeChallenge, codeChallengeMethod, codeVerifier})) {
         throw new OAuth2Exception(ErrorMap.invalid_grant, 'Code verifier does not match')
       }
     }
 
     //
-    return c.json({token_type: 'Bearer', access_token: '123'} satisfies OAuth2TokenResponse)
+    if (clientId !== client_id) throw new OAuth2Exception(ErrorMap.invalid_client)
+    // if (redirectUri !== redirect_uri) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+
+    //
+    return c.json({token_type: 'Bearer', access_token: 'crypto.randomUUID()'} satisfies OAuth2TokenResponse)
   })
 
   // Client / code

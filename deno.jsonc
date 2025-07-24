@@ -30,6 +30,7 @@
     "spaceSurroundingProperties": false
   },
   "unstable": [
-    "kv"
+    "kv",
+    "temporal"
   ]
 }
