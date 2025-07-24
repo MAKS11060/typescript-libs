@@ -15,6 +15,14 @@ export class OAuth2Exception extends Error {
     this.errorDescription = description
     this.errorUri = uri
   }
+
+  toJSON() {
+    return {
+      error: this.error,
+      errorDescription: this.errorDescription,
+      errorUri: this.errorUri,
+    }
+  }
 }
 
 export const ErrorMap = {
