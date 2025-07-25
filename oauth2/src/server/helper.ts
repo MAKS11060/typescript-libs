@@ -41,15 +41,27 @@ export const parseBasicAuth = (authorization?: string | null) => {
 
 export const getClientRedirectUri = (client: OAuth2AppConfig, redirect_uri?: string | null): string => {
   if (redirect_uri) {
-    if (!client.redirectUri.includes(redirect_uri)) {
-      throw new OAuth2Exception(ErrorMap.invalid_request)
+    try {
+      const inputUri = new URL(redirect_uri)
+
+      // OAuth2: redirect_uri no contain fragment
+      if (inputUri.hash) throw new OAuth2Exception(ErrorMap.invalid_request, 'redirect_uri must not include fragment')
+
+      if (!client.redirectUri.includes(redirect_uri)) {
+        throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid redirect_uri')
+      }
+
+      return redirect_uri
+    } catch (e) {
+      if (e instanceof OAuth2Exception) throw e
+      throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid redirect_uri format')
     }
-    return redirect_uri
   }
 
   // default redirect
   if (client.redirectUri.length === 1) {
     return client.redirectUri[0]
   }
-  throw new OAuth2Exception(ErrorMap.invalid_request)
+
+  throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing redirect_uri and client has multiple redirect_uris')
 }

@@ -15,6 +15,13 @@ const CODE_CHALLENGE_METHOD = 'code_challenge_method'
 
 const CODE_EXPIRED_TIME = 1000 * 60 * 10 // 10 min
 
+type GetStorageData<T> = T extends {storage: {create(data: OAuth2StorageData<infer O>): any}} ? O : never
+type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }} ? ExtractPromise<O>
+  : never
+
+type ExtractPromise<T> = T extends Promise<infer O> ? O : T
+
+//
 export interface OAuth2AppConfig {
   type?: 'confidential' | 'public'
   appName: string
@@ -33,8 +40,42 @@ export interface OAuth2StorageData<T = unknown> {
   createdAt: Date
 }
 
+// token()
+export type OAuth2GrantTypeAuthorizationCode = {
+  grant_type: 'authorization_code'
+  code: string
+  client_id: string
+  client_secret: string
+  redirect_uri?: string
+  code_verifier?: string
+  state?: string
+}
+export type OAuth2GrantTypeRefresh = {
+  grant_type: 'refresh_token'
+  client_id: string
+  refresh_token: string
+}
+export type OAuth2GrantTypeCredentials = {
+  grant_type: 'client_credentials'
+  client_id: string
+  client_secret: string
+}
+export type OAuth2GrantTypePassword = {
+  grant_type: 'password'
+  client_id: string
+  client_secret: string
+  username: string
+  password: string
+}
+export type OAuth2GrantType =
+  | OAuth2GrantTypeAuthorizationCode
+  | OAuth2GrantTypeRefresh
+  | OAuth2GrantTypeCredentials
+  | OAuth2GrantTypePassword
+
 interface OAuth2ServerOptions {
-  getClient(clientId: string): OAuth2AppConfig
+  getClient(clientId: string): Promise<OAuth2AppConfig> | OAuth2AppConfig | undefined | null | void
+
   /**
    * @example
    * ```ts
@@ -52,89 +93,41 @@ interface OAuth2ServerOptions {
     authorizationCode?(data: {
       client: OAuth2AppConfig
       store: OAuth2StorageData
-    }): toPromise<OAuth2TokenResponse | {}>
+    }): Promise<OAuth2TokenResponse>
 
     refreshToken?(data: {
       client_id: string
       refresh_token: string
-    }): toPromise<OAuth2TokenResponse | {}>
+    }): Promise<OAuth2TokenResponse>
 
     implicit?(data: {
       client: OAuth2AppConfig
-    }): toPromise<OAuth2TokenResponse & {}>
-    // }): toPromise<OAuth2TokenResponse<{}>>
+    }): Promise<OAuth2TokenResponse>
 
     password?(data: {
       client_id: string
       client_secret: string
       username: string
       password: string
-    }): toPromise<OAuth2TokenResponse | {}>
+    }): Promise<OAuth2TokenResponse>
 
     credentials?(data: {
       client_id: string
       client_secret: string
-    }): toPromise<OAuth2TokenResponse | {}>
+    }): Promise<OAuth2TokenResponse>
   }
 }
-
-type toPromise<T> = Promise<T> | T
-type GetStorageData<T> = T extends {
-  storage: {
-    create(data: OAuth2StorageData<infer O>): any
-  }
-} ? O
-  : never
-
-type GetGrant<T, G extends string> = T extends {
-  grants: { [K in G]: (...args: any[]) => infer O }
-} ? ExtractPromise<O>
-  : never
-
-type ExtractPromise<T> = T extends Promise<infer O> ? O : T
-
-type OAuth2ServerToken_code = {
-  grant_type: 'authorization_code'
-  code: string
-  client_id: string
-  client_secret: string
-  redirect_uri?: string
-  code_verifier?: string
-  state?: string
-}
-type OAuth2ServerToken_refresh = {
-  grant_type: 'refresh_token'
-  client_id: string
-  refresh_token: string
-}
-type OAuth2ServerToken_cred = {
-  grant_type: 'client_credentials'
-  client_id: string
-  client_secret: string
-}
-type OAuth2ServerToken_password = {
-  grant_type: 'password'
-  client_id: string
-  client_secret: string
-  username: string
-  password: string
-}
-type OAuth2ServerToken =
-  | OAuth2ServerToken_code
-  | OAuth2ServerToken_refresh
-  | OAuth2ServerToken_cred
-  | OAuth2ServerToken_password
 
 interface OAuth2ServerApp<T extends OAuth2ServerOptions> {
-  authorizeCheck(): void
   authorize(uri: URL, data?: GetStorageData<T>): Promise<
     | {responseType: 'code'; authorizeUri: URL}
     | {responseType: 'token'; authorizeUri: URL}
   >
-  token(data: OAuth2ServerToken_code): Promise<OAuth2TokenResponse<GetGrant<T, 'authorizationCode'>>>
-  token(data: OAuth2ServerToken_refresh): Promise<OAuth2TokenResponse<GetGrant<T, 'refreshToken'>>>
-  token(data: OAuth2ServerToken_cred): Promise<OAuth2TokenResponse<GetGrant<T, 'credentials'>>>
-  token(data: OAuth2ServerToken_password): Promise<OAuth2TokenResponse<GetGrant<T, 'password'>>>
+
+  token(data: OAuth2GrantTypeAuthorizationCode): Promise<OAuth2TokenResponse<GetGrant<T, 'authorizationCode'>>>
+  token(data: OAuth2GrantTypeRefresh): Promise<OAuth2TokenResponse<GetGrant<T, 'refreshToken'>>>
+  token(data: OAuth2GrantTypeCredentials): Promise<OAuth2TokenResponse<GetGrant<T, 'credentials'>>>
+  token(data: OAuth2GrantTypePassword): Promise<OAuth2TokenResponse<GetGrant<T, 'password'>>>
 }
 
 export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): OAuth2ServerApp<T> => {
@@ -143,12 +136,10 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
   }
 
   return {
-    authorizeCheck() {},
-
     async authorize(uri, data) {
       // response_type
       const responseType = uri.searchParams.get(RESPONSE_TYPE)
-      if (!isResponseType(responseType)) throw new OAuth2Exception(ErrorMap.invalid_request)
+      if (!isResponseType(responseType)) throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid response_type')
 
       if (
         (responseType === 'code' && !options.grants?.authorizationCode) ||
@@ -157,7 +148,7 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
 
       // client_id
       const clientId = uri.searchParams.get(CLIENT_ID)!
-      if (!clientId) throw new OAuth2Exception(ErrorMap.invalid_request)
+      if (!clientId) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
 
       const client = options.getClient(clientId)
       if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
@@ -169,9 +160,17 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
       // PKCE
       const codeChallenge = uri.searchParams.get(CODE_CHALLENGE)
       const codeChallengeMethod = uri.searchParams.get(CODE_CHALLENGE_METHOD) as PkceChallenge['codeChallengeMethod']
-      if (codeChallenge && codeChallengeMethod) {
-        if (!['S256', 'plain'].includes(codeChallengeMethod)) {
-          throw new OAuth2Exception(ErrorMap.invalid_request, 'code_challenge incorrect')
+
+      if (codeChallenge) {
+        if (codeChallengeMethod !== 'S256' && codeChallengeMethod !== 'plain') {
+          throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid code_challenge_method')
+        }
+      } else if (client.type === 'public') {
+        if (!codeChallenge && !codeChallengeMethod) {
+          throw new OAuth2Exception(
+            ErrorMap.invalid_request,
+            'Public clients must use PKCE (code_challenge and code_challenge_method)',
+          )
         }
       }
 
@@ -182,9 +181,8 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
       if (responseType === 'code') {
         // generate code
         const code = options.generateCode!({client})
-        authorizeUri.searchParams.set(CODE, code)
 
-        // external storage
+        // save to storage
         await options.storage.create({
           data,
           code,
@@ -195,32 +193,35 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
           createdAt: new Date(),
         })
 
-        // state
+        // redirectUri? code + state
+        authorizeUri.searchParams.set(CODE, code)
         const state = uri.searchParams.get(STATE)
         state && authorizeUri.searchParams.set(STATE, state)
 
         return {responseType, authorizeUri}
-      } else if (responseType === 'token') {
-        const body = new URLSearchParams()
-        const token = await options.grants.implicit?.({client})!
+      }
 
+      if (responseType === 'token') {
+        const token = await options.grants.implicit?.({client})!
+        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+
+        const body = new URLSearchParams()
         body.set('access_token', token.access_token)
         body.set('token_type', token.token_type)
         body.set('expires_in', String(token.expires_in))
-        if (token.scope) body.set('expires_in', token.scope)
+        if (token.scope) body.set('scope', token.scope)
 
-        // PKCE
-        if (codeChallenge && codeChallengeMethod) {
-          codeChallenge && body.set('code_challenge', codeChallenge)
-          codeChallengeMethod &&
-            body.set('code_challenge_method', codeChallengeMethod)
-        }
+        // PKCE / optional
+        // if (codeChallenge && codeChallengeMethod) {
+        //   codeChallenge && body.set('code_challenge', codeChallenge)
+        //   codeChallengeMethod && body.set('code_challenge_method', codeChallengeMethod)
+        // }
 
         // state
         const state = uri.searchParams.get(STATE)
         state && body.set(STATE, state)
 
-        authorizeUri.hash = body.toString() // ? or encodeURIComponent(body.toString())
+        authorizeUri.hash = body.toString()
 
         return {responseType, authorizeUri}
       }
@@ -228,11 +229,10 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
       throw new OAuth2Exception(ErrorMap.unsupported_response_type)
     },
 
-    async token(data: OAuth2ServerToken): Promise<any> {
-      const grantType = data.grant_type
-      if (!isGrantType(grantType)) {
-        throw new OAuth2Exception(ErrorMap.unsupported_grant_type)
-      }
+    async token(data: OAuth2GrantType): Promise<any> {
+      const {grant_type: grantType, client_id} = data
+
+      if (!isGrantType(grantType)) throw new OAuth2Exception(ErrorMap.unsupported_grant_type)
       if (
         (grantType === 'authorization_code' && !options.grants?.authorizationCode) ||
         (grantType === 'refresh_token' && !options.grants?.refreshToken) ||
@@ -240,54 +240,77 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
         (grantType === 'client_credentials' && !options.grants?.credentials)
       ) throw new OAuth2Exception(ErrorMap.unsupported_grant_type)
 
-      const client = await options.getClient(data.client_id)
+      // required parameters
+      if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
+
+      const client = await options.getClient(client_id)
+      if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
 
       if (grantType === 'authorization_code') {
-        const store = await options.storage.get(data.code)!
-        if (!store) throw new OAuth2Exception(ErrorMap.access_denied)
+        const {code, redirect_uri, code_verifier: codeVerifier, client_secret} = data
 
-        const { // input
-          code_verifier: codeVerifier,
-          client_id,
-          client_secret,
-        } = data
+        // check code
+        if (!code) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing authorization code')
+
+        const store = await options.storage.get(code)
+        if (!store) throw new OAuth2Exception(ErrorMap.invalid_grant, 'Invalid authorization code')
 
         const { // from store
           createdAt,
           codeChallenge,
           codeChallengeMethod,
-          clientId,
-          redirectUri,
+          clientId: clientIdInStore,
+          redirectUri: redirectUriInStore,
         } = store
 
         // checking if the code has expired
-        const isExpired = createdAt.getTime() > Date.now() - CODE_EXPIRED_TIME
-        if (isExpired) throw new OAuth2Exception(ErrorMap.invalid_request, 'Code is expired')
+        const isExpired = Date.now() - createdAt.getTime() > CODE_EXPIRED_TIME
+        if (isExpired) throw new OAuth2Exception(ErrorMap.invalid_grant, 'Authorization code expired')
 
-        // PKCE / if pkce was used for at the beginning of authorization
+        // client check
+        if (client_id !== clientIdInStore) throw new OAuth2Exception(ErrorMap.unauthorized_client, 'Client ID mismatch')
+
+        // redirectUri(code) === redirectUri(authorization_code)
+        if (redirectUriInStore && redirectUriInStore !== redirect_uri) {
+          throw new OAuth2Exception(ErrorMap.invalid_request, 'Mismatch redirect_uri')
+        }
+
+        // client secret check
+        if (!client.type || client.type === 'confidential') {
+          if (!client_secret) {
+            throw new OAuth2Exception(ErrorMap.invalid_client, 'Client secret required')
+          }
+          if (client_secret !== client.clientSecret) {
+            throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client secret')
+          }
+        } else if (client.type === 'public') {
+          if (client_secret !== undefined) {
+            throw new OAuth2Exception(ErrorMap.invalid_client, 'Public clients must not include client_secret')
+          }
+        }
+
+        // PKCE
+        // required pkce for public client
+        if (client.type === 'public' && (!codeChallenge || !codeChallengeMethod)) {
+          throw new OAuth2Exception(
+            ErrorMap.invalid_request,
+            'Public clients must use PKCE (code_challenge and code_verifier)',
+          )
+        }
+
+        // if pkce was used for at the beginning of authorization
         if (codeChallenge && codeChallengeMethod) {
-          if (!codeVerifier || !await pkceVerify({codeChallenge, codeChallengeMethod, codeVerifier})) {
+          if (!codeVerifier) {
+            throw new OAuth2Exception(ErrorMap.invalid_grant, 'Code verifier required')
+          }
+          if (!(await pkceVerify({codeChallenge, codeChallengeMethod, codeVerifier}))) {
             throw new OAuth2Exception(ErrorMap.invalid_grant, 'Code verifier does not match')
           }
         }
 
-        // client check
-        if (client_id !== clientId) throw new OAuth2Exception(ErrorMap.unauthorized_client)
-        if (client_secret !== client.clientSecret) throw new OAuth2Exception(ErrorMap.unauthorized_client)
-
-        // redirectUri(code) === redirectUri(authorization_code)
-        if (redirectUri && redirectUri !== data.redirect_uri) {
-          throw new OAuth2Exception(ErrorMap.access_denied, 'Mismatch redirect_uri')
-        }
-
         return {
           grantType,
-          token: await options.grants.authorizationCode?.({
-            get client() {
-              return options.getClient(clientId)
-            },
-            store,
-          }),
+          token: await options.grants.authorizationCode?.({client, store}),
         }
       }
 
@@ -296,34 +319,25 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
 
         return {
           grantType,
-          token: await options.grants.refreshToken?.({
-            client_id,
-            refresh_token,
-          })!,
+          token: await options.grants.refreshToken?.({client_id, refresh_token})!,
         }
       }
 
       if (grantType === 'password') {
         const {client_id, client_secret, username, password} = data
+
         return {
           grantType,
-          token: await options.grants.password?.({
-            client_id,
-            client_secret,
-            username,
-            password,
-          }),
+          token: await options.grants.password?.({client_id, client_secret, username, password}),
         }
       }
 
       if (grantType === 'client_credentials') {
         const {client_id, client_secret} = data
+
         return {
           grantType,
-          token: await options.grants.credentials?.({
-            client_id,
-            client_secret,
-          }),
+          token: await options.grants.credentials?.({client_id, client_secret}),
         }
       }
 
@@ -332,35 +346,39 @@ export const createOAuth2Server = <T extends OAuth2ServerOptions>(options: T): O
   }
 }
 
-const createStorageInMemory = () => {
-  const authCodeStore = new Map<string, OAuth2StorageData<{sub: string}>>()
-  return {
-    store: authCodeStore,
-    create(data: OAuth2StorageData<{sub: string}>) {
-      authCodeStore.set(data.code, data)
-    },
-    async get(code: string) {
-      return authCodeStore.get(code)
-    },
+Deno.test('Test 379603', async (t) => {
+  const createStorageInMemory = () => {
+    const authCodeStore = new Map<string, OAuth2StorageData<{sub: string}>>()
+    return {
+      store: authCodeStore,
+      create(data: OAuth2StorageData<{sub: string}>) {
+        authCodeStore.set(data.code, data)
+      },
+      async get(code: string) {
+        return authCodeStore.get(code)
+      },
+    }
   }
-}
 
-const server = createOAuth2Server({
-  getClient: () => ({} as any),
-  storage: createStorageInMemory(),
-  grants: {
-    async refreshToken(data) {
-      return {
-        access_token: '',
-        token_type: '',
-        refresh_token: '1',
-        das: 1,
-      }
+  const server = createOAuth2Server({
+    getClient: () => ({} as any),
+    storage: createStorageInMemory(),
+    grants: {
+      authorizationCode(data) {
+        data.store.data
+      },
+      async refreshToken(data) {
+        return {
+          access_token: '',
+          token_type: '',
+          refresh_token: '1',
+        }
+      },
     },
-  },
+  })
+
+  await server.authorize(new URL(''), {sub: '123'})
+
+  const a = await server.token({grant_type: 'authorization_code', client_id: '1', client_secret: '1', code: '1'})
+  const refresh = await server.token({grant_type: 'refresh_token', client_id: '1', refresh_token: 't1'})
 })
-
-await server.authorize(new URL(''), {sub: '123'})
-
-const a = await server.token({grant_type: 'authorization_code', client_id: '1', client_secret: '1', code: '1'})
-const refresh = await server.token({grant_type: 'refresh_token', client_id: '1', refresh_token: 't1'})
