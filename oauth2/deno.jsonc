@@ -11,6 +11,8 @@
     "./implicit": "./src/client/implicit.ts",
     "./password": "./src/client/password.ts",
 
+    "./server": "./src/server/mod.ts",
+
     "./providers": "./providers.ts",
     "./pkce": "./src/pkce.ts"
   },
