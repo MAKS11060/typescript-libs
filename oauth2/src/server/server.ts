@@ -224,7 +224,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
    *
    * @default Generates a 32-byte random value encoded in base64url
    */
-  generateCode?(client: Client): string
+  generateCode?({client}: {client: Client}): string
 
   /**
    * Storage backend for authorization codes.
