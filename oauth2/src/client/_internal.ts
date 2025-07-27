@@ -1,8 +1,8 @@
 import { encodeBase64 } from '@std/encoding/base64'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
-import type { OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2Token } from '../oauth2.ts'
 
-export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2TokenResponse<T>> => {
+export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2Token<T>> => {
   const data: Record<string, string> = await response.json()
 
   // Check for errors in the response
@@ -15,7 +15,7 @@ export const handleOauth2Response = async <T>(response: Response): Promise<OAuth
   }
 
   // Return the parsed token response
-  return data as OAuth2TokenResponse<T>
+  return data as OAuth2Token<T>
 }
 
 export const normalizeScope = (scope: string | string[]): string => {

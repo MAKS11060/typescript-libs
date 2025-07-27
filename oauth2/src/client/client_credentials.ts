@@ -17,7 +17,7 @@
  * @module clientCredentials
  */
 
-import type { OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2Token } from '../oauth2.ts'
 import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
 import type { OAuth2ClientConfig } from './types.ts'
 
@@ -47,7 +47,7 @@ export const oauth2ClientCredentials = async <T>(
     credentialLocation?: 'header' | 'query'
     fetch?: typeof fetch
   },
-): Promise<OAuth2TokenResponse<T>> => {
+): Promise<OAuth2Token<T>> => {
   if (!config.clientSecret) throw new Error('Missing required configuration: clientSecret')
 
   options ??= {}

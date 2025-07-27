@@ -1,5 +1,5 @@
 import { expect } from 'jsr:@std/expect/expect'
-import type { OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2Token } from '../oauth2.ts'
 import { oauth2Authorize, oauth2ExchangeCode } from './authorization_code.ts'
 
 Deno.test('oauth2Authorize()', () => {
@@ -52,7 +52,7 @@ Deno.test('oauth2ExchangeCode()', async () => {
         token_type: 'Bearer',
         expires_in: 3600,
         scope: 'a b',
-      } satisfies OAuth2TokenResponse
+      } satisfies OAuth2Token
       return Response.json(token)
     },
   })

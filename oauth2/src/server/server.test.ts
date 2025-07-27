@@ -1,19 +1,166 @@
-import {
-  ErrorMap,
-  oauth2Authorize,
-  OAuth2ClientConfig,
-  oauth2ClientCredentials,
-  OAuth2Exception,
-  oauth2ExchangeCode,
-  oauth2Implicit,
-  oauth2Password,
-  oauth2RefreshToken,
-  usePKCE,
-} from '@maks11060/oauth2'
+import { Client } from '@maks11060/oauth2'
+import { oauth2ClientCredentials } from '@maks11060/oauth2/client-credentials'
+import { oauth2Implicit } from '@maks11060/oauth2/implicit'
+import { oauth2Password } from '@maks11060/oauth2/password'
+import { usePKCE } from '@maks11060/oauth2/pkce'
 import { Hono } from 'hono'
 import { expect } from 'jsr:@std/expect/expect'
+import { oauth2Authorize, oauth2ExchangeCode, oauth2RefreshToken } from '../client/authorization_code.ts'
+import { OAuth2ClientConfig } from '../client/types.ts'
+import { ErrorMap, OAuth2Exception } from '../error.ts'
 import { generateToken, parseBasicAuth } from './helper.ts'
 import { createOauth2Server, DefaultCtx, OAuth2Client, OAuth2Storage, OAuth2StorageData } from './server.ts'
+
+Deno.test('createOauth2Server()', async (t) => {
+  const redirectUri = 'http://localhost/oauth2/callback'
+  const clients: OAuth2Client[] = [
+    {appName: 'app1', clientId: '1', clientSecret: 'SECRET', redirectUri: [redirectUri]},
+    {type: 'confidential', appName: 'app2', clientId: '2', clientSecret: 'SECRET', redirectUri: [redirectUri]},
+    {type: 'public', appName: 'app3', clientId: '3', clientSecret: 'SECRET', redirectUri: [redirectUri]},
+  ] as const
+
+  await t.step('no grants handler', async (t) => {
+    const store = new Map<string, OAuth2StorageData>()
+    const oauth2Server = createOauth2Server({
+      getClient: (clientId) => clients.find((client) => client.clientId === clientId),
+      storage: store,
+      grants: {},
+    })
+
+    await t.step('authorize()', async (t) => {
+      await expect(
+        oauth2Server.authorize({uri: 'https://localhost/authorize', ctx: {sub: 'user1'}}),
+      ).rejects.toThrow(ErrorMap.invalid_request)
+      await expect(
+        oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=code', ctx: {sub: 'user1'}}),
+      ).rejects.toThrow(ErrorMap.unsupported_response_type)
+      await expect(
+        oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=token', ctx: {sub: 'user1'}}),
+      ).rejects.toThrow(ErrorMap.unsupported_response_type)
+    })
+
+    await t.step('token()', async (t) => {
+      await expect(oauth2Server.token({} as any)).rejects.toThrow(ErrorMap.unsupported_grant_type)
+
+      await expect(
+        oauth2Server.token({grant_type: 'authorization_code', client_id: '1', code: ''}),
+      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+
+      await expect(
+        oauth2Server.token({grant_type: 'client_credentials', client_id: '1', client_secret: '1'}),
+      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+
+      await expect(oauth2Server.token({
+        grant_type: 'password',
+        client_id: '1',
+        client_secret: '1',
+        username: 'user1',
+        password: 'pass1',
+      })).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      await expect(
+        oauth2Server.token({grant_type: 'refresh_token', client_id: '1', refresh_token: 'rt1'}),
+      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+    })
+  })
+
+  await t.step('grants handler', async (t) => {
+    const store = new Map<string, OAuth2StorageData>()
+    const oauth2Server = createOauth2Server({
+      getClient: (clientId) => clients.find((client) => client.clientId === clientId),
+      generateCode: ({client}) => 'CODE',
+      storage: store,
+      grants: {
+        authorizationCode({client, store}) {
+          if (client.clientId !== '1') return
+          return {access_token: 'at:1', token_type: 'Bearer'}
+        },
+        refreshToken({client_id, refresh_token}) {
+          if (client_id !== '1') return
+          if (refresh_token !== 'rt1') return
+          return {access_token: 'at:2', token_type: 'Bearer'}
+        },
+      },
+    })
+
+    await t.step('authorize() err', async (t) => {
+      await expect(
+        oauth2Server.authorize({uri: 'https://localhost/authorize', ctx: {sub: 'user1'}}),
+      ).rejects.toThrow(ErrorMap.invalid_request)
+      await expect(
+        oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=code', ctx: {sub: 'user1'}}),
+      ).rejects.toThrow(ErrorMap.invalid_request)
+      await expect(
+        oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=token', ctx: {sub: 'user1'}}),
+      ).rejects.toThrow(ErrorMap.unsupported_response_type)
+    })
+
+    await t.step('token() err', async (t) => {
+      const client = clients[0]
+      await expect(oauth2Server.token({} as any)).rejects.toThrow(ErrorMap.unsupported_grant_type)
+
+      await expect(
+        oauth2Server.token({grant_type: 'authorization_code', client_id: client.clientId, code: ''}),
+      ).rejects.toThrow(ErrorMap.invalid_request)
+
+      await expect(
+        oauth2Server.token({
+          grant_type: 'client_credentials',
+          client_id: client.clientId,
+          client_secret: client.clientSecret,
+        }),
+      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+
+      await expect(oauth2Server.token({
+        grant_type: 'password',
+        client_id: client.clientId,
+        client_secret: client.clientSecret,
+        username: 'user1',
+        password: 'pass1',
+      })).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      await expect(
+        oauth2Server.token({grant_type: 'refresh_token', client_id: client.clientId, refresh_token: 'rt0'}),
+      ).rejects.toThrow(ErrorMap.server_error)
+    })
+
+    await t.step('authorizationCode + refreshToken()', async (t) => {
+      const client = clients[0]
+      const state = crypto.randomUUID()
+      const clientConfig = {
+        clientId: client.clientId,
+        authorizeUri: 'https://example.com/authorize',
+        tokenUri: 'https://example.com/oauth2/token',
+        clientSecret: client.clientSecret,
+        redirectUri: client.redirectUri[0],
+      }
+      const uri = Client.oauth2Authorize(clientConfig, {state})
+
+      const authorizationLink = await oauth2Server.authorize({uri, ctx: {sub: 'user1'}})
+
+      // Client.oauth2ExchangeCode(clientConfig, {})
+
+      const token = await oauth2Server.token({
+        grant_type: 'authorization_code',
+        client_id: client.clientId,
+        client_secret: client.clientSecret,
+        redirect_uri: client.redirectUri[0],
+        code: authorizationLink.authorizeUri.searchParams.get('code')!,
+        state: authorizationLink.authorizeUri.searchParams.get('state')!,
+      })
+      console.log(token)
+      {
+        const token = await oauth2Server.token({
+          grant_type: 'authorization_code',
+          client_id: client.clientId,
+          client_secret: client.clientSecret,
+          redirect_uri: client.redirectUri[0],
+          code: authorizationLink.authorizeUri.searchParams.get('code')!,
+          state: authorizationLink.authorizeUri.searchParams.get('state')!,
+        })
+        console.log(token)
+      }
+    })
+  })
+})
 
 export const getClient = (clientId: string): OAuth2Client => {
   const redirectUri = 'http://localhost/oauth2/callback'
@@ -347,4 +494,8 @@ Deno.test('Test 607832', async (t) => {
       },
     },
   })
+})
+
+Deno.test('Test 005169', async (t) => {
+  const fn = (a, b) => {}
 })

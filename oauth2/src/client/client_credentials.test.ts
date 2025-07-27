@@ -1,5 +1,5 @@
 import { expect } from 'jsr:@std/expect/expect'
-import type { OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2Token } from '../oauth2.ts'
 import { oauth2ClientCredentials } from './client_credentials.ts'
 
 Deno.test('oauth2ClientCredentials()', async () => {
@@ -29,7 +29,7 @@ Deno.test('oauth2ClientCredentials()', async () => {
         token_type: 'Bearer',
         expires_in: 3600,
         scope: body.get('scope')!,
-      } satisfies OAuth2TokenResponse
+      } satisfies OAuth2Token
       return Response.json(token)
     },
   })
@@ -71,7 +71,7 @@ Deno.test('oauth2ClientCredentials() cred in query', async () => {
         token_type: 'Bearer',
         expires_in: 3600,
         scope: body.get('scope')!,
-      } satisfies OAuth2TokenResponse
+      } satisfies OAuth2Token
       return Response.json(token)
     },
   })

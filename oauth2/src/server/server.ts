@@ -1,6 +1,6 @@
 import { encodeBase64Url } from '@std/encoding/base64url'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
-import type { OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2Token } from '../oauth2.ts'
 import { type PkceChallenge, pkceVerify } from '../pkce.ts'
 import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
@@ -10,6 +10,7 @@ const STATE = 'state'
 const CLIENT_ID = 'client_id'
 const CLIENT_SECRET = 'client_secret'
 const REDIRECT_URI = 'redirect_uri'
+const SCOPE = 'scope'
 
 const CODE_CHALLENGE = 'code_challenge'
 const CODE_CHALLENGE_METHOD = 'code_challenge_method'
@@ -177,9 +178,17 @@ export interface OAuth2Storage<Ctx = DefaultCtx> {
   /**
    * Persist authorization code and associated data.
    *
+   * @param key - The authorization code
    * @param data - Data to store (code, client, redirect URI, PKCE, etc.)
    */
-  set(data: OAuth2StorageData<Ctx>): Promise<void> | void | unknown
+  set(key: string, data: OAuth2StorageData<Ctx>): Promise<void> | void | unknown
+
+  /**
+   * Delete authorization code after successful authorization.
+   *
+   * @param key - The authorization code
+   */
+  delete?(key: string): Promise<boolean | void> | void | unknown
 }
 
 // ===== SERVER OPTIONS =====
@@ -247,7 +256,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      */
     authorizationCode?(
       {client, store}: {client: Client; store: OAuth2StorageData<Ctx>},
-    ): Promise<OAuth2TokenResponse>
+    ): GrantResponse
 
     /**
      * Handle `implicit` grant (token returned in redirect URI fragment).
@@ -255,7 +264,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      * @param client - Authenticated client
      * @returns Token response
      */
-    implicit?({client}: {client: Client}): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
+    implicit?({client}: {client: Client}): GrantResponse
 
     /**
      * Handle `password` grant (Resource Owner Password Credentials).
@@ -273,7 +282,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
       client_secret: string
       username: string
       password: string
-    }): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
+    }): GrantResponse
 
     /**
      * Handle `client_credentials` grant.
@@ -284,7 +293,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      * @param client_secret - Client secret
      * @returns Token response
      */
-    credentials?(params: {client_id: string; client_secret: string}): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
+    credentials?(params: {client_id: string; client_secret: string}): GrantResponse
 
     /**
      * Handle `refresh_token` grant.
@@ -295,9 +304,11 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      */
     refreshToken?(
       {client_id, refresh_token}: {client_id: string; refresh_token: string},
-    ): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
+    ): GrantResponse
   }
 }
+
+type GrantResponse = Promise<OAuth2Token> | OAuth2Token | null | void
 
 // ===== SERVER API =====
 
@@ -308,7 +319,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
  * @template Client - Client type
  * @template Options - Options type
  */
-interface OAuth2Server<
+export interface OAuth2Server<
   Ctx /* extends object */ = DefaultCtx,
   Client extends OAuth2Client = OAuth2Client,
   Options = OAuth2ServerOptions<Ctx, Client>,
@@ -339,19 +350,19 @@ interface OAuth2Server<
    */
   token(data: OAuth2GrantTypeAuthorizationCode): Promise<{
     grantType: 'authorization_code'
-    token: OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>
+    token: OAuth2Token<GetGrant<Options, 'authorizationCode'>>
   }>
   token(data: OAuth2GrantTypeRefresh): Promise<{
     grantType: 'refresh_token'
-    token: OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>
+    token: OAuth2Token<GetGrant<Options, 'refreshToken'>>
   }>
   token(data: OAuth2GrantTypeCredentials): Promise<{
     grantType: 'client_credentials'
-    token: OAuth2TokenResponse<GetGrant<Options, 'credentials'>>
+    token: OAuth2Token<GetGrant<Options, 'credentials'>>
   }>
   token(data: OAuth2GrantTypePassword): Promise<{
     grantType: 'password'
-    token: OAuth2TokenResponse<GetGrant<Options, 'password'>>
+    token: OAuth2Token<GetGrant<Options, 'password'>>
   }>
 }
 
@@ -454,7 +465,7 @@ type CreateOauth2Server = <
  *     return clients.find((client) => client.clientId === clientId)
  *   },
  *   storage: {
- *     set: (data) => store.set(data.code, data),
+ *     set: (code, data) => store.set(code, data),
  *     get: (code) => store.get(code),
  *   },
  *   grants: {
@@ -525,7 +536,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
         const code = options.generateCode!({client})
 
         // save to storage
-        await options.storage.set({
+        await options.storage.set(code, {
           ctx: ctx!,
           code,
           clientId,
@@ -650,37 +661,39 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
           }
         }
 
-        return {
-          grantType,
-          token: await options.grants.authorizationCode?.({client, store}),
-        }
+        const token = await options.grants.authorizationCode?.({client, store})
+        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+
+        await options.storage.delete?.(code)
+
+        return {grantType, token}
       }
 
       if (grantType === 'refresh_token') {
         const {client_id, refresh_token} = data
 
-        return {
-          grantType,
-          token: await options.grants.refreshToken?.({client_id, refresh_token})!,
-        }
+        const token = await options.grants.refreshToken?.({client_id, refresh_token})
+        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+
+        return {grantType, token}
       }
 
       if (grantType === 'password') {
         const {client_id, client_secret, username, password} = data
 
-        return {
-          grantType,
-          token: await options.grants.password?.({client_id, client_secret, username, password}),
-        }
+        const token = await options.grants.password?.({client_id, client_secret, username, password})
+        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+
+        return {grantType, token}
       }
 
       if (grantType === 'client_credentials') {
         const {client_id, client_secret} = data
 
-        return {
-          grantType,
-          token: await options.grants.credentials?.({client_id, client_secret}),
-        }
+        const token = await options.grants.credentials?.({client_id, client_secret})
+        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+
+        return {grantType, token}
       }
 
       throw new OAuth2Exception(ErrorMap.server_error)

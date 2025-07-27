@@ -6,7 +6,7 @@
  *
  * @template T - An optional type to extend the response with additional fields specific to the authorization server.
  */
-export type OAuth2TokenResponse<T = unknown> = T & {
+export type OAuth2Token<T = unknown> = T & {
   /**
    * The access token issued by the authorization server.
    * This token is used to access protected resources on behalf of the user.

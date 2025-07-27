@@ -1,6 +1,6 @@
 import { decodeBase64 } from '@std/encoding/base64'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
-import { OAuth2TokenResponse } from '../oauth2.ts'
+import { OAuth2Token } from '../oauth2.ts'
 import { OAuth2Client } from './server.ts'
 
 export const ResponseType = [
@@ -24,7 +24,7 @@ export const isGrantType = (type: unknown): type is GrantType => {
   return GrantType.includes(String(type) as GrantType)
 }
 
-export const generateToken = (options?: {expires_in?: number; refresh?: boolean}): OAuth2TokenResponse => {
+export const generateToken = (options?: {expires_in?: number; refresh?: boolean}): OAuth2Token => {
   return {
     access_token: crypto.randomUUID(),
     token_type: 'Bearer',
@@ -64,4 +64,9 @@ export const getClientRedirectUri = (client: OAuth2Client, redirect_uri?: string
   }
 
   throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing redirect_uri and client has multiple redirect_uris')
+}
+
+//
+export const parseScope = (scope?: string): string[] | null => {
+  return scope ? scope.split(/[,\s]+/) : null
 }
