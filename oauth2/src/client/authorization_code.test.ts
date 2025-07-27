@@ -1,8 +1,8 @@
-import { oauth2Authorize, oauth2ExchangeCode } from '@maks11060/oauth2/authorization'
 import { expect } from 'jsr:@std/expect/expect'
 import type { OAuth2TokenResponse } from '../oauth2.ts'
+import { oauth2Authorize, oauth2ExchangeCode } from './authorization_code.ts'
 
-Deno.test('oauth2Authorize()', async (t) => {
+Deno.test('oauth2Authorize()', () => {
   const authorizeUri = oauth2Authorize({
     clientId: 'ID',
     clientSecret: 'SECRET',
@@ -23,7 +23,7 @@ Deno.test('oauth2Authorize()', async (t) => {
   )
 })
 
-Deno.test('oauth2ExchangeCode()', async (t) => {
+Deno.test('oauth2ExchangeCode()', async () => {
   const token = await oauth2ExchangeCode({
     clientId: 'ID',
     clientSecret: 'SECRET',

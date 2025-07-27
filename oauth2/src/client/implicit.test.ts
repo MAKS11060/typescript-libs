@@ -1,7 +1,7 @@
 import { expect } from 'jsr:@std/expect/expect'
 import { oauth2Implicit } from './implicit.ts'
 
-Deno.test('oauth2Implicit()', async (t) => {
+Deno.test('oauth2Implicit()', () => {
   const res = oauth2Implicit({
     clientId: 'ID',
     clientSecret: 'SECRET',

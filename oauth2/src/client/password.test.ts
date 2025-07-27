@@ -1,8 +1,8 @@
-import { oauth2Password } from '@maks11060/oauth2/password'
 import { expect } from 'jsr:@std/expect/expect'
 import type { OAuth2TokenResponse } from '../oauth2.ts'
+import { oauth2Password } from './password.ts'
 
-Deno.test('oauth2Password()', async (t) => {
+Deno.test('oauth2Password()', async () => {
   const token = await oauth2Password({
     clientId: 'ID',
     clientSecret: 'SECRET',

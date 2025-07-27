@@ -17,8 +17,9 @@
  * @module clientCredentials
  */
 
-import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2TokenResponse } from '../oauth2.ts'
 import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
+import type { OAuth2ClientConfig } from './types.ts'
 
 /**
  * Client Credentials Grant
