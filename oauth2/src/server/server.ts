@@ -16,24 +16,66 @@ const CODE_CHALLENGE_METHOD = 'code_challenge_method'
 
 const CODE_EXPIRED_TIME = 1000 * 60 * 10 // 10 min
 
-//
+/**
+ * The basic interface of the `OAuth2` client.
+ * Can be expanded if necessary
+ */
 export interface OAuth2Client {
   /**
+   * Client type:
+   * - `confidential` - by default
+   *   - Requires: `client_secret`
+   * - `public` - for `public`/`SPA` apps
+   *   - It is forbidden to use `client_secret`
+   *   - Requires: `PKCE`
+   *
    * @default 'confidential'
    */
   type?: 'confidential' | 'public'
+
+  /**
+   * OAuth2 application name
+   */
   appName: string
+
+  /**
+   * OAuth2 Client ID
+   */
   clientId: string
+
+  /**
+   * OAuth2 Client Secret
+   *
+   * It is recommended to provide the user with the original `secret` and keep the `hash` of the `secret` in the DB.
+   */
   clientSecret: string
+
+  /**
+   * Redirect URI
+   *
+   * The list of allowed redirection URLs after authorization.
+   *
+   * If one address is specified, it will be used by default.
+   *
+   * @example
+   * ```ts
+   * redirectUri: [
+   *   'https://localhost/oauth2/callback'
+   * ]
+   * ```
+   */
   redirectUri: string[]
 }
 
+/**
+ * Default context for {@linkcode OAuth2Server}
+ */
 export interface DefaultCtx {
   sub: string
 }
 
 // Storage
-interface StorageData<Ctx> {
+export interface OAuth2StorageData<Ctx = DefaultCtx> {
   ctx: Ctx
   code: string
   clientId: string
@@ -43,9 +85,12 @@ interface StorageData<Ctx> {
   createdAt: Date
 }
 
-export interface Storage<Ctx = DefaultCtx> {
-  get(code: string): StorageData<Ctx>
-  set(data: StorageData<Ctx>): any
+/**
+ * Storage contract for {@linkcode OAuth2Server}
+ */
+export interface OAuth2Storage<Ctx = DefaultCtx> {
+  get(code: string): Promise<OAuth2StorageData<Ctx>> | null | unknown
+  set(data: OAuth2StorageData<Ctx>): Promise<unknown> | unknown
 }
 
 // App options
@@ -60,7 +105,7 @@ interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OA
   // getClient(
   //   {clientId, ctx}: {clientId: string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}),
   // ): Promise<Client> | Client | null | undefined
-  getClient({clientId}: {clientId: string}): Promise<Client> | Client | null | undefined
+  getClient({clientId}: {clientId: string}): Promise<Client> | Client | null | undefined | void
 
   /**
    * @example
@@ -75,7 +120,7 @@ interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OA
   /**
    * Store `code` and metadata for grant `authorization_code`
    */
-  storage: Storage<Ctx>
+  storage: OAuth2Storage<Ctx>
 
   /**
    * OAuth2 Grant handler:
@@ -86,7 +131,7 @@ interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OA
    * - `credentials`
    */
   grants: {
-    authorizationCode?({client, store}: {client: Client; store: StorageData<Ctx>}): Promise<OAuth2TokenResponse>
+    authorizationCode?({client, store}: {client: Client; store: OAuth2StorageData<Ctx>}): Promise<OAuth2TokenResponse>
 
     implicit?({client}: {client: Client}): Promise<OAuth2TokenResponse>
 
@@ -115,6 +160,7 @@ interface OAuth2Server<
     client: Client
   }>
 
+  // token(data: OAuth2GrantTypeAuthorizationCode): Promise<Options['grants']['authorizationCode']>
   token(data: OAuth2GrantTypeAuthorizationCode): Promise<OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>>
   token(data: OAuth2GrantTypeRefresh): Promise<OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>>
   token(data: OAuth2GrantTypeCredentials): Promise<OAuth2TokenResponse<GetGrant<Options, 'credentials'>>>
@@ -125,7 +171,7 @@ export type OAuth2GrantTypeAuthorizationCode = {
   grant_type: 'authorization_code'
   code: string
   client_id: string
-  client_secret: string
+  client_secret?: string
   redirect_uri?: string
   code_verifier?: string
   state?: string
@@ -153,18 +199,30 @@ export type OAuth2GrantType =
   | OAuth2GrantTypeCredentials
   | OAuth2GrantTypePassword
 
-type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }}
-  ? O extends Promise<infer P> ? P : O
+// type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }}
+//   ? O extends Promise<infer P> ? P : O
+//   : never
+type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }} ? ExtractPromise<O>
   : never
+type ExtractPromise<T> = T extends Promise<infer O> ? O : T
 
-// impl
-const createOauth2Server = <
+type CreateOauth2Server = <
   Ctx /* extends object */ = DefaultCtx,
   Client extends OAuth2Client = OAuth2Client,
-  Options = OAuth2ServerOptions<Ctx, Client>,
->(
-  options: OAuth2ServerOptions<Ctx, Client>,
-): OAuth2Server<Ctx, Client, Options> => {
+  Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
+>(options: Options) => OAuth2Server<Ctx, Client, Options>
+
+// impl
+export const createOauth2Server: CreateOauth2Server = (options) => {
+// export const createOauth2Server = <
+//   Ctx /* extends object */ = DefaultCtx,
+//   Client extends OAuth2Client = OAuth2Client,
+//   Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
+// >(
+//   options: OAuth2ServerOptions<Ctx, Client>,
+// ): OAuth2Server<Ctx, Client, Options> => {
+  // ): OAuth2Server<Ctx, Client, typeof options> => {
+
   options.options ??= {}
   options.options.codeTimeout ??= CODE_EXPIRED_TIME
 
@@ -402,7 +460,7 @@ Deno.test('Test 261007', async (t) => {
   app1.authorize({uri: new URL(''), ctx: {sub: ''}})
 
   // 2
-  const createStorage = (): Storage<{test: string}> => {
+  const createStorage = (): OAuth2Storage<{test: string}> => {
     return {
       get: (code) => ({
         ctx: {test: ''},

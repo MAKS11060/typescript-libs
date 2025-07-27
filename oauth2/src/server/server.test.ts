@@ -8,14 +8,15 @@ import {
   oauth2Implicit,
   oauth2Password,
   oauth2RefreshToken,
+  OAuth2TokenResponse,
   usePKCE,
 } from '@maks11060/oauth2'
 import { Hono } from 'hono'
 import { expect } from 'jsr:@std/expect/expect'
 import { generateToken, parseBasicAuth } from './helper.ts'
-import { createOAuth2Server, OAuth2Client, OAuth2StorageData } from './server.ts'
+import { createOauth2Server, OAuth2Client, OAuth2Storage, OAuth2StorageData } from './server.ts'
 
-export const getClient = (clientId: string): OAuth2Client => {
+export const getClient = ({clientId}: {clientId: string}): OAuth2Client => {
   const redirectUri = 'http://localhost/oauth2/callback'
   const apps: OAuth2Client[] = [
     {
@@ -54,7 +55,7 @@ Deno.test('Test 442915', async (t) => {
     throw e
   })
 
-  const oauth2AppConfig = getClient('1')
+  const oauth2AppConfig = getClient({clientId: '1'})
   const oauth2ClientConfig: OAuth2ClientConfig = {
     clientId: oauth2AppConfig.clientId,
     clientSecret: oauth2AppConfig.clientSecret,
@@ -65,18 +66,27 @@ Deno.test('Test 442915', async (t) => {
   }
 
   // Server
-  const authCodeStore = new Map<string, OAuth2StorageData>()
+  const createStore = (): OAuth2Storage => {
+    const authCodeStore = new Map<string, OAuth2StorageData>()
+    return {
+      set: (data) => authCodeStore.set(data.code, data),
+      get: (code) => authCodeStore.get(code),
+      // set: async (data) => authCodeStore.set(data.code, data),
+      // get: async (code) => authCodeStore.get(code),
+    }
+  }
   const refreshTokenStore = new Map()
 
-  const server = createOAuth2Server({
+  const server = createOauth2Server({
     getClient,
+    storage: createStore(),
     grants: {
-      authorizationCode(data) {
+      async authorizationCode({client, store}) {
         const token = generateToken({refresh: true})
         if (token.refresh_token) refreshTokenStore.set(token.refresh_token, token)
         return token
       },
-      refreshToken({refresh_token}) {
+      async refreshToken({refresh_token}) {
         let token = refreshTokenStore.get(refresh_token)
         if (token) {
           refreshTokenStore.delete(refresh_token)
@@ -88,37 +98,27 @@ Deno.test('Test 442915', async (t) => {
 
         throw new OAuth2Exception(ErrorMap.access_denied)
       },
-      implicit() {
+      async implicit() {
         const token = generateToken()
         return token
       },
-      password(data) {
+      async password(data) {
         // console.log({data})
         if (data.username === 'user1' && data.password === 'pass2') {
           return generateToken()
         }
         throw new OAuth2Exception(ErrorMap.access_denied)
       },
-      credentials(data) {
+      async credentials(data) {
         // console.log({data})
         return generateToken()
-      },
-    },
-    storage: {
-      async set(data) {
-        // console.log('storage save', data)
-        authCodeStore.set(data.code, data)
-      },
-      async get(code) {
-        // console.log('storage get', store.get(code))
-        return authCodeStore.get(code)!
       },
     },
   })
 
   app.get('/authorize', async (c) => {
     const uri = new URL(c.req.url)
-    const {responseType, authorizeUri} = await server.authorize(uri)
+    const {responseType, authorizeUri} = await server.authorize({uri, ctx: {sub: 'user1'}})
     // console.log({responseType, authorizeUri: authorizeUri.toString()})
     return c.redirect(authorizeUri)
   })
@@ -244,3 +244,17 @@ Deno.test('Test 442915', async (t) => {
     expect(token.token_type).toEqual('Bearer')
   })
 })
+
+const oauth2Server = createOauth2Server({
+  getClient({clientId}) {},
+  storage: {} as any,
+  grants: {
+    async authorizationCode({client, store}) {
+      return {access_token: '', token_type: '', prop: ''}
+    },
+  },
+})
+
+await oauth2Server.token({grant_type: 'authorization_code', code: '', client_id: ''}) satisfies Promise<never>
+const t2 = await oauth2Server.token({grant_type: 'authorization_code', code: '', client_id: ''})
+t2.prop satisfies string
