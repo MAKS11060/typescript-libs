@@ -3,17 +3,15 @@ import { ErrorMap, OAuth2Exception } from '../error.ts'
 import type { OAuth2TokenResponse } from '../oauth2.ts'
 
 export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2TokenResponse<T>> => {
-  const data: Record<string, any> = await response.json()
+  const data: Record<string, string> = await response.json()
 
   // Check for errors in the response
   if (!response.ok || 'error' in data) {
-    const errorData = {
-      error: data.error ?? ErrorMap.server_error,
-      error_description: data.error_description || 'No additional information provided.',
-      error_uri: data.error_uri,
-    }
-
-    throw new OAuth2Exception(errorData.error, errorData.error_description, errorData.error_uri)
+    throw new OAuth2Exception(
+      data.error ?? ErrorMap.server_error,
+      data.error_description || 'No additional information provided.',
+      data.error_uri,
+    )
   }
 
   // Return the parsed token response
