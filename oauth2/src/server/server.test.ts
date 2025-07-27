@@ -46,6 +46,66 @@ export const getClient = ({clientId}: {clientId: string}): OAuth2Client => {
   return app
 }
 
+Deno.test('Test 261007', async (t) => {
+  // 1
+  const app1 = createOauth2Server({
+    getClient: ({clientId}) => ({} as any),
+    storage: {
+      get: (code) => ({code: '', ctx: {sub: ''}} as any),
+      set(data) {},
+    },
+    grants: {
+      async authorizationCode({store}) {
+        store.ctx
+        return {} as any
+      },
+    },
+  })
+  app1.authorize({uri: new URL(''), ctx: {sub: ''}})
+
+  // 2
+  const createStorage = (): OAuth2Storage<{test: string}> => {
+    return {
+      get: (code) => ({
+        ctx: {test: ''},
+        code: '',
+        clientId: '',
+        redirectUri: '',
+        createdAt: new Date(),
+      }),
+      set(data) {},
+    }
+  }
+  const app2 = createOauth2Server({
+    getClient: ({clientId}) => ({} as any),
+    storage: createStorage(),
+    grants: {},
+  })
+  app2.authorize({uri: new URL(''), ctx: {test: ''}})
+
+  // 3
+  const app3 = createOauth2Server<{a: 'global'}>({
+    getClient: ({clientId}) => ({} as any),
+    storage: {} as any, //as Storage<{a: 'local'}>,
+    grants: {},
+  })
+  app3.authorize({uri: new URL(''), ctx: {a: 'global'}})
+
+  // 4
+  const app4 = createOauth2Server<DefaultCtx & {a: 'global'}, OAuth2Client & {prop: string}>({
+    getClient: ({clientId}) => ({} as any),
+    storage: {} as any, //as Storage<{a: 'local'}>,// err ok
+    grants: {},
+  })
+  const a4 = await app4.authorize({uri: new URL(''), ctx: {sub: '', a: 'global'}})
+  a4.client.prop satisfies string
+
+  // 5 remove ctx
+  createOauth2Server({} as any).authorize({uri: '', ctx: {sub: ''}})
+  createOauth2Server<unknown>({} as any).authorize({uri: ''})
+})
+
+
 Deno.test('Test 442915', async (t) => {
   const app = new Hono() //
   app.onError((e, c) => {

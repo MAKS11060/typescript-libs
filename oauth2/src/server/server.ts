@@ -102,9 +102,6 @@ interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OA
     codeTimeout?: number
   }
 
-  // getClient(
-  //   {clientId, ctx}: {clientId: string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}),
-  // ): Promise<Client> | Client | null | undefined
   getClient({clientId}: {clientId: string}): Promise<Client> | Client | null | undefined | void
 
   /**
@@ -160,7 +157,6 @@ interface OAuth2Server<
     client: Client
   }>
 
-  // token(data: OAuth2GrantTypeAuthorizationCode): Promise<Options['grants']['authorizationCode']>
   token(data: OAuth2GrantTypeAuthorizationCode): Promise<OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>>
   token(data: OAuth2GrantTypeRefresh): Promise<OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>>
   token(data: OAuth2GrantTypeCredentials): Promise<OAuth2TokenResponse<GetGrant<Options, 'credentials'>>>
@@ -199,12 +195,9 @@ export type OAuth2GrantType =
   | OAuth2GrantTypeCredentials
   | OAuth2GrantTypePassword
 
-// type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }}
-//   ? O extends Promise<infer P> ? P : O
-//   : never
-type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }} ? ExtractPromise<O>
+type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }}
+  ? O extends Promise<infer P> ? P : O
   : never
-type ExtractPromise<T> = T extends Promise<infer O> ? O : T
 
 type CreateOauth2Server = <
   Ctx /* extends object */ = DefaultCtx,
@@ -212,17 +205,10 @@ type CreateOauth2Server = <
   Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
 >(options: Options) => OAuth2Server<Ctx, Client, Options>
 
-// impl
+/**
+ * Create `OAuth2` service
+ */
 export const createOauth2Server: CreateOauth2Server = (options) => {
-// export const createOauth2Server = <
-//   Ctx /* extends object */ = DefaultCtx,
-//   Client extends OAuth2Client = OAuth2Client,
-//   Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
-// >(
-//   options: OAuth2ServerOptions<Ctx, Client>,
-// ): OAuth2Server<Ctx, Client, Options> => {
-  // ): OAuth2Server<Ctx, Client, typeof options> => {
-
   options.options ??= {}
   options.options.codeTimeout ??= CODE_EXPIRED_TIME
 
@@ -441,62 +427,3 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
     },
   }
 }
-
-Deno.test('Test 261007', async (t) => {
-  // 1
-  const app1 = createOauth2Server({
-    getClient: ({clientId}) => ({} as any),
-    storage: {
-      get: (code) => ({code: '', ctx: {sub: ''}} as any),
-      set(data) {},
-    },
-    grants: {
-      async authorizationCode({store}) {
-        store.ctx
-        return {} as any
-      },
-    },
-  })
-  app1.authorize({uri: new URL(''), ctx: {sub: ''}})
-
-  // 2
-  const createStorage = (): OAuth2Storage<{test: string}> => {
-    return {
-      get: (code) => ({
-        ctx: {test: ''},
-        code: '',
-        clientId: '',
-        redirectUri: '',
-        createdAt: new Date(),
-      }),
-      set(data) {},
-    }
-  }
-  const app2 = createOauth2Server({
-    getClient: ({clientId}) => ({} as any),
-    storage: createStorage(),
-    grants: {},
-  })
-  app2.authorize({uri: new URL(''), ctx: {test: ''}})
-
-  // 3
-  const app3 = createOauth2Server<{a: 'global'}>({
-    getClient: ({clientId}) => ({} as any),
-    storage: {} as any, //as Storage<{a: 'local'}>,
-    grants: {},
-  })
-  app3.authorize({uri: new URL(''), ctx: {a: 'global'}})
-
-  // 4
-  const app4 = createOauth2Server<DefaultCtx & {a: 'global'}, OAuth2Client & {prop: string}>({
-    getClient: ({clientId}) => ({} as any),
-    storage: {} as any, //as Storage<{a: 'local'}>,// err ok
-    grants: {},
-  })
-  const a4 = await app4.authorize({uri: new URL(''), ctx: {sub: '', a: 'global'}})
-  a4.client.prop satisfies string
-
-  // 5 remove ctx
-  createOauth2Server({} as any).authorize({uri: '', ctx: {sub: ''}})
-  createOauth2Server<unknown>({} as any).authorize({uri: ''})
-})
