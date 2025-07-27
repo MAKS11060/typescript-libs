@@ -26,15 +26,14 @@ export class OAuth2Exception extends Error {
 }
 
 export const ErrorMap = {
-  invalid_request: 'invalid_request',
-  unauthorized_client: 'unauthorized_client',
   access_denied: 'access_denied',
-  unsupported_response_type: 'unsupported_response_type',
+  invalid_client: 'invalid_client',
+  invalid_grant: 'invalid_grant',
+  invalid_request: 'invalid_request',
   invalid_scope: 'invalid_scope',
   server_error: 'server_error',
   temporarily_unavailable: 'temporarily_unavailable',
-
-  invalid_client: 'invalid_client',
-  invalid_grant: 'invalid_grant',
+  unauthorized_client: 'unauthorized_client',
   unsupported_grant_type: 'unsupported_grant_type',
+  unsupported_response_type: 'unsupported_response_type',
 } as const
