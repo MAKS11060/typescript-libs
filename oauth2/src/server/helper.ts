@@ -1,7 +1,7 @@
 import { decodeBase64 } from '@std/encoding/base64'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
 import { OAuth2TokenResponse } from '../oauth2.ts'
-import { OAuth2AppConfig } from './server.ts'
+import { OAuth2Client } from './server.ts'
 
 export const ResponseType = [
   'code',
@@ -39,7 +39,7 @@ export const parseBasicAuth = (authorization?: string | null) => {
   return {username, password}
 }
 
-export const getClientRedirectUri = (client: OAuth2AppConfig, redirect_uri?: string | null): string => {
+export const getClientRedirectUri = (client: OAuth2Client, redirect_uri?: string | null): string => {
   if (redirect_uri) {
     try {
       const inputUri = new URL(redirect_uri)

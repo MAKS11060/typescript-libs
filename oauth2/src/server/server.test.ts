@@ -13,11 +13,11 @@ import {
 import { Hono } from 'hono'
 import { expect } from 'jsr:@std/expect/expect'
 import { generateToken, parseBasicAuth } from './helper.ts'
-import { createOAuth2Server, OAuth2AppConfig, OAuth2StorageData } from './server.ts'
+import { createOAuth2Server, OAuth2Client, OAuth2StorageData } from './server.ts'
 
-export const getClient = (clientId: string): OAuth2AppConfig => {
+export const getClient = (clientId: string): OAuth2Client => {
   const redirectUri = 'http://localhost/oauth2/callback'
-  const apps: OAuth2AppConfig[] = [
+  const apps: OAuth2Client[] = [
     {
       appName: 'app1',
       clientId: '1',
@@ -105,7 +105,7 @@ Deno.test('Test 442915', async (t) => {
       },
     },
     storage: {
-      async create(data) {
+      async set(data) {
         // console.log('storage save', data)
         authCodeStore.set(data.code, data)
       },

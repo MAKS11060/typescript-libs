@@ -1,6 +1,45 @@
-import { OAuth2Exception, OAuth2TokenResponse, PkceChallenge, pkceVerify } from '@maks11060/oauth2'
+/* interface AppOptions<Ctx> {
+  storage: {
+    get(code: string): {
+      clientId: string
+    }
+    set(data: {
+      ctx: Ctx
+      clientId: string
+    }): void
+  }
+}
+
+interface App<Ctx> {
+  authorize(uri: URL, ctx?: Ctx): Promise<
+    | {responseType: 'code'; authorizeUri: URL}
+    | {responseType: 'token'; authorizeUri: URL}
+  >
+  // get(val: string): T
+}
+
+const create = <
+  Ctx extends object = {sub: string},
+  Options extends AppOptions<Ctx> = AppOptions<Ctx>,
+>(options: Options): App<Ctx> => ({} as any)
+
+const app = create<{userId: string}>({
+  storage: {
+    get(data) {
+      return {clientId: ''}
+    },
+    set({}) {
+    },
+  },
+})
+
+app.get('a')
+ */
+
 import { encodeBase64Url } from '@std/encoding/base64url'
-import { ErrorMap } from '../error.ts'
+import { OAuth2TokenResponse } from '../oauth2.ts'
+import { ErrorMap, OAuth2Exception } from '../error.ts'
+import { PkceChallenge, pkceVerify } from '../pkce.ts'
 import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
 const RESPONSE_TYPE = 'response_type'
@@ -15,14 +54,16 @@ const CODE_CHALLENGE_METHOD = 'code_challenge_method'
 
 const CODE_EXPIRED_TIME = 1000 * 60 * 10 // 10 min
 
-type GetStorageData<T> = T extends {storage: {create(data: OAuth2StorageData<infer O>): any}} ? O : never
+//
 type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }} ? ExtractPromise<O>
   : never
 
 type ExtractPromise<T> = T extends Promise<infer O> ? O : T
 
-//
-export interface OAuth2AppConfig {
+type OptionalCtx<Ctx> = Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}
+
+////////////////////////////////////////////////////////////////
+export interface OAuth2Client {
   /**
    * @default 'confidential'
    */
@@ -33,13 +74,13 @@ export interface OAuth2AppConfig {
   redirectUri: string[]
 }
 
-interface DefaultCtx {
-  /** `Subject` - any identification used to identify the user */
+export interface DefaultCtx {
   sub: string
 }
 
-export interface OAuth2StorageData<Ctx = DefaultCtx> {
-  ctx?: Ctx
+// Storage
+interface StorageData<Ctx> {
+  ctx: Ctx
   code: string
   clientId: string
   redirectUri: string
@@ -48,12 +89,77 @@ export interface OAuth2StorageData<Ctx = DefaultCtx> {
   createdAt: Date
 }
 
-export interface OAuth2Storage<in out Ctx> {
-  set(data: OAuth2StorageData<Ctx>): Promise<void> | void | unknown
-  get(code: string): Promise<OAuth2StorageData<Ctx> | null | undefined> | void
+export interface Storage<Ctx = DefaultCtx> {
+  get(code: string): StorageData<Ctx>
+  set(data: StorageData<Ctx>): any
 }
 
-// token()
+// App options
+interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OAuth2Client> {
+  // getClient(
+  //   {clientId, ctx}: {clientId: string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}),
+  // ): Promise<Client> | Client | null | undefined
+  getClient({clientId}: {clientId: string}): Promise<Client> | Client | null | undefined
+
+  /**
+   * @example
+   * ```ts
+   * generateCode() {
+   *   return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+   * }
+   * ```
+   */
+  generateCode?({client}: {client: OAuth2Client}): string
+
+  /**
+   * Store `code` and metadata for grant `authorization_code`
+   */
+  storage: Storage<Ctx>
+
+  /**
+   * OAuth2 Grant handler:
+   * - `authorizationCode`
+   * - `refreshToken`
+   * - `implicit`
+   * - `password`
+   * - `credentials`
+   */
+  grants: {
+    authorizationCode?({client, store}: {client: Client; store: StorageData<Ctx>}): Promise<OAuth2TokenResponse>
+
+    implicit?({client}: {client: Client}): Promise<OAuth2TokenResponse>
+
+    password?(data: {
+      client_id: string
+      client_secret: string
+      username: string
+      password: string
+    }): Promise<OAuth2TokenResponse>
+
+    credentials?(data: {client_id: string; client_secret: string}): Promise<OAuth2TokenResponse>
+
+    refreshToken?({client_id, refresh_token}: {client_id: string; refresh_token: string}): Promise<OAuth2TokenResponse>
+  }
+}
+
+// App
+interface OAuth2Server<
+  Ctx /* extends object */ = DefaultCtx,
+  Client extends OAuth2Client = OAuth2Client,
+  Options = OAuth2ServerOptions<Ctx, Client>,
+> {
+  authorize(options: {uri: URL | string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx})): Promise<{
+    responseType: 'code' | 'token'
+    authorizeUri: URL
+    client: Client
+  }>
+
+  token(data: OAuth2GrantTypeAuthorizationCode): Promise<OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>>
+  token(data: OAuth2GrantTypeRefresh): Promise<OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>>
+  token(data: OAuth2GrantTypeCredentials): Promise<OAuth2TokenResponse<GetGrant<Options, 'credentials'>>>
+  token(data: OAuth2GrantTypePassword): Promise<OAuth2TokenResponse<GetGrant<Options, 'password'>>>
+}
+
 export type OAuth2GrantTypeAuthorizationCode = {
   grant_type: 'authorization_code'
   code: string
@@ -86,73 +192,23 @@ export type OAuth2GrantType =
   | OAuth2GrantTypeCredentials
   | OAuth2GrantTypePassword
 
-interface OAuth2ServerOptions<Ctx extends object> {
-  getClient(clientId: string): Promise<OAuth2AppConfig> | OAuth2AppConfig | undefined | null | void
-
-  /**
-   * @example
-   * ```ts
-   * generateCode() {
-   *   return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
-   * }
-   * ```
-   */
-  generateCode?(data: {client: OAuth2AppConfig}): string
-
-  storage: OAuth2Storage<Ctx>
-
-  grants: {
-    authorizationCode?(data: {
-      client: OAuth2AppConfig
-      store: OAuth2StorageData<Ctx>
-    }): Promise<OAuth2TokenResponse>
-
-    implicit?(data: {
-      client: OAuth2AppConfig
-    }): Promise<OAuth2TokenResponse>
-
-    password?(data: {
-      client_id: string
-      client_secret: string
-      username: string
-      password: string
-    }): Promise<OAuth2TokenResponse>
-
-    credentials?(data: {
-      client_id: string
-      client_secret: string
-    }): Promise<OAuth2TokenResponse>
-
-    refreshToken?(data: {
-      client_id: string
-      refresh_token: string
-    }): Promise<OAuth2TokenResponse>
-  }
-}
-
-interface OAuth2ServerApp<Ctx extends object, Options extends OAuth2ServerOptions<Ctx>> {
-  authorize(uri: URL, ctx?: Ctx): Promise<{
-    responseType: 'code' | 'token'
-    authorizeUri: URL
-    client: OAuth2AppConfig
-  }>
-
-  token(data: OAuth2GrantTypeAuthorizationCode): Promise<OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>>
-  token(data: OAuth2GrantTypeRefresh): Promise<OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>>
-  token(data: OAuth2GrantTypeCredentials): Promise<OAuth2TokenResponse<GetGrant<Options, 'credentials'>>>
-  token(data: OAuth2GrantTypePassword): Promise<OAuth2TokenResponse<GetGrant<Options, 'password'>>>
-}
-
-export const createOAuth2Server = <
-  Ctx extends object = DefaultCtx,
-  Options extends OAuth2ServerOptions<Ctx> = OAuth2ServerOptions<Ctx>,
->(options: Options): OAuth2ServerApp<Ctx, Options> => {
+// impl
+const createOauth2Server = <
+  Ctx /* extends object */ = DefaultCtx,
+  Client extends OAuth2Client = OAuth2Client,
+  Options = OAuth2ServerOptions<Ctx, Client>,
+>(
+  options: OAuth2ServerOptions<Ctx, Client>,
+): OAuth2Server<Ctx, Client, Options> => {
   options.generateCode ??= () => {
     return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
   }
 
   return {
-    async authorize(uri, ctx) {
+    async authorize({uri, ctx}) {
+      // to URL
+      uri = typeof uri === 'string' ? new URL(uri) : uri
+
       // response_type
       const responseType = uri.searchParams.get(RESPONSE_TYPE)
       if (!isResponseType(responseType)) throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid response_type')
@@ -166,7 +222,7 @@ export const createOAuth2Server = <
       const clientId = uri.searchParams.get(CLIENT_ID)!
       if (!clientId) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
 
-      const client = await options.getClient(clientId)
+      const client = await options.getClient({clientId})
       if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
 
       // redirect_uri
@@ -200,7 +256,7 @@ export const createOAuth2Server = <
 
         // save to storage
         await options.storage.set({
-          ctx,
+          ctx: ctx!,
           code,
           clientId,
           redirectUri,
@@ -259,7 +315,7 @@ export const createOAuth2Server = <
       // required parameters
       if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
 
-      const client = await options.getClient(client_id)
+      const client = await options.getClient({clientId: client_id})
       if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
 
       if (grantType === 'authorization_code') {
@@ -362,52 +418,56 @@ export const createOAuth2Server = <
   }
 }
 
-
-
-Deno.test('Test 379603', async (t) => {
-  const store = new Map<string, OAuth2StorageData>()
-
-  // const createStorage = (): OAuth2Storage<{test: string}> => {
-  // const store = new Map<string, any>()
-  //   return {
-  //     set: async (data) => store.set(data.code, data),
-  //     get: async (code) => store.get(code),
-  //   }
-  // }
-
-  // const server2 = createOAuth2Server({
-  //   storage: createStorage(),
-  //   grants: {},
-  //   getClient: () => {},
-  // })
-
-  const server = createOAuth2Server({
-    storage: {
-      set: async (data) => store.set(data.code, data),
-      get: async (code) => store.get(code),
+// 1
+const app1 = createOauth2Server({
+  getClient: ({clientId}) => ({} as any),
+  storage: {
+    get: (code) => ({code: '', ctx: {sub: ''}}),
+    set(data) {},
+  },
+  grants: {
+    async authorizationCode({store}) {
+      store.ctx
+      return {} as any
     },
-    grants: {
-      async authorizationCode({client, store}) {
-        return {
-          access_token: '1',
-          token_type: 'Bearer',
-          refresh_token: '1',
-          expires_in: 3600,
-        }
-      },
-      refreshToken({client_id, refresh_token}) {
-      },
-    },
-    getClient: (clientId) => {
-      const clients: OAuth2AppConfig[] = [
-        {appName: 'Test 1', clientId: '1', clientSecret: '1', redirectUri: ['https://localhost/callback']},
-      ]
-      return clients.find((v) => v.clientId === clientId)
-    },
-  })
-
-  await server.authorize(new URL(''), {sub: '123'})
-
-  const a = await server.token({grant_type: 'authorization_code', client_id: '1', client_secret: '1', code: '1'})
-  const refresh = await server.token({grant_type: 'refresh_token', client_id: '1', refresh_token: 't1'})
+  },
 })
+app1.authorize({uri: new URL(''), ctx: {sub: ''}})
+
+// 2
+const createStorage = (): Storage<{test: string}> => {
+  return {
+    get: (code) => ({
+      ctx: {test: ''},
+      code: '',
+    }),
+    set(data) {},
+  }
+}
+const app2 = createOauth2Server({
+  getClient: ({clientId}) => ({} as any),
+  storage: createStorage(),
+  grants: {},
+})
+app2.authorize({uri: new URL(''), ctx: {test: ''}})
+
+// 3
+const app3 = createOauth2Server<{a: 'global'}>({
+  getClient: ({clientId}) => ({} as any),
+  storage: {} as any, //as Storage<{a: 'local'}>,
+  grants: {},
+})
+app3.authorize({uri: new URL(''), ctx: {a: 'global'}})
+
+// 4
+const app4 = createOauth2Server<DefaultCtx & {a: 'global'}, OAuth2Client & {prop: string}>({
+  getClient: ({clientId}) => ({} as any),
+  storage: {} as any, //as Storage<{a: 'local'}>,// err ok
+  grants: {},
+})
+const a4 = await app4.authorize({uri: new URL(''), ctx: {sub: '', a: 'global'}})
+a4.client.prop satisfies string
+
+// 5 remove ctx
+createOauth2Server({} as any).authorize({uri: '', ctx: {sub: ''}})
+createOauth2Server<unknown>({} as any).authorize({uri: ''})
