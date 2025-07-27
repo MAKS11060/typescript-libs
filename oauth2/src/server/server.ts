@@ -1,6 +1,7 @@
-import { OAuth2Exception, OAuth2TokenResponse, PkceChallenge, pkceVerify } from '@maks11060/oauth2'
 import { encodeBase64Url } from '@std/encoding/base64url'
-import { ErrorMap } from '../error.ts'
+import { ErrorMap, OAuth2Exception } from '../error.ts'
+import { OAuth2TokenResponse } from '../oauth2.ts'
+import { PkceChallenge, pkceVerify } from '../pkce.ts'
 import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
 const RESPONSE_TYPE = 'response_type'
@@ -361,8 +362,6 @@ export const createOAuth2Server = <
     },
   }
 }
-
-
 
 Deno.test('Test 379603', async (t) => {
   const store = new Map<string, OAuth2StorageData>()

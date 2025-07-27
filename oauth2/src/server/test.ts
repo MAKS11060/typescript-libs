@@ -1,44 +1,6 @@
-/* interface AppOptions<Ctx> {
-  storage: {
-    get(code: string): {
-      clientId: string
-    }
-    set(data: {
-      ctx: Ctx
-      clientId: string
-    }): void
-  }
-}
-
-interface App<Ctx> {
-  authorize(uri: URL, ctx?: Ctx): Promise<
-    | {responseType: 'code'; authorizeUri: URL}
-    | {responseType: 'token'; authorizeUri: URL}
-  >
-  // get(val: string): T
-}
-
-const create = <
-  Ctx extends object = {sub: string},
-  Options extends AppOptions<Ctx> = AppOptions<Ctx>,
->(options: Options): App<Ctx> => ({} as any)
-
-const app = create<{userId: string}>({
-  storage: {
-    get(data) {
-      return {clientId: ''}
-    },
-    set({}) {
-    },
-  },
-})
-
-app.get('a')
- */
-
 import { encodeBase64Url } from '@std/encoding/base64url'
-import { OAuth2TokenResponse } from '../oauth2.ts'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
+import { OAuth2TokenResponse } from '../oauth2.ts'
 import { PkceChallenge, pkceVerify } from '../pkce.ts'
 import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
@@ -55,12 +17,6 @@ const CODE_CHALLENGE_METHOD = 'code_challenge_method'
 const CODE_EXPIRED_TIME = 1000 * 60 * 10 // 10 min
 
 //
-type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }} ? ExtractPromise<O>
-  : never
-
-type ExtractPromise<T> = T extends Promise<infer O> ? O : T
-
-type OptionalCtx<Ctx> = Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}
 
 ////////////////////////////////////////////////////////////////
 export interface OAuth2Client {
@@ -84,8 +40,8 @@ interface StorageData<Ctx> {
   code: string
   clientId: string
   redirectUri: string
-  codeChallenge: string | null
-  codeChallengeMethod: 'S256' | 'plain' | null
+  codeChallenge?: string | null
+  codeChallengeMethod?: 'S256' | 'plain' | null
   createdAt: Date
 }
 
@@ -96,6 +52,13 @@ export interface Storage<Ctx = DefaultCtx> {
 
 // App options
 interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OAuth2Client> {
+  options?: {
+    /**
+     * @default (1000 * 60 * 10) // 10 min in milliseconds
+     */
+    codeTimeout?: number
+  }
+
   // getClient(
   //   {clientId, ctx}: {clientId: string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}),
   // ): Promise<Client> | Client | null | undefined
@@ -192,6 +155,10 @@ export type OAuth2GrantType =
   | OAuth2GrantTypeCredentials
   | OAuth2GrantTypePassword
 
+type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }}
+  ? O extends Promise<infer P> ? P : O
+  : never
+
 // impl
 const createOauth2Server = <
   Ctx /* extends object */ = DefaultCtx,
@@ -200,9 +167,10 @@ const createOauth2Server = <
 >(
   options: OAuth2ServerOptions<Ctx, Client>,
 ): OAuth2Server<Ctx, Client, Options> => {
-  options.generateCode ??= () => {
-    return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
-  }
+  options.options ??= {}
+  options.options.codeTimeout ??= CODE_EXPIRED_TIME
+
+  options.generateCode ??= () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
 
   return {
     async authorize({uri, ctx}) {
@@ -336,7 +304,7 @@ const createOauth2Server = <
         } = store
 
         // checking if the code has expired
-        const isExpired = Date.now() - createdAt.getTime() > CODE_EXPIRED_TIME
+        const isExpired = Date.now() - createdAt.getTime() > options.options?.codeTimeout!
         if (isExpired) throw new OAuth2Exception(ErrorMap.invalid_grant, 'Authorization code expired')
 
         // client check
@@ -440,6 +408,9 @@ const createStorage = (): Storage<{test: string}> => {
     get: (code) => ({
       ctx: {test: ''},
       code: '',
+      clientId: '',
+      redirectUri: '',
+      createdAt: new Date(),
     }),
     set(data) {},
   }
