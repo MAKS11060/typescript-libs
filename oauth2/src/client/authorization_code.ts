@@ -4,8 +4,9 @@
  * @module authorizationCode
  */
 
-import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
+import type { OAuth2TokenResponse } from '../oauth2.ts'
 import { handleOauth2Response, normalizeScope } from './_internal.ts'
+import type { OAuth2ClientConfig } from './types.ts'
 
 /**
  * Represents the options required to exchange an authorization code for tokens.
