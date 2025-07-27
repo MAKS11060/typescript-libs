@@ -18,49 +18,69 @@ const CODE_EXPIRED_TIME = 1000 * 60 * 10 // 10 min
 
 /**
  * The basic interface of the `OAuth2` client.
- * Can be expanded if necessary
+ * Represents a registered OAuth2 application.
+ *
+ * Can be extended to include additional metadata (e.g. scopes, logo, contacts).
  */
 export interface OAuth2Client {
   /**
    * Client type:
-   * - `confidential` - by default
-   *   - Requires: `client_secret`
-   * - `public` - for `public`/`SPA` apps
-   *   - It is forbidden to use `client_secret`
-   *   - Requires: `PKCE`
+   * - `confidential`: server-side apps that can securely store secrets (e.g. web backends).
+   *   - Must use `client_secret`.
+   * - `public`: client-side apps (e.g. SPA, mobile) that cannot store secrets.
+   *   - Must **not** use `client_secret`.
+   *   - **Must** use PKCE for security.
    *
    * @default 'confidential'
    */
   type?: 'confidential' | 'public'
 
   /**
-   * OAuth2 application name
+   * Human-readable name of the OAuth2 application.
+   * Used in consent screens and admin panels.
+   *
+   * @example "My Awesome App"
    */
   appName: string
 
   /**
-   * OAuth2 Client ID
+   * Unique identifier for the OAuth2 client.
+   * Issued by the authorization server during registration.
+   *
+   * @example "client_123abc"
    */
   clientId: string
 
   /**
-   * OAuth2 Client Secret
+   * Secret used to authenticate confidential clients.
    *
-   * It is recommended to provide the user with the original `secret` and keep the `hash` of the `secret` in the DB.
+   * ⚠️ **Security note**: Never store this in plain text.
+   * Always hash it (e.g. with bcrypt) before saving to the database.
+   * The original secret should only be shown once (on creation) to the developer.
+   *
+   * For public clients, this field may be omitted or ignored.
+   *
+   * @example "sec_456xyz"
    */
   clientSecret: string
 
   /**
-   * Redirect URI
+   * List of allowed redirection URIs.
    *
-   * The list of allowed redirection URLs after authorization.
+   * After authorization, the user agent will be redirected to one of these URIs.
    *
-   * If one address is specified, it will be used by default.
+   * Rules:
+   * - Must **exactly match** (including trailing slash, case, query params if any).
+   * - If multiple URIs are provided, the client **must** specify `redirect_uri` in the request.
+   * - If only one URI is provided, it will be used as default when `redirect_uri` is omitted.
+   *
+   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.4
    *
    * @example
    * ```ts
    * redirectUri: [
-   *   'https://localhost/oauth2/callback'
+   *   'https://app.com/oauth/callback',
+   *   'https://localhost:8080/callback'
    * ]
    * ```
    */
@@ -68,101 +88,280 @@ export interface OAuth2Client {
 }
 
 /**
- * Default context for {@linkcode OAuth2Server}
+ * Default context type stored with the authorization code.
+ * Typically contains the authenticated user's identifier (`sub`).
+ *
+ * Can be extended to include additional session data (e.g. scopes, session ID).
+ *
+ * @example { sub: "user_789", scopes: ["read", "write"] }
  */
 export interface DefaultCtx {
+  /**
+   * Subject identifier — the authenticated user.
+   */
   sub: string
 }
 
-// Storage
+// ===== STORAGE =====
+
+/**
+ * Data structure stored during the authorization process (e.g., for `authorization_code` grant).
+ *
+ * This is persisted temporarily and linked to the generated `code`.
+ *
+ * @template Ctx - Type of context data (default: {@link DefaultCtx})
+ */
 export interface OAuth2StorageData<Ctx = DefaultCtx> {
+  /**
+   * Context data associated with the authorization request.
+   * Usually contains user identity and scopes.
+   */
   ctx: Ctx
+
+  /**
+   * Authorization code issued to the client.
+   * One-time use, short-lived.
+   */
   code: string
+
+  /**
+   * Client ID that requested the code.
+   */
   clientId: string
+
+  /**
+   * Redirect URI to which the client will be redirected after authorization.
+   * Must match the one used in the initial request.
+   */
   redirectUri: string
+
+  /**
+   * PKCE: Code challenge (derived from `code_verifier`).
+   * Present only if PKCE was used.
+   *
+   * @see https://datatracker.ietf.org/doc/html/rfc7636
+   */
   codeChallenge?: string | null
+
+  /**
+   * PKCE: Method used to derive the code challenge.
+   * - `S256` (recommended): SHA-256
+   * - `plain` (discouraged): plain `code_verifier`
+   */
   codeChallengeMethod?: 'S256' | 'plain' | null
+
+  /**
+   * Timestamp when the code was created.
+   * Used to enforce expiration (e.g., 10 minutes).
+   */
   createdAt: Date
 }
 
 /**
- * Storage contract for {@linkcode OAuth2Server}
+ * Storage contract for the OAuth2 server.
+ * Defines how authorization codes are stored and retrieved.
+ *
+ * @template Ctx - Type of context data
  */
 export interface OAuth2Storage<Ctx = DefaultCtx> {
-  get(code: string): Promise<OAuth2StorageData<Ctx>> | null | unknown
-  set(data: OAuth2StorageData<Ctx>): Promise<unknown> | unknown
+  /**
+   * Retrieve storage data by authorization code.
+   *
+   * @param code - The authorization code
+   * @returns The stored data or `null`/`undefined` if not found or expired
+   */
+  get(
+    code: string,
+  ): Promise<OAuth2StorageData<Ctx> | null | undefined | void> | OAuth2StorageData<Ctx> | null | undefined | void
+
+  /**
+   * Persist authorization code and associated data.
+   *
+   * @param data - Data to store (code, client, redirect URI, PKCE, etc.)
+   */
+  set(data: OAuth2StorageData<Ctx>): Promise<void> | void | unknown
 }
 
-// App options
-interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OAuth2Client> {
+// ===== SERVER OPTIONS =====
+
+/**
+ * Configuration options for the OAuth2 server.
+ *
+ * @template Ctx - Type of context data (e.g., user ID, scopes)
+ * @template Client - Type of client (extends {@link OAuth2Client})
+ */
+export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Client = OAuth2Client> {
+  /**
+   * Optional server settings.
+   */
   options?: {
     /**
-     * @default (1000 * 60 * 10) // 10 min in milliseconds
+     * Time (in milliseconds) after which the authorization code expires.
+     *
+     * @default 600_000 (10 minutes)
      */
     codeTimeout?: number
   }
 
-  getClient({clientId}: {clientId: string}): Promise<Client> | Client | null | undefined | void
+  /**
+   * Retrieve a client by its ID.
+   *
+   * @param clientId - The client identifier
+   * @returns The client config or `null`/`undefined` if not found
+   */
+  getClient(clientId: string): Promise<Client | null | undefined> | Client | null | undefined | void
 
   /**
+   * Generate a cryptographically secure authorization code.
+   *
+   * @param client - The client requesting the code
+   * @returns A unique code (e.g., base64url-encoded random bytes)
+   *
    * @example
    * ```ts
-   * generateCode() {
-   *   return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
-   * }
+   * generateCode: () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
    * ```
+   *
+   * @default Generates a 32-byte random value encoded in base64url
    */
-  generateCode?({client}: {client: OAuth2Client}): string
+  generateCode?(client: Client): string
 
   /**
-   * Store `code` and metadata for grant `authorization_code`
+   * Storage backend for authorization codes.
+   * Must implement {@link OAuth2Storage}.
    */
   storage: OAuth2Storage<Ctx>
 
   /**
-   * OAuth2 Grant handler:
-   * - `authorizationCode`
-   * - `refreshToken`
-   * - `implicit`
-   * - `password`
-   * - `credentials`
+   * Handlers for OAuth2 grant types.
+   *
+   * Each returns a token response (access token, refresh token, etc.).
    */
   grants: {
-    authorizationCode?({client, store}: {client: Client; store: OAuth2StorageData<Ctx>}): Promise<OAuth2TokenResponse>
+    /**
+     * Handle `authorization_code` grant.
+     *
+     * @param client - Authenticated client
+     * @param store - Data associated with the authorization code
+     * @returns Token response (e.g., access token, refresh token)
+     */
+    authorizationCode?(
+      {client, store}: {client: Client; store: OAuth2StorageData<Ctx>},
+    ): Promise<OAuth2TokenResponse>
 
-    implicit?({client}: {client: Client}): Promise<OAuth2TokenResponse>
+    /**
+     * Handle `implicit` grant (token returned in redirect URI fragment).
+     *
+     * @param client - Authenticated client
+     * @returns Token response
+     */
+    implicit?({client}: {client: Client}): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
 
-    password?(data: {
+    /**
+     * Handle `password` grant (Resource Owner Password Credentials).
+     *
+     * ⚠️ Use with caution — only for trusted clients.
+     *
+     * @param client_id - Client ID
+     * @param client_secret - Client secret (if confidential)
+     * @param username - User identifier
+     * @param password - User password
+     * @returns Token response
+     */
+    password?(params: {
       client_id: string
       client_secret: string
       username: string
       password: string
-    }): Promise<OAuth2TokenResponse>
+    }): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
 
-    credentials?(data: {client_id: string; client_secret: string}): Promise<OAuth2TokenResponse>
+    /**
+     * Handle `client_credentials` grant.
+     *
+     * Used for machine-to-machine authentication.
+     *
+     * @param client_id - Client ID
+     * @param client_secret - Client secret
+     * @returns Token response
+     */
+    credentials?(params: {client_id: string; client_secret: string}): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
 
-    refreshToken?({client_id, refresh_token}: {client_id: string; refresh_token: string}): Promise<OAuth2TokenResponse>
+    /**
+     * Handle `refresh_token` grant.
+     *
+     * @param client_id - Client ID
+     * @param refresh_token - Refresh token
+     * @returns New token response
+     */
+    refreshToken?(
+      {client_id, refresh_token}: {client_id: string; refresh_token: string},
+    ): Promise<OAuth2TokenResponse> | OAuth2TokenResponse
   }
 }
 
-// App
+// ===== SERVER API =====
+
+/**
+ * OAuth2 server instance.
+ *
+ * @template Ctx - Context data type
+ * @template Client - Client type
+ * @template Options - Options type
+ */
 interface OAuth2Server<
   Ctx /* extends object */ = DefaultCtx,
   Client extends OAuth2Client = OAuth2Client,
   Options = OAuth2ServerOptions<Ctx, Client>,
 > {
+  /**
+   * Initiate the authorization flow.
+   *
+   * @param options.uri - Authorization request URL (e.g., from client)
+   * @param options.ctx - Optional context data to store with the code (e.g., user ID)
+   * @returns Redirect info with `responseType` and `authorizeUri`
+   *
+   * @example
+   * ```ts
+   * const { authorizeUri } = await server.authorize({
+   *   uri: 'https://auth.example.com/authorize?response_type=code&client_id=abc&redirect_uri=https://app.com/cb'
+   * });
+   * // redirect to authorizeUri
+   * ```
+   */
   authorize(options: {uri: URL | string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx})): Promise<{
     responseType: 'code' | 'token'
     authorizeUri: URL
     client: Client
   }>
 
-  token(data: OAuth2GrantTypeAuthorizationCode): Promise<OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>>
-  token(data: OAuth2GrantTypeRefresh): Promise<OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>>
-  token(data: OAuth2GrantTypeCredentials): Promise<OAuth2TokenResponse<GetGrant<Options, 'credentials'>>>
-  token(data: OAuth2GrantTypePassword): Promise<OAuth2TokenResponse<GetGrant<Options, 'password'>>>
+  /**
+   * Exchange credentials for tokens using supported grant types.
+   */
+  token(data: OAuth2GrantTypeAuthorizationCode): Promise<{
+    grantType: 'authorization_code'
+    token: OAuth2TokenResponse<GetGrant<Options, 'authorizationCode'>>
+  }>
+  token(data: OAuth2GrantTypeRefresh): Promise<{
+    grantType: 'refresh_token'
+    token: OAuth2TokenResponse<GetGrant<Options, 'refreshToken'>>
+  }>
+  token(data: OAuth2GrantTypeCredentials): Promise<{
+    grantType: 'client_credentials'
+    token: OAuth2TokenResponse<GetGrant<Options, 'credentials'>>
+  }>
+  token(data: OAuth2GrantTypePassword): Promise<{
+    grantType: 'password'
+    token: OAuth2TokenResponse<GetGrant<Options, 'password'>>
+  }>
 }
 
+// ===== GRANT TYPES =====
+
+/**
+ * Authorization Code Grant request.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.1
+ */
 export type OAuth2GrantTypeAuthorizationCode = {
   grant_type: 'authorization_code'
   code: string
@@ -172,16 +371,36 @@ export type OAuth2GrantTypeAuthorizationCode = {
   code_verifier?: string
   state?: string
 }
+
+/**
+ * Refresh Token Grant request.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-6
+ */
 export type OAuth2GrantTypeRefresh = {
   grant_type: 'refresh_token'
   client_id: string
   refresh_token: string
 }
+
+/**
+ * Client Credentials Grant request.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.4
+ */
 export type OAuth2GrantTypeCredentials = {
   grant_type: 'client_credentials'
   client_id: string
   client_secret: string
 }
+
+/**
+ * Resource Owner Password Credentials Grant request.
+ *
+ * ⚠️ Not recommended unless absolutely necessary.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.3
+ */
 export type OAuth2GrantTypePassword = {
   grant_type: 'password'
   client_id: string
@@ -189,6 +408,10 @@ export type OAuth2GrantTypePassword = {
   username: string
   password: string
 }
+
+/**
+ * Union of all supported OAuth2 grant types.
+ */
 export type OAuth2GrantType =
   | OAuth2GrantTypeAuthorizationCode
   | OAuth2GrantTypeRefresh
@@ -202,11 +425,51 @@ type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: an
 type CreateOauth2Server = <
   Ctx /* extends object */ = DefaultCtx,
   Client extends OAuth2Client = OAuth2Client,
-  Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
->(options: Options) => OAuth2Server<Ctx, Client, Options>
+  Options = OAuth2ServerOptions<Ctx, Client>,
+>(
+  options: OAuth2ServerOptions<Ctx, Client> & Options, // Very Sensitive code
+  // options: Options,
+  // options: OAuth2ServerOptions<Ctx, Client>,
+) => OAuth2Server<Ctx, Client, Options>
+// ) => OAuth2Server<Ctx, Client, OAuth2ServerOptions<Ctx, Client>>
 
 /**
- * Create `OAuth2` service
+ * Factory function to create an OAuth2 server instance.
+ *
+ * @template Ctx - Context data (e.g., user info)
+ * @template Client - Custom client type
+ *
+ * @param options - Server configuration
+ * @returns OAuth2 server instance
+ *
+ * @example
+ * ```ts
+ * const store = new Map<string, OAuth2StorageData>()
+ * const clients: OAuth2Client[] = [{
+ *   appName: 'My App',
+ *   clientId: 'client_1',
+ *   clientSecret: 'SECRET',
+ *   redirectUri: ['http://localhost/oauth2/callback'],
+ * }]
+ *
+ * const oauth2Server = createOauth2Server({
+ *   getClient(clientId) {
+ *     return clients.find((client) => client.clientId === clientId)
+ *   },
+ *   storage: {
+ *     set: (data) => store.set(data.code, data),
+ *     get: (code) => store.get(code),
+ *   },
+ *   grants: {
+ *     async authorizationCode({client, store}) {
+ *       return {
+ *         access_token: crypto.randomUUID(),
+ *         token_type: 'Bearer',
+ *       }
+ *     },
+ *   },
+ * })
+ * ```
  */
 export const createOauth2Server: CreateOauth2Server = (options) => {
   options.options ??= {}
@@ -232,7 +495,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
       const clientId = uri.searchParams.get(CLIENT_ID)!
       if (!clientId) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
 
-      const client = await options.getClient({clientId})
+      const client = await options.getClient(clientId)
       if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
 
       // redirect_uri
@@ -325,7 +588,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
       // required parameters
       if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
 
-      const client = await options.getClient({clientId: client_id})
+      const client = await options.getClient(client_id)
       if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
 
       if (grantType === 'authorization_code') {

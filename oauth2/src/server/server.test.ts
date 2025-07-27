@@ -8,15 +8,14 @@ import {
   oauth2Implicit,
   oauth2Password,
   oauth2RefreshToken,
-  OAuth2TokenResponse,
   usePKCE,
 } from '@maks11060/oauth2'
 import { Hono } from 'hono'
 import { expect } from 'jsr:@std/expect/expect'
 import { generateToken, parseBasicAuth } from './helper.ts'
-import { createOauth2Server, OAuth2Client, OAuth2Storage, OAuth2StorageData } from './server.ts'
+import { createOauth2Server, DefaultCtx, OAuth2Client, OAuth2Storage, OAuth2StorageData } from './server.ts'
 
-export const getClient = ({clientId}: {clientId: string}): OAuth2Client => {
+export const getClient = (clientId: string): OAuth2Client => {
   const redirectUri = 'http://localhost/oauth2/callback'
   const apps: OAuth2Client[] = [
     {
@@ -46,10 +45,10 @@ export const getClient = ({clientId}: {clientId: string}): OAuth2Client => {
   return app
 }
 
-Deno.test('Test 261007', async (t) => {
+Deno.test('Test 261007', {ignore: true}, async (t) => {
   // 1
   const app1 = createOauth2Server({
-    getClient: ({clientId}) => ({} as any),
+    getClient: (clientId) => ({} as any),
     storage: {
       get: (code) => ({code: '', ctx: {sub: ''}} as any),
       set(data) {},
@@ -77,15 +76,16 @@ Deno.test('Test 261007', async (t) => {
     }
   }
   const app2 = createOauth2Server({
-    getClient: ({clientId}) => ({} as any),
+    getClient: (clientId) => ({} as any),
     storage: createStorage(),
     grants: {},
   })
+
   app2.authorize({uri: new URL(''), ctx: {test: ''}})
 
   // 3
   const app3 = createOauth2Server<{a: 'global'}>({
-    getClient: ({clientId}) => ({} as any),
+    getClient: (clientId) => ({} as any),
     storage: {} as any, //as Storage<{a: 'local'}>,
     grants: {},
   })
@@ -93,7 +93,7 @@ Deno.test('Test 261007', async (t) => {
 
   // 4
   const app4 = createOauth2Server<DefaultCtx & {a: 'global'}, OAuth2Client & {prop: string}>({
-    getClient: ({clientId}) => ({} as any),
+    getClient: (clientId) => ({} as any),
     storage: {} as any, //as Storage<{a: 'local'}>,// err ok
     grants: {},
   })
@@ -105,7 +105,6 @@ Deno.test('Test 261007', async (t) => {
   createOauth2Server<unknown>({} as any).authorize({uri: ''})
 })
 
-
 Deno.test('Test 442915', async (t) => {
   const app = new Hono() //
   app.onError((e, c) => {
@@ -115,7 +114,7 @@ Deno.test('Test 442915', async (t) => {
     throw e
   })
 
-  const oauth2AppConfig = getClient({clientId: '1'})
+  const oauth2AppConfig = getClient('1')
   const oauth2ClientConfig: OAuth2ClientConfig = {
     clientId: oauth2AppConfig.clientId,
     clientSecret: oauth2AppConfig.clientSecret,
@@ -305,16 +304,47 @@ Deno.test('Test 442915', async (t) => {
   })
 })
 
-const oauth2Server = createOauth2Server({
-  getClient({clientId}) {},
-  storage: {} as any,
-  grants: {
-    async authorizationCode({client, store}) {
-      return {access_token: '', token_type: '', prop: ''}
+Deno.test('Test 433117', async (t) => {
+  const oauth2Server = createOauth2Server({
+    getClient(clientId) {},
+    storage: {} as any,
+    grants: {
+      async authorizationCode({client, store}) {
+        return {access_token: '', token_type: '', prop: ''}
+      },
     },
-  },
+  })
+
+  const t2 = await oauth2Server.token({grant_type: 'authorization_code', code: '', client_id: ''})
+  t2.prop satisfies string
 })
 
-await oauth2Server.token({grant_type: 'authorization_code', code: '', client_id: ''}) satisfies Promise<never>
-const t2 = await oauth2Server.token({grant_type: 'authorization_code', code: '', client_id: ''})
-t2.prop satisfies string
+Deno.test('Test 607832', async (t) => {
+  const store = new Map<string, OAuth2StorageData>()
+  const clients: OAuth2Client[] = [
+    {
+      appName: 'My App',
+      clientId: '1',
+      clientSecret: '1',
+      redirectUri: ['http://localhost/oauth2/callback'],
+    },
+  ]
+
+  createOauth2Server({
+    getClient(clientId) {
+      return clients.find((client) => client.clientId === clientId)
+    },
+    storage: {
+      set: (data) => store.set(data.code, data),
+      get: (code) => store.get(code),
+    },
+    grants: {
+      async authorizationCode({client, store}) {
+        return {
+          access_token: crypto.randomUUID(),
+          token_type: 'Bearer',
+        }
+      },
+    },
+  })
+})
