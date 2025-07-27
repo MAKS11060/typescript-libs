@@ -428,10 +428,7 @@ type CreateOauth2Server = <
   Options = OAuth2ServerOptions<Ctx, Client>,
 >(
   options: OAuth2ServerOptions<Ctx, Client> & Options, // Very Sensitive code
-  // options: Options,
-  // options: OAuth2ServerOptions<Ctx, Client>,
 ) => OAuth2Server<Ctx, Client, Options>
-// ) => OAuth2Server<Ctx, Client, OAuth2ServerOptions<Ctx, Client>>
 
 /**
  * Factory function to create an OAuth2 server instance.
