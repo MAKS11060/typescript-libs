@@ -1,7 +1,7 @@
 import { encodeBase64Url } from '@std/encoding/base64url'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
-import { OAuth2TokenResponse } from '../oauth2.ts'
-import { PkceChallenge, pkceVerify } from '../pkce.ts'
+import type { OAuth2TokenResponse } from '../oauth2.ts'
+import { type PkceChallenge, pkceVerify } from '../pkce.ts'
 import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
 const RESPONSE_TYPE = 'response_type'
