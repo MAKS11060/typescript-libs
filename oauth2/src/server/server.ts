@@ -311,6 +311,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
 type GrantResponse = Promise<OAuth2Token> | OAuth2Token | null | void
 
 // ===== SERVER API =====
+type MaybeCtx<Ctx> = Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}
 
 /**
  * OAuth2 server instance.
@@ -339,11 +340,14 @@ export interface OAuth2Server<
    * // redirect to authorizeUri
    * ```
    */
-  authorize(options: {uri: URL | string} & (Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx})): Promise<{
-    responseType: 'code' | 'token'
-    authorizeUri: URL
-    client: Client
-  }>
+  authorize(options: {uri: URL | string} & MaybeCtx<Ctx>): Promise<
+    {
+      responseType: 'code' | 'token'
+      authorizeUri: URL
+      client: Client
+      // ctx?: Ctx
+    } & MaybeCtx<Ctx>
+  >
 
   /**
    * Exchange credentials for tokens using supported grant types.
@@ -565,7 +569,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
         const state = uri.searchParams.get(STATE)
         state && authorizeUri.searchParams.set(STATE, state)
 
-        return {responseType, authorizeUri, client, ctx}
+        return {responseType, authorizeUri, client, ...(ctx && {ctx})} as any
       }
 
       if (responseType === 'token') {
@@ -575,7 +579,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
         const body = new URLSearchParams()
         body.set('access_token', token.access_token)
         body.set('token_type', token.token_type)
-        body.set('expires_in', String(token.expires_in))
+        if (token.expires_in) body.set('expires_in', String(token.expires_in))
         if (token.scope) body.set('scope', token.scope)
 
         // PKCE / optional
@@ -590,7 +594,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
 
         authorizeUri.hash = body.toString()
 
-        return {responseType, authorizeUri, client, ctx}
+        return {responseType, authorizeUri, client, ...(ctx && {ctx})} as any
       }
 
       throw new OAuth2Exception(ErrorMap.unsupported_response_type)

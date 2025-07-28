@@ -4,7 +4,6 @@
  * @module server
  */
 
-
 export { generateToken, parseBasicAuth } from './helper.ts'
 export {
   createOauth2Server,
@@ -13,4 +12,3 @@ export {
   type OAuth2Storage,
   type OAuth2StorageData
 } from './server.ts'
-

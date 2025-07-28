@@ -32,3 +32,35 @@ export const oauth2Implicit = (
 
   return uri
 }
+
+//
+/**
+ * Parses an OAuth 2.0 authorization response from a URL fragment (e.g., after redirect).
+ *
+ * Extracts parameters from the hash (fragment) part of the URL, such as:
+ * - access_token
+ * - token_type
+ * - expires_in
+ * - scope
+ * - state
+ *
+ * @example
+ * ```ts
+ * Input: http://localhost/oauth2/callback#access_token=1234&token_type=Bearer&state=abc
+ * Output: { access_token: "1234", token_type: "Bearer", state: "abc" }
+ *``
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
+ * @param url - The full redirect URL (as string or URL object)
+ * @returns Parsed response parameters, or null if no fragment exists
+ */
+export const parseAuthorizationResponse = (url: string | URL): Record<string, string> => {
+  const urlObj = typeof url === 'string' ? new URL(url) : url
+
+  // Fragment starts with '#' and contains the response
+  const fragment = urlObj.hash.slice(1) // Remove leading '#'
+  if (!fragment) return {}
+
+  // Parse fragment as query string (it's usually application/x-www-form-urlencoded)
+  const params = new URLSearchParams(fragment)
+  return Object.fromEntries(params)
+}
