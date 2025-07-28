@@ -1,4 +1,4 @@
-import type { CreateOAuth2Config } from '../src/oauth2.ts'
+import type { CreateOAuth2Config } from '../src/client/types.ts'
 
 /**
  * Returns the OAuth configuration for `Github`
@@ -28,6 +28,7 @@ export const createGithubOauth2: CreateOAuth2Config<{
   authorizeUri: 'https://github.com/login/oauth/authorize',
   tokenUri: 'https://github.com/login/oauth/access_token',
   scope: config.scope,
+  pkce: true,
   options: {
     params: {
       ...(config.login && {login: config.login}),

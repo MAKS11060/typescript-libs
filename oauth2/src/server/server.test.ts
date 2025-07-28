@@ -1,4 +1,4 @@
-import { Client } from '@maks11060/oauth2'
+import * as Client from '@maks11060/oauth2/client'
 import { expect } from 'jsr:@std/expect/expect'
 import { ErrorMap } from '../error.ts'
 import { parseTokenRequest } from './adapter/web.ts'

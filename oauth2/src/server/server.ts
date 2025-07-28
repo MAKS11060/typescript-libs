@@ -4,6 +4,8 @@ import type { OAuth2Token } from '../oauth2.ts'
 import { type PkceChallenge, pkceVerify } from '../pkce.ts'
 import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
+// export type { OAuth2Token, PkceChallenge }
+
 const RESPONSE_TYPE = 'response_type'
 const CODE = 'code'
 const STATE = 'state'
@@ -321,7 +323,7 @@ type MaybeCtx<Ctx> = Ctx extends object ? {ctx: Ctx} : {ctx?: Ctx}
  * @template Options - Options type
  */
 export interface OAuth2Server<
-  Ctx /* extends object */ = DefaultCtx,
+  Ctx = DefaultCtx,
   Client extends OAuth2Client = OAuth2Client,
   Options = OAuth2ServerOptions<Ctx, Client>,
 > {
@@ -451,13 +453,67 @@ type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: an
   ? O extends Promise<infer P> ? P : O
   : never
 
-type CreateOauth2Server = <
-  Ctx /* extends object */ = DefaultCtx,
-  Client extends OAuth2Client = OAuth2Client,
-  Options = OAuth2ServerOptions<Ctx, Client>,
->(
-  options: OAuth2ServerOptions<Ctx, Client> & Options, // Very Sensitive code
-) => OAuth2Server<Ctx, Client, Options>
+// export type CreateOauth2Server = <
+//   Ctx = DefaultCtx,
+//   Client extends OAuth2Client = OAuth2Client,
+//   // Options = OAuth2ServerOptions<Ctx, Client>,
+//   Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
+// >(
+//   options: Options & OAuth2ServerOptions<Ctx, Client>, // Very Sensitive code
+// ) => OAuth2Server<Ctx, Client, Options>
+
+// Very Sensitive code
+export type CreateOauth2Server = {
+  <
+    Ctx = DefaultCtx,
+    Client extends OAuth2Client = OAuth2Client,
+    Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
+  >(options: Options): OAuth2Server<Ctx, Client, Options>
+
+  <
+    Ctx = DefaultCtx,
+    Client extends OAuth2Client = OAuth2Client,
+    Options = OAuth2ServerOptions<Ctx, Client>,
+  >(options: Options & OAuth2ServerOptions<Ctx, Client>): OAuth2Server<Ctx, Client, Options>
+}
+
+// export type CreateOauth2Server<
+//   Ctx = DefaultCtx,
+//   Client extends OAuth2Client = OAuth2Client,
+//   Options = OAuth2ServerOptions<Ctx, Client>,
+// > = (options: OAuth2ServerOptions<Ctx, Client> & Options) => OAuth2Server<Ctx, Client, Options>
+// (options: OAuth2ServerOptions<Ctx, Client>): OAuth2Server<Ctx, Client, Options>
+
+// export interface CreateOauth2Server {
+//   <
+//     Ctx = DefaultCtx,
+//     Client extends OAuth2Client = OAuth2Client,
+//     Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
+//   >(options: Options): OAuth2Server<Ctx, Client, Options>
+
+//   <
+//     Ctx = DefaultCtx,
+//     Client extends OAuth2Client = OAuth2Client,
+//     Options = OAuth2ServerOptions<Ctx, Client>,
+//   >(
+//     options: OAuth2ServerOptions<Ctx, Client> & Options,
+//     // options: OAuth2ServerOptions<Ctx, Client>,
+//   ): OAuth2Server<Ctx, Client, Options>
+// }
+
+// export type CreateOauth2Server = {
+//   <
+//     Ctx = DefaultCtx,
+//     Client extends OAuth2Client = OAuth2Client,
+//     Options extends OAuth2ServerOptions<Ctx, Client> = OAuth2ServerOptions<Ctx, Client>,
+//   >(options: Options): OAuth2Server<Ctx, Client, Options>
+
+//   <
+//     Ctx = DefaultCtx,
+//     Client extends OAuth2Client = OAuth2Client,
+//     Options = OAuth2ServerOptions<Ctx, Client>,
+//   >(options: OAuth2ServerOptions<Ctx, Client> & Options): OAuth2Server<Ctx, Client, Options>
+// }
 
 /**
  * Factory function to create an OAuth2 server instance.
@@ -745,3 +801,19 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
     },
   }
 }
+
+Deno.test('Test 499098', async (t) => {
+  const oauth2Server = createOauth2Server({
+    getClient(clientId) {},
+    storage: new Map(),
+    grants: {
+      authorizationCode({client, store}) {
+        return {access_token: '', token_type: '', foo: ''}
+      },
+    },
+  })
+
+  const {
+    token,
+  } = await oauth2Server.token({grant_type: 'authorization_code', client_id: '', code: ''})
+})
