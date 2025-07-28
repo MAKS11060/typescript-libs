@@ -7,7 +7,6 @@ import { OAuth2GrantType } from '../server.ts'
 // OAuth2GrantTypeCredentials
 // OAuth2GrantTypePassword
 
-
 /**
  * Parses an incoming HTTP request to extract OAuth 2.0 token endpoint parameters.
  *

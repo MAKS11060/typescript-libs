@@ -59,7 +59,6 @@ export interface OAuth2ClientConfig extends Pick<OAuth2Client, 'type'> {
   options?: OAuth2RequestOptions
 }
 
-
 interface OAuth2RequestOptions {
   /** Additional URI Params */
   params?: Iterable<string[]> | Record<string, string>

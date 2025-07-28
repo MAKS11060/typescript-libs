@@ -48,7 +48,7 @@ export const oauth2Implicit = (
  * ```ts
  * Input: http://localhost/oauth2/callback#access_token=1234&token_type=Bearer&state=abc
  * Output: { access_token: "1234", token_type: "Bearer", state: "abc" }
- *``
+ * ``
  * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.2.2
  * @param url - The full redirect URL (as string or URL object)
  * @returns Parsed response parameters, or null if no fragment exists

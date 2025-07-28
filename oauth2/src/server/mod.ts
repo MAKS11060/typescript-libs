@@ -10,5 +10,5 @@ export {
   type DefaultCtx,
   type OAuth2Client,
   type OAuth2Storage,
-  type OAuth2StorageData
+  type OAuth2StorageData,
 } from './server.ts'
