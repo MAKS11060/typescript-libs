@@ -39,7 +39,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
   }
 
   // Extract client_id and client_secret from body
-  const client_id = params.get('client_id')
+  let client_id = params.get('client_id')
   let client_secret = params.get('client_secret') || undefined
 
   // Handle Authorization: Basic header (takes precedence over body)
@@ -55,6 +55,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
     }
 
     // Use credentials from the header (more secure)
+    client_id = auth.username
     client_secret = auth.password
   }
 
