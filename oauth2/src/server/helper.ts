@@ -1,6 +1,5 @@
 import { decodeBase64 } from '@std/encoding/base64'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
-import { OAuth2Token } from '../oauth2.ts'
 import { OAuth2Client } from './server.ts'
 
 export const ResponseType = [
@@ -22,15 +21,6 @@ export const isResponseType = (type: unknown): type is ResponseType => {
 }
 export const isGrantType = (type: unknown): type is GrantType => {
   return GrantType.includes(String(type) as GrantType)
-}
-
-export const generateToken = (options?: {expires_in?: number; refresh?: boolean}): OAuth2Token => {
-  return {
-    access_token: crypto.randomUUID(),
-    token_type: 'Bearer',
-    expires_in: options?.expires_in ?? 3600,
-    ...(options?.refresh && {refresh_token: crypto.randomUUID()}),
-  }
 }
 
 export const parseBasicAuth = (authorization?: string | null) => {

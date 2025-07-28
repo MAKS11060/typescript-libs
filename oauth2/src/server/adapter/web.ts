@@ -1,11 +1,6 @@
 import { ErrorMap, OAuth2Exception } from '../../error.ts'
 import { parseBasicAuth } from '../helper.ts'
-import { OAuth2GrantType } from '../server.ts'
-
-// OAuth2GrantTypeAuthorizationCode
-// OAuth2GrantTypeRefresh
-// OAuth2GrantTypeCredentials
-// OAuth2GrantTypePassword
+import type { OAuth2GrantType } from '../server.ts'
 
 /**
  * Parses an incoming HTTP request to extract OAuth 2.0 token endpoint parameters.
@@ -19,7 +14,7 @@ import { OAuth2GrantType } from '../server.ts'
  * @returns Parsed token grant data
  * @throws {OAuth2Exception} On invalid request, missing parameters, or mismatches
  */
-export async function parseTokenRequest(request: Request): Promise<OAuth2GrantType> {
+export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantType> => {
   // Ensure the HTTP method is POST
   if (request.method !== 'POST') {
     throw new OAuth2Exception(ErrorMap.invalid_request, 'HTTP method must be POST')
@@ -152,7 +147,7 @@ export async function parseTokenRequest(request: Request): Promise<OAuth2GrantTy
  * @returns Parsed revocation data: token, client credentials, and optional hint
  * @throws {OAuth2Exception} On invalid request, missing parameters, or parsing errors
  */
-export async function parseRevokeRequest(request: Request) {
+export const parseRevokeRequest = async (request: Request) => {
   // Method must be POST
   if (request.method !== 'POST') {
     throw new OAuth2Exception(ErrorMap.invalid_request, 'HTTP method must be POST')

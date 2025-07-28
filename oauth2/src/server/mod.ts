@@ -4,11 +4,14 @@
  * @module server
  */
 
-export { generateToken, parseBasicAuth } from './helper.ts'
 export {
   createOauth2Server,
   type DefaultCtx,
   type OAuth2Client,
+  type OAuth2GrantType,
+  type OAuth2Server,
   type OAuth2Storage,
-  type OAuth2StorageData,
+  type OAuth2StorageData
 } from './server.ts'
+
+export * from './adapter/web.ts'
