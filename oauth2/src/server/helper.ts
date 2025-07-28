@@ -34,9 +34,13 @@ export const generateToken = (options?: {expires_in?: number; refresh?: boolean}
 }
 
 export const parseBasicAuth = (authorization?: string | null) => {
-  if (!authorization?.startsWith('Basic')) return
-  const [username, password] = new TextDecoder().decode(decodeBase64(authorization.slice(6))).split(':', 2)
-  return {username, password}
+  if (!authorization?.startsWith('Basic ')) return
+  try {
+    const [username, password] = new TextDecoder().decode(decodeBase64(authorization.slice(6))).split(':', 2)
+    return {username, password}
+  } catch (e) {
+    throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid base64 encoding in Authorization header')
+  }
 }
 
 export const getClientRedirectUri = (client: OAuth2Client, redirect_uri?: string | null): string => {

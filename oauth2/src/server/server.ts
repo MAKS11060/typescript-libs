@@ -254,9 +254,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      * @param store - Data associated with the authorization code
      * @returns Token response (e.g., access token, refresh token)
      */
-    authorizationCode?(
-      {client, store}: {client: Client; store: OAuth2StorageData<Ctx>},
-    ): GrantResponse
+    authorizationCode?({client, store}: {client: Client; store: OAuth2StorageData<Ctx>}): GrantResponse
 
     /**
      * Handle `implicit` grant (token returned in redirect URI fragment).
@@ -277,12 +275,7 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      * @param password - User password
      * @returns Token response
      */
-    password?(params: {
-      client_id: string
-      client_secret: string
-      username: string
-      password: string
-    }): GrantResponse
+    password?(params: {client_id: string; client_secret: string; username: string; password: string}): GrantResponse
 
     /**
      * Handle `client_credentials` grant.
@@ -302,10 +295,17 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      * @param refresh_token - Refresh token
      * @returns New token response
      */
-    refreshToken?(
-      {client_id, refresh_token}: {client_id: string; refresh_token: string},
-    ): GrantResponse
+    refreshToken?({client, client_id, refresh_token}: {
+      client: Client
+      client_id: string
+      refresh_token: string
+    }): GrantResponse
   }
+
+  revokeToken?({client, token}: {
+    client: Client
+    token: string
+  }): Promise<void>
 }
 
 type GrantResponse = Promise<OAuth2Token> | OAuth2Token | null | void
@@ -364,6 +364,18 @@ export interface OAuth2Server<
     grantType: 'password'
     token: OAuth2Token<GetGrant<Options, 'password'>>
   }>
+
+  token(data: OAuth2GrantType): Promise<{
+    grantType: 'authorization_code' | 'refresh_token' | 'client_credentials' | 'password'
+    token: OAuth2Token
+  }>
+
+  revoke(params: {
+    token: string
+    token_type_hint?: 'access_token' | 'refresh_token'
+    client_id: string
+    client_secret?: string
+  }): Promise<void>
 }
 
 // ===== GRANT TYPES =====
@@ -391,7 +403,9 @@ export type OAuth2GrantTypeAuthorizationCode = {
 export type OAuth2GrantTypeRefresh = {
   grant_type: 'refresh_token'
   client_id: string
+  client_secret?: string
   refresh_token: string
+  // scope?: string
 }
 
 /**
@@ -672,7 +686,7 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
       if (grantType === 'refresh_token') {
         const {client_id, refresh_token} = data
 
-        const token = await options.grants.refreshToken?.({client_id, refresh_token})
+        const token = await options.grants.refreshToken?.({client, client_id, refresh_token})
         if (!token) throw new OAuth2Exception(ErrorMap.server_error)
 
         return {grantType, token}
@@ -697,6 +711,33 @@ export const createOauth2Server: CreateOauth2Server = (options) => {
       }
 
       throw new OAuth2Exception(ErrorMap.server_error)
+    },
+
+    // TODO: WIP
+    async revoke(params) {
+      const {client_id, client_secret, token, token_type_hint} = params
+
+      // required parameters
+      if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
+
+      const client = await options.getClient(client_id)
+      if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+
+      if (!client.type || client.type === 'confidential') {
+        // TODO: Check client_secret
+        if (!client_secret) {
+          throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client credentials')
+        }
+      } else if (client.type === 'public') {
+        if (client_secret) {
+          throw new OAuth2Exception(ErrorMap.invalid_client, 'Public clients must not include client_secret')
+        }
+      }
+
+      // Revoke token
+      await options.revokeToken?.({client, token})
+
+      return
     },
   }
 }

@@ -8,6 +8,7 @@ import { expect } from 'jsr:@std/expect/expect'
 import { oauth2Authorize, oauth2ExchangeCode, oauth2RefreshToken } from '../client/authorization_code.ts'
 import { OAuth2ClientConfig } from '../client/types.ts'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
+import { parseTokenRequest } from './adapter/web.ts'
 import { generateToken, parseBasicAuth } from './helper.ts'
 import { createOauth2Server, DefaultCtx, OAuth2Client, OAuth2Storage, OAuth2StorageData } from './server.ts'
 
@@ -136,28 +137,28 @@ Deno.test('createOauth2Server()', async (t) => {
 
       const authorizationLink = await oauth2Server.authorize({uri, ctx: {sub: 'user1'}})
 
-      // Client.oauth2ExchangeCode(clientConfig, {})
-
-      const token = await oauth2Server.token({
-        grant_type: 'authorization_code',
-        client_id: client.clientId,
-        client_secret: client.clientSecret,
-        redirect_uri: client.redirectUri[0],
+      const token = await Client.oauth2ExchangeCode(clientConfig, {
         code: authorizationLink.authorizeUri.searchParams.get('code')!,
-        state: authorizationLink.authorizeUri.searchParams.get('state')!,
+        // Server
+        fetch: async (input, init) => {
+          const params = await parseTokenRequest(new Request(input, init))
+          const token = await oauth2Server.token(params)
+          // console.log(params)
+
+          return Response.json(token)
+        },
       })
       console.log(token)
-      {
-        const token = await oauth2Server.token({
-          grant_type: 'authorization_code',
-          client_id: client.clientId,
-          client_secret: client.clientSecret,
-          redirect_uri: client.redirectUri[0],
-          code: authorizationLink.authorizeUri.searchParams.get('code')!,
-          state: authorizationLink.authorizeUri.searchParams.get('state')!,
-        })
-        console.log(token)
-      }
+
+      // const token = await oauth2Server.token({
+      //   grant_type: 'authorization_code',
+      //   client_id: client.clientId,
+      //   client_secret: client.clientSecret,
+      //   redirect_uri: client.redirectUri[0],
+      //   code: authorizationLink.authorizeUri.searchParams.get('code')!,
+      //   state: authorizationLink.authorizeUri.searchParams.get('state')!,
+      // })
+      // console.log(token)
     })
   })
 })
@@ -494,8 +495,4 @@ Deno.test('Test 607832', async (t) => {
       },
     },
   })
-})
-
-Deno.test('Test 005169', async (t) => {
-  const fn = (a, b) => {}
 })
