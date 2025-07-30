@@ -3,6 +3,112 @@ import { parseBasicAuth } from '../helper.ts'
 import type { OAuth2GrantType } from '../server.ts'
 
 /**
+ * Parses an OAuth 2.0 authorization request URL (e.g., from /authorize endpoint).
+ *
+ * Extracts and validates standard and extension parameters from the query string.
+ *
+ * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1
+ * @see https://datatracker.ietf.org/doc/html/rfc7636 (PKCE)
+ *
+ * @param url - The full authorization request URL (string or URL object)
+ * @returns Parsed authorization request parameters
+ * @throws {OAuth2Exception} If URL is invalid or malformed
+ */
+export const parseAuthorizationUrl = (url: string | URL) => {
+  let urlObj: URL
+  try {
+    urlObj = typeof url === 'string' ? new URL(url) : url
+  } catch (e) {
+    throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid authorization URL')
+  }
+
+  const params = new URLSearchParams(urlObj.search)
+
+  const clientId = params.get('client_id')
+  if (!clientId) {
+    throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
+  }
+
+  const redirectUri = params.get('redirect_uri')
+  // Note: redirect_uri is optional if only one is registered, but we leave validation to the server
+
+  const responseType = params.get('response_type')
+  if (!responseType) {
+    throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing response_type')
+  }
+
+  const scope = params.get('scope')
+  const state = params.get('state')
+
+  // Response mode (optional): query, fragment, form_post, etc.
+  const responseMode = params.get('response_mode')
+
+  // PKCE parameters
+  const codeChallenge = params.get('code_challenge') || undefined
+  const codeChallengeMethod = (params.get('code_challenge_method') || undefined) as
+    | 'S256'
+    | 'plain'
+    | undefined
+
+  // Validate code_challenge_method if code_challenge is present
+  if (codeChallenge && codeChallengeMethod && !['S256', 'plain'].includes(codeChallengeMethod)) {
+    throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid code_challenge_method')
+  }
+
+  return {
+    /**
+     * The client identifier.
+     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.1
+     */
+    client_id: clientId,
+
+    /**
+     * Redirection URI to which the response will be sent.
+     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2
+     */
+    redirect_uri: redirectUri || undefined,
+
+    /**
+     * Determines the type of authorization grant.
+     * Must be one of: 'code', 'token', or others if supported.
+     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.1
+     */
+    response_type: responseType,
+
+    /**
+     * Scope of the access request.
+     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.3
+     */
+    scope: scope || undefined,
+
+    /**
+     * Opaque value used to maintain state between request and callback.
+     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.1
+     */
+    state: state || undefined,
+
+    /**
+     * Determines where the response parameters are embedded.
+     * @default Based on response_type ('query' for code, 'fragment' for token)
+     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.1
+     */
+    response_mode: responseMode || undefined,
+
+    /**
+     * Proof Key for Code Exchange (PKCE) challenge.
+     * @see https://datatracker.ietf.org/doc/html/rfc7636#section-3.1
+     */
+    code_challenge: codeChallenge,
+
+    /**
+     * Method used to derive the code challenge.
+     * @default 'plain' if code_challenge is present but method is omitted
+     */
+    code_challenge_method: codeChallengeMethod || (codeChallenge ? 'plain' : undefined),
+  } as const
+}
+
+/**
  * Parses an incoming HTTP request to extract OAuth 2.0 token endpoint parameters.
  *
  * Supports:
@@ -46,6 +152,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
   const authHeader = request.headers.get('Authorization')
   const auth = parseBasicAuth(authHeader)
   if (auth) {
+    console.log({auth})
     // If client_id is provided in body, it must match the one in the header
     if (client_id && client_id !== auth.username) {
       throw new OAuth2Exception(

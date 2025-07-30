@@ -2,7 +2,7 @@ import { encodeBase64Url } from '@std/encoding/base64url'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
 import type { OAuth2Token } from '../oauth2.ts'
 import { type PkceChallenge, pkceVerify } from '../pkce.ts'
-import { getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
+import { clientSecretCompareSHA256_B64Url, getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
 
 // export type { OAuth2Token, PkceChallenge }
 
@@ -195,6 +195,11 @@ export interface OAuth2Storage<Ctx = DefaultCtx> {
 
 // ===== SERVER OPTIONS =====
 
+export type ClientSecretCompare<T extends OAuth2Client = OAuth2Client> = (
+  client: T,
+  clientSecret: string,
+) => Promise<boolean> | boolean
+
 /**
  * Configuration options for the OAuth2 server.
  *
@@ -212,6 +217,21 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
      * @default 600_000 (10 minutes)
      */
     codeTimeout?: number
+
+    /**
+     * Generate a cryptographically secure authorization code.
+     *
+     * @param client - The client requesting the code
+     * @returns A unique code (e.g., base64url-encoded random bytes)
+     *
+     * @example
+     * ```ts
+     * generateCode: () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+     * ```
+     *
+     * @default Generates a 32-byte random value encoded in base64url
+     */
+    generateCode?({client}: {client: Client}): string
   }
 
   /**
@@ -223,19 +243,22 @@ export interface OAuth2ServerOptions<Ctx = DefaultCtx, Client extends OAuth2Clie
   getClient(clientId: string): Promise<Client | null | undefined> | Client | null | undefined | void
 
   /**
-   * Generate a cryptographically secure authorization code.
+   * Comparing the entered `client_secret` with what is in the database.
    *
-   * @param client - The client requesting the code
-   * @returns A unique code (e.g., base64url-encoded random bytes)
+   * @default 'raw'
    *
    * @example
    * ```ts
-   * generateCode: () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+   * clientSecretCompare: (client, clientSecret) => client.clientSecret === clientSecret
    * ```
-   *
-   * @default Generates a 32-byte random value encoded in base64url
+   * @example
+   * ```ts
+   * clientSecretCompare: (client, clientSecret) => client.clientSecret === encodeBase64Url(
+   *   await crypto.subtle.digest({name: 'SHA-256'}, new TextEncoder().encode(clientSecret)),
+   * )
+   * ```
    */
-  generateCode?({client}: {client: Client}): string
+  clientSecretCompare?: 'raw' | 'SHA-256-B64Url' | ClientSecretCompare<Client>
 
   /**
    * Storage backend for authorization codes.
@@ -328,6 +351,14 @@ export interface OAuth2Server<
   Options = OAuth2ServerOptions<Ctx, Client>,
 > {
   /**
+   * Retrieve a client by its ID.
+   *
+   * @param clientId - The client identifier
+   * @returns The client config or `null`/`undefined` if not found
+   */
+  getClient(clientId: string): Promise<Client | null>
+
+  /**
    * Initiate the authorization flow.
    *
    * @param options.uri - Authorization request URL (e.g., from client)
@@ -347,7 +378,6 @@ export interface OAuth2Server<
       responseType: 'code' | 'token'
       authorizeUri: URL
       client: Client
-      // ctx?: Ctx
     } & MaybeCtx<Ctx>
   >
 
@@ -510,9 +540,21 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
   options.options ??= {}
   options.options.codeTimeout ??= CODE_EXPIRED_TIME
 
-  options.generateCode ??= () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+  const {
+    generateCode = () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32))),
+  } = options.options!
+
+  let clientSecretCompare: ClientSecretCompare = (client, clientSecret) => client.clientSecret === clientSecret
+  if (options.clientSecretCompare === 'SHA-256-B64Url') {
+    clientSecretCompare = clientSecretCompareSHA256_B64Url
+  }
 
   return {
+    async getClient(clientId) {
+      const client = await options.getClient(clientId)
+      return client || null
+    },
+
     async authorize({uri, ctx}) {
       // to URL
       uri = typeof uri === 'string' ? new URL(uri) : uri
@@ -560,7 +602,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       // results
       if (responseType === 'code') {
         // generate code
-        const code = options.generateCode!({client})
+        const code = generateCode!({client})
 
         // save to storage
         await options.storage.set(code, {
@@ -627,7 +669,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
 
       if (grantType === 'authorization_code') {
-        const {code, redirect_uri, code_verifier: codeVerifier, client_secret} = data
+        const {code, redirect_uri, client_secret, code_verifier: codeVerifier} = data
 
         // check code
         if (!code) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing authorization code')
@@ -660,7 +702,11 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
           if (!client_secret) {
             throw new OAuth2Exception(ErrorMap.invalid_client, 'Client secret required')
           }
-          if (client_secret !== client.clientSecret) {
+          // TODO: expose check
+          // if (client_secret !== client.clientSecret) {
+          //   throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client secret')
+          // }
+          if (!await clientSecretCompare(client, client_secret)) {
             throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client secret')
           }
         } else if (client.type === 'public') {

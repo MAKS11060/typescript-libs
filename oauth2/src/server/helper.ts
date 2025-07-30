@@ -1,6 +1,7 @@
 import { decodeBase64 } from '@std/encoding/base64'
+import { encodeBase64Url } from '@std/encoding/base64url'
 import { ErrorMap, OAuth2Exception } from '../error.ts'
-import { OAuth2Client } from './server.ts'
+import { ClientSecretCompare, OAuth2Client } from './server.ts'
 
 export const ResponseType = [
   'code',
@@ -58,6 +59,12 @@ export const getClientRedirectUri = (client: OAuth2Client, redirect_uri?: string
   }
 
   throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing redirect_uri and client has multiple redirect_uris')
+}
+
+export const clientSecretCompareSHA256_B64Url: ClientSecretCompare = async (client, clientSecret) => {
+  return client.clientSecret === encodeBase64Url(
+    await crypto.subtle.digest({name: 'SHA-256'}, new TextEncoder().encode(clientSecret)),
+  )
 }
 
 //

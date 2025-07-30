@@ -60,7 +60,9 @@ Deno.test('createOauth2Server()', async (t) => {
     const store = new Map<string, OAuth2StorageData>()
     const oauth2Server = createOauth2Server({
       getClient: (clientId) => clients.find((client) => client.clientId === clientId),
-      generateCode: ({client}) => 'CODE',
+      options: {
+        generateCode: ({client}) => 'CODE',
+      },
       storage: store,
       grants: {
         authorizationCode({client, store}) {

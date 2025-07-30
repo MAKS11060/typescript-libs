@@ -11,8 +11,8 @@ export {
   type OAuth2GrantType,
   type OAuth2Server,
   type OAuth2Storage,
-  type OAuth2StorageData
+  type OAuth2StorageData,
 } from './server.ts'
 
 export * from './adapter/web.ts'
-
+export { clientSecretCompareSHA256_B64Url, getClientRedirectUri } from './helper.ts'
