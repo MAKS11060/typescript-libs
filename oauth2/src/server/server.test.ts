@@ -1,6 +1,6 @@
 import * as Client from '@maks11060/oauth2/client'
 import { expect } from 'jsr:@std/expect/expect'
-import { ErrorMap } from '../error.ts'
+import { OAuth2Error } from '../error.ts'
 import { parseTokenRequest } from './adapter/web.ts'
 import { createOauth2Server, DefaultCtx, OAuth2Client, OAuth2Storage, OAuth2StorageData } from './server.ts'
 
@@ -23,25 +23,25 @@ Deno.test('createOauth2Server()', async (t) => {
     await t.step('authorize()', async (t) => {
       await expect(
         oauth2Server.authorize({uri: 'https://localhost/authorize', ctx: {sub: 'user1'}}),
-      ).rejects.toThrow(ErrorMap.invalid_request)
+      ).rejects.toThrow(OAuth2Error.invalid_request)
       await expect(
         oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=code', ctx: {sub: 'user1'}}),
-      ).rejects.toThrow(ErrorMap.unsupported_response_type)
+      ).rejects.toThrow(OAuth2Error.unsupported_response_type)
       await expect(
         oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=token', ctx: {sub: 'user1'}}),
-      ).rejects.toThrow(ErrorMap.unsupported_response_type)
+      ).rejects.toThrow(OAuth2Error.unsupported_response_type)
     })
 
     await t.step('token()', async (t) => {
-      await expect(oauth2Server.token({} as any)).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      await expect(oauth2Server.token({} as any)).rejects.toThrow(OAuth2Error.unsupported_grant_type)
 
       await expect(
         oauth2Server.token({grant_type: 'authorization_code', client_id: '1', code: ''}),
-      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      ).rejects.toThrow(OAuth2Error.unsupported_grant_type)
 
       await expect(
         oauth2Server.token({grant_type: 'client_credentials', client_id: '1', client_secret: '1'}),
-      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      ).rejects.toThrow(OAuth2Error.unsupported_grant_type)
 
       await expect(oauth2Server.token({
         grant_type: 'password',
@@ -49,10 +49,10 @@ Deno.test('createOauth2Server()', async (t) => {
         client_secret: '1',
         username: 'user1',
         password: 'pass1',
-      })).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      })).rejects.toThrow(OAuth2Error.unsupported_grant_type)
       await expect(
         oauth2Server.token({grant_type: 'refresh_token', client_id: '1', refresh_token: 'rt1'}),
-      ).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      ).rejects.toThrow(OAuth2Error.unsupported_grant_type)
     })
   })
 
@@ -90,26 +90,26 @@ Deno.test('createOauth2Server()', async (t) => {
     await t.step('authorize() err', async (t) => {
       await expect(
         oauth2Server.authorize({uri: 'https://localhost/authorize', ctx: {sub: 'user1'}}),
-      ).rejects.toThrow(ErrorMap.invalid_request)
+      ).rejects.toThrow(OAuth2Error.invalid_request)
       await expect(
         oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=code', ctx: {sub: 'user1'}}),
-      ).rejects.toThrow(ErrorMap.invalid_request)
+      ).rejects.toThrow(OAuth2Error.invalid_request)
       await expect(
         oauth2Server.authorize({uri: 'https://localhost/authorize?response_type=token', ctx: {sub: 'user1'}}),
-      ).rejects.toThrow(ErrorMap.invalid_request)
+      ).rejects.toThrow(OAuth2Error.invalid_request)
     })
 
     await t.step('token()', async (t) => {
       const client = clients[0]
-      await expect(oauth2Server.token({} as any)).rejects.toThrow(ErrorMap.unsupported_grant_type)
+      await expect(oauth2Server.token({} as any)).rejects.toThrow(OAuth2Error.unsupported_grant_type)
 
       await expect(
         oauth2Server.token({grant_type: 'authorization_code', client_id: client.clientId, code: ''}),
-      ).rejects.toThrow(ErrorMap.invalid_request)
+      ).rejects.toThrow(OAuth2Error.invalid_request)
 
       await expect(
         oauth2Server.token({grant_type: 'refresh_token', client_id: client.clientId, refresh_token: 'rt0'}),
-      ).rejects.toThrow(ErrorMap.server_error)
+      ).rejects.toThrow(OAuth2Error.server_error)
     })
 
     await t.step('authorize() authorizationCode + refreshToken', async (t) => {

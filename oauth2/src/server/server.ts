@@ -1,5 +1,5 @@
 import { encodeBase64Url } from '@std/encoding/base64url'
-import { ErrorMap, OAuth2Exception } from '../error.ts'
+import { OAuth2Error, OAuth2Exception } from '../error.ts'
 import type { OAuth2Token } from '../oauth2.ts'
 import { type PkceChallenge, pkceVerify } from '../pkce.ts'
 import { clientSecretCompareSHA256_B64Url, getClientRedirectUri, isGrantType, isResponseType } from './helper.ts'
@@ -561,19 +561,19 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
 
       // response_type
       const responseType = uri.searchParams.get(RESPONSE_TYPE)
-      if (!isResponseType(responseType)) throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid response_type')
+      if (!isResponseType(responseType)) throw new OAuth2Exception(OAuth2Error.invalid_request, 'Invalid response_type')
 
       if (
         (responseType === 'code' && !options.grants?.authorizationCode) ||
         (responseType === 'token' && !options.grants?.implicit)
-      ) throw new OAuth2Exception(ErrorMap.unsupported_response_type)
+      ) throw new OAuth2Exception(OAuth2Error.unsupported_response_type)
 
       // client_id
       const clientId = uri.searchParams.get(CLIENT_ID)!
-      if (!clientId) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
+      if (!clientId) throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing client_id')
 
       const client = await options.getClient(clientId)
-      if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+      if (!client) throw new OAuth2Exception(OAuth2Error.unauthorized_client)
 
       // redirect_uri
       const clientRedirectUri = uri.searchParams.get(REDIRECT_URI)
@@ -585,12 +585,12 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
 
       if (codeChallenge) {
         if (codeChallengeMethod !== 'S256' && codeChallengeMethod !== 'plain') {
-          throw new OAuth2Exception(ErrorMap.invalid_request, 'Invalid code_challenge_method')
+          throw new OAuth2Exception(OAuth2Error.invalid_request, 'Invalid code_challenge_method')
         }
       } else if (client.type === 'public') {
         if (!codeChallenge && !codeChallengeMethod) {
           throw new OAuth2Exception(
-            ErrorMap.invalid_request,
+            OAuth2Error.invalid_request,
             'Public clients must use PKCE (code_challenge and code_challenge_method)',
           )
         }
@@ -625,7 +625,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
 
       if (responseType === 'token') {
         const token = await options.grants.implicit?.({client})
-        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+        if (!token) throw new OAuth2Exception(OAuth2Error.server_error)
 
         const body = new URLSearchParams()
         body.set('access_token', token.access_token)
@@ -648,34 +648,34 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         return {responseType, authorizeUri, client, ...(ctx && {ctx})} as any
       }
 
-      throw new OAuth2Exception(ErrorMap.unsupported_response_type)
+      throw new OAuth2Exception(OAuth2Error.unsupported_response_type)
     },
 
     async token(data: OAuth2GrantType): Promise<any> {
       const {grant_type: grantType, client_id} = data
 
-      if (!isGrantType(grantType)) throw new OAuth2Exception(ErrorMap.unsupported_grant_type)
+      if (!isGrantType(grantType)) throw new OAuth2Exception(OAuth2Error.unsupported_grant_type)
       if (
         (grantType === 'authorization_code' && !options.grants?.authorizationCode) ||
         (grantType === 'refresh_token' && !options.grants?.refreshToken) ||
         (grantType === 'password' && !options.grants?.password) ||
         (grantType === 'client_credentials' && !options.grants?.credentials)
-      ) throw new OAuth2Exception(ErrorMap.unsupported_grant_type)
+      ) throw new OAuth2Exception(OAuth2Error.unsupported_grant_type)
 
       // required parameters
-      if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
+      if (!client_id) throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing client_id')
 
       const client = await options.getClient(client_id)
-      if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+      if (!client) throw new OAuth2Exception(OAuth2Error.unauthorized_client)
 
       if (grantType === 'authorization_code') {
         const {code, redirect_uri, client_secret, code_verifier: codeVerifier} = data
 
         // check code
-        if (!code) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing authorization code')
+        if (!code) throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing authorization code')
 
         const store = await options.storage.get(code)
-        if (!store) throw new OAuth2Exception(ErrorMap.invalid_grant, 'Invalid authorization code')
+        if (!store) throw new OAuth2Exception(OAuth2Error.invalid_grant, 'Invalid authorization code')
 
         const { // from store
           createdAt,
@@ -687,31 +687,33 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
 
         // checking if the code has expired
         const isExpired = Date.now() - createdAt.getTime() > options.options?.codeTimeout!
-        if (isExpired) throw new OAuth2Exception(ErrorMap.invalid_grant, 'Authorization code expired')
+        if (isExpired) throw new OAuth2Exception(OAuth2Error.invalid_grant, 'Authorization code expired')
 
         // client check
-        if (client_id !== clientIdInStore) throw new OAuth2Exception(ErrorMap.unauthorized_client, 'Client ID mismatch')
+        if (client_id !== clientIdInStore) {
+          throw new OAuth2Exception(OAuth2Error.unauthorized_client, 'Client ID mismatch')
+        }
 
         // redirectUri(code) === redirectUri(authorization_code)
         if (redirectUriInStore && redirectUriInStore !== redirect_uri) {
-          throw new OAuth2Exception(ErrorMap.invalid_request, 'Mismatch redirect_uri')
+          throw new OAuth2Exception(OAuth2Error.invalid_request, 'Mismatch redirect_uri')
         }
 
         // client secret check
         if (!client.type || client.type === 'confidential') {
           if (!client_secret) {
-            throw new OAuth2Exception(ErrorMap.invalid_client, 'Client secret required')
+            throw new OAuth2Exception(OAuth2Error.invalid_client, 'Client secret required')
           }
           // TODO: expose check
           // if (client_secret !== client.clientSecret) {
           //   throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client secret')
           // }
           if (!await clientSecretCompare(client, client_secret)) {
-            throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client secret')
+            throw new OAuth2Exception(OAuth2Error.invalid_client, 'Invalid client secret')
           }
         } else if (client.type === 'public') {
           if (client_secret !== undefined) {
-            throw new OAuth2Exception(ErrorMap.invalid_client, 'Public clients must not include client_secret')
+            throw new OAuth2Exception(OAuth2Error.invalid_client, 'Public clients must not include client_secret')
           }
         }
 
@@ -719,7 +721,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         // required pkce for public client
         if (client.type === 'public' && (!codeChallenge || !codeChallengeMethod)) {
           throw new OAuth2Exception(
-            ErrorMap.invalid_request,
+            OAuth2Error.invalid_request,
             'Public clients must use PKCE (code_challenge and code_verifier)',
           )
         }
@@ -727,15 +729,15 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         // if pkce was used for at the beginning of authorization
         if (codeChallenge && codeChallengeMethod) {
           if (!codeVerifier) {
-            throw new OAuth2Exception(ErrorMap.invalid_grant, 'Code verifier required')
+            throw new OAuth2Exception(OAuth2Error.invalid_grant, 'Code verifier required')
           }
           if (!(await pkceVerify({codeChallenge, codeChallengeMethod, codeVerifier}))) {
-            throw new OAuth2Exception(ErrorMap.invalid_grant, 'Code verifier does not match')
+            throw new OAuth2Exception(OAuth2Error.invalid_grant, 'Code verifier does not match')
           }
         }
 
         const token = await options.grants.authorizationCode?.({client, store})
-        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+        if (!token) throw new OAuth2Exception(OAuth2Error.server_error)
 
         await options.storage.delete?.(code)
 
@@ -746,7 +748,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         const {client_id, refresh_token} = data
 
         const token = await options.grants.refreshToken?.({client, client_id, refresh_token})
-        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+        if (!token) throw new OAuth2Exception(OAuth2Error.server_error)
 
         return {grantType, token}
       }
@@ -755,7 +757,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         const {client_id, client_secret, username, password} = data
 
         const token = await options.grants.password?.({client_id, client_secret, username, password})
-        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+        if (!token) throw new OAuth2Exception(OAuth2Error.server_error)
 
         return {grantType, token}
       }
@@ -764,12 +766,12 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         const {client_id, client_secret} = data
 
         const token = await options.grants.credentials?.({client_id, client_secret})
-        if (!token) throw new OAuth2Exception(ErrorMap.server_error)
+        if (!token) throw new OAuth2Exception(OAuth2Error.server_error)
 
         return {grantType, token}
       }
 
-      throw new OAuth2Exception(ErrorMap.server_error)
+      throw new OAuth2Exception(OAuth2Error.server_error)
     },
 
     // TODO: WIP
@@ -777,19 +779,19 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       const {client_id, client_secret, token, token_type_hint} = params
 
       // required parameters
-      if (!client_id) throw new OAuth2Exception(ErrorMap.invalid_request, 'Missing client_id')
+      if (!client_id) throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing client_id')
 
       const client = await options.getClient(client_id)
-      if (!client) throw new OAuth2Exception(ErrorMap.unauthorized_client)
+      if (!client) throw new OAuth2Exception(OAuth2Error.unauthorized_client)
 
       if (!client.type || client.type === 'confidential') {
         // TODO: Check client_secret
         if (!client_secret) {
-          throw new OAuth2Exception(ErrorMap.invalid_client, 'Invalid client credentials')
+          throw new OAuth2Exception(OAuth2Error.invalid_client, 'Invalid client credentials')
         }
       } else if (client.type === 'public') {
         if (client_secret) {
-          throw new OAuth2Exception(ErrorMap.invalid_client, 'Public clients must not include client_secret')
+          throw new OAuth2Exception(OAuth2Error.invalid_client, 'Public clients must not include client_secret')
         }
       }
 

@@ -25,7 +25,7 @@ export class OAuth2Exception extends Error {
   }
 }
 
-export const ErrorMap = {
+export const OAuth2Error = {
   access_denied: 'access_denied',
   invalid_client: 'invalid_client',
   invalid_grant: 'invalid_grant',
