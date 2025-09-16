@@ -4,8 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - '**.yml'
       - '**.ts'
-      - '**.json{c}'
+      - '**.json'
+      - '**.jsonc'
 
   pull_request:
     branches: [main]
