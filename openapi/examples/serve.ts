@@ -1,6 +1,6 @@
-import { OpenAPI } from '@maks11060/openapi'
-import { Hono } from 'npm:hono'
-import { cors } from 'npm:hono/cors'
+import {OpenAPI} from '@maks11060/openapi'
+import {Hono} from 'npm:hono'
+import {cors} from 'npm:hono/cors'
 import '../../debug/yaml.ts'
 
 export const serve = (doc: OpenAPI) => {
