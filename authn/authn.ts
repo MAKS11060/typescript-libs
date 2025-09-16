@@ -1,8 +1,8 @@
-import { concat } from '@std/bytes/concat'
-import { decodeCbor } from '@std/cbor/decode-cbor'
-import { timingSafeEqual } from '@std/crypto/timing-safe-equal'
-import { decodeBase64Url, encodeBase64Url } from '@std/encoding/base64url'
-import { asn1Parse } from './asn1.ts'
+import {concat} from '@std/bytes/concat'
+import {decodeCbor} from '@std/cbor/decode-cbor'
+import {timingSafeEqual} from '@std/crypto/timing-safe-equal'
+import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
+import {asn1Parse} from './asn1.ts'
 import type {
   AttestationObject,
   AuthenticatorData,
@@ -13,6 +13,7 @@ import type {
   PublicKeyCredentialJSON,
   PublicKeyCredentialResponseAssertion,
   PublicKeyCredentialResponseAttestation,
+  Uint8Array_,
 } from './types.ts'
 
 /**
@@ -21,6 +22,8 @@ import type {
  * - Ed25519
  * - ECDSA P-256
  * - RSASSA-PKCS1-v1_5 SHA-256
+ *
+ * {@link MDN https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions#pubkeycredparams}
  */
 export const PubKeyCredParams = [
   {type: 'public-key', alg: -8}, //   Ed25519
@@ -54,11 +57,11 @@ const verifyOptionsByKey = new Map([
 
 const encoder = new TextEncoder()
 
-const toUint8Array = (source: BufferSource): Uint8Array => {
+const toUint8Array = (source: BufferSource | Uint8Array_): Uint8Array_ => {
   if (source instanceof Uint8Array) {
-    return source // Already a Uint8Array
+    return source as Uint8Array_ // Already a Uint8Array
   } else if (source instanceof ArrayBuffer || source instanceof SharedArrayBuffer) {
-    return new Uint8Array(source)
+    return new Uint8Array(source) as Uint8Array_
   } else if (ArrayBuffer.isView(source)) { // Covers other TypedArrays and DataView
     return new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
   }
@@ -66,7 +69,7 @@ const toUint8Array = (source: BufferSource): Uint8Array => {
   throw new Error('Unsupported BufferSource type')
 }
 
-const sha256 = async (input: string | Uint8Array) => {
+const sha256 = async (input: string | Uint8Array_) => {
   return new Uint8Array(
     await crypto.subtle.digest(
       'SHA-256',

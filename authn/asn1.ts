@@ -1,4 +1,5 @@
 import { concat } from '@std/bytes/concat'
+import type { Uint8Array_ } from './types.ts'
 
 // export const asn1Parse = (input: Uint8Array) => {
 //   if (input[0] !== 0x30) throw new Error('Input is not an ASN.1 sequence')
@@ -43,7 +44,7 @@ import { concat } from '@std/bytes/concat'
 /**
  * Parse DER-sign ECDSA
  */
-export const asn1Parse = (input: Uint8Array): Uint8Array => {
+export const asn1Parse = (input: Uint8Array_): Uint8Array_ => {
   if (input[0] !== 0x30) throw new Error('Input is not an ASN.1 SEQUENCE')
 
   const {length: seqLength, consumed: seqLenBytes} = parseLength(input.subarray(1))
@@ -51,7 +52,7 @@ export const asn1Parse = (input: Uint8Array): Uint8Array => {
   if (seqEnd !== input.length) throw new Error('Invalid sequence length')
 
   let currentOffset = 1 + seqLenBytes
-  const elements: Uint8Array[] = []
+  const elements: Uint8Array_[] = []
 
   for (let i = 0; i < 2; i++) {
     const byte = input[currentOffset]
@@ -86,7 +87,7 @@ export const asn1Parse = (input: Uint8Array): Uint8Array => {
   return concat([r, s])
 }
 
-const parseLength = (bytes: Uint8Array): {length: number; consumed: number} => {
+const parseLength = (bytes: Uint8Array_): {length: number; consumed: number} => {
   const first = bytes[0]
   if (first < 0x80) {
     return {length: first, consumed: 1}
@@ -100,7 +101,7 @@ const parseLength = (bytes: Uint8Array): {length: number; consumed: number} => {
   }
 }
 
-const padToLength = (input: Uint8Array, targetLength: number): Uint8Array => {
+const padToLength = (input: Uint8Array_, targetLength: number): Uint8Array_ => {
   if (input.length === targetLength) return input
   if (input.length > targetLength) {
     return input.slice(input.length - targetLength)
