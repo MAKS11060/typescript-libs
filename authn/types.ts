@@ -1,18 +1,18 @@
 export type Uint8Array_ = ReturnType<Uint8Array['slice']>
 
-//////////////////////////////// INPUT
+/** {@link https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential/toJSON MDN} */
 export interface PublicKeyCredentialJSON {
-  authenticatorAttachment: AuthenticatorAttachment
-  clientExtensionResults: {}
   id: string
   rawId: string
-  response:
-    | PublicKeyCredentialResponseAttestation
-    | PublicKeyCredentialResponseAssertion
+  authenticatorAttachment: AuthenticatorAttachment
   type: 'public-key'
+  clientExtensionResults: any // TODO
+  response:
+    | PublicKeyCredentialResponseAttestationJSON
+    | PublicKeyCredentialResponseAssertionJSON
 }
 
-export interface PublicKeyCredentialResponseAttestation { // Attestation
+export interface PublicKeyCredentialResponseAttestationJSON {
   attestationObject: string
   authenticatorData: string
   clientDataJSON: string
@@ -21,17 +21,15 @@ export interface PublicKeyCredentialResponseAttestation { // Attestation
   transports: AuthenticatorTransport[]
 }
 
-export interface PublicKeyCredentialResponseAssertion { // Assertion
+export interface PublicKeyCredentialResponseAssertionJSON {
   authenticatorData: string
   clientDataJSON: string
   signature: string
   userHandle?: string | null
 }
 
-//////////////////////////////// OUTPUT
-
-/** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorResponse/clientDataJSON */
-export type ClientDataJSON = {
+/** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorResponse/clientDataJSON MDN} */
+export interface ClientDataJSON {
   type: 'webauthn.create' | 'webauthn.get'
   challenge: string
   crossOrigin: boolean
@@ -49,15 +47,15 @@ export type ClientDataJSON = {
   topOrigin?: string
 }
 
-/** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data */
+/** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data MDN} */
 export type AuthenticatorData = {
   /**
-   * SHA-256 hash of the `RP ID`
+   * `SHA-256` hash of the `RP ID`
    *
    * [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#rpidhash)
    */
   rpIdHash: Uint8Array_
-  /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags MDN} */
   flags: {
     /** `UP` User Present */
     userPresent: boolean
@@ -72,9 +70,9 @@ export type AuthenticatorData = {
     /** `ED` Extension data */
     extensionData: boolean
   }
-  /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#signcount */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#signcount MDN} */
   signCount: number
-  /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata MDN} */
   attestedCredentialData?: {
     /** The Authenticator Attestation Globally Unique Identifier */
     aaguid: Uint8Array_
@@ -92,10 +90,11 @@ export type AuthenticatorData = {
   extensions?: Uint8Array_
 }
 
-/** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject */
+/** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject MDN} */
 export type AttestationObject = {
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data MDN Authenticator data} */
   authData: AuthenticatorData
-  /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject#fmt */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject#fmt MDN} */
   fmt: AttestationObjectFmt
   attStmt: {} | {
     alg: number
@@ -110,17 +109,18 @@ export interface AuthnPublicKeyCredential {
   clientExtensionResults: {}
   id: string
   rawId: Uint8Array_
+  type: 'public-key'
 
   // response
-  /** https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data MDN Authenticator data} */
   authData: AuthenticatorData
-  /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorResponse/clientDataJSON */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorResponse/clientDataJSON MDN} */
   clientData: ClientDataJSON
   rawAuthData: Uint8Array_
   rawClientData: Uint8Array_
 
   // Attestation (Optional)
-  /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject */
+  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject MDN} */
   attestation?: AttestationObject
   /** Get `Attestation` publicKey */
   publicKey?: Uint8Array_
@@ -142,8 +142,6 @@ export interface AuthnPublicKeyCredential {
   signature?: Uint8Array_
   /** User identifier, specified as `user.id` in the options passed to the originating `navigator.credentials.create()` */
   userHandle?: Uint8Array_ | null
-
-  type: 'public-key'
 }
 
 export interface AuthnPublicKeyCredentialAttestation {
@@ -158,6 +156,7 @@ export interface AuthnPublicKeyCredentialAssertion {
   userHandle: Uint8Array_ | null
 }
 
+// === lib.dom ===
 // Credentials
 export interface CredentialCreationOptions {
   publicKey?: PublicKeyCredentialCreationOptions

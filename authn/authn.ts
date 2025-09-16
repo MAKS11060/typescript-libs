@@ -16,13 +16,27 @@ import {
   type PublicKeyCredentialCreationOptionsJSON,
   type PublicKeyCredentialJSON,
   type PublicKeyCredentialRequestOptionsJSON,
-  type PublicKeyCredentialResponseAssertion,
-  type PublicKeyCredentialResponseAttestation,
+  type PublicKeyCredentialResponseAssertionJSON,
+  type PublicKeyCredentialResponseAttestationJSON,
   type Uint8Array_,
   verifyOptionsByKey,
 } from './types.ts'
 
-// Credential
+const encoder = new TextEncoder()
+
+const sha256 = async (input: string | Uint8Array_) => {
+  return new Uint8Array(
+    await crypto.subtle.digest(
+      'SHA-256',
+      typeof input === 'string' ? encoder.encode(input) : input,
+    ),
+  )
+}
+
+/**
+ * The server version of the [Credential Management API](https://developer.mozilla.org/en-US/docs/Web/API/Credential_Management_API)
+ * for working with [PublicKeyCredential](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential)
+ */
 export const credentials = {
   /**
    * @example
@@ -125,7 +139,7 @@ const parseAuthenticatorData = (authData: string | Uint8Array_): AuthenticatorDa
 }
 
 /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject#value */
-const parseAttestation = (response: PublicKeyCredentialResponseAttestation) => {
+const parseAttestation = (response: PublicKeyCredentialResponseAttestationJSON) => {
   const attestationBuffer = decodeBase64Url(response.attestationObject)
   const attestation = decodeCbor(attestationBuffer) as AttestationObject
 
@@ -161,7 +175,7 @@ export const publicKeyCredential = {
       authenticatorAttachment: cred.authenticatorAttachment,
       id: cred.id,
       clientExtensionResults: cred.clientExtensionResults,
-      transports: (cred.response as PublicKeyCredentialResponseAttestation)?.transports,
+      transports: (cred.response as PublicKeyCredentialResponseAttestationJSON)?.transports,
       type: 'public-key',
 
       get rawId() {
@@ -186,27 +200,27 @@ export const publicKeyCredential = {
 
       // register data
       get attestation() {
-        if (!(cred.response as PublicKeyCredentialResponseAttestation).attestationObject) return
-        return parseAttestation(cred.response as PublicKeyCredentialResponseAttestation)
+        if (!(cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject) return
+        return parseAttestation(cred.response as PublicKeyCredentialResponseAttestationJSON)
       },
 
       get publicKey() {
-        const {publicKey} = cred.response as PublicKeyCredentialResponseAttestation
+        const {publicKey} = cred.response as PublicKeyCredentialResponseAttestationJSON
         return publicKey ? decodeBase64Url(publicKey) : undefined
       },
 
       get publicKeyAlgorithm() {
-        return (cred.response as PublicKeyCredentialResponseAttestation).publicKeyAlgorithm
+        return (cred.response as PublicKeyCredentialResponseAttestationJSON).publicKeyAlgorithm
       },
 
       // login data
       get signature() {
-        const {signature} = cred.response as PublicKeyCredentialResponseAssertion
+        const {signature} = cred.response as PublicKeyCredentialResponseAssertionJSON
         return signature ? decodeBase64Url(signature) : undefined
       },
 
       get userHandle() {
-        const {userHandle} = cred.response as PublicKeyCredentialResponseAssertion
+        const {userHandle} = cred.response as PublicKeyCredentialResponseAssertionJSON
         return userHandle ? decodeBase64Url(userHandle) : null
       },
     }
@@ -315,15 +329,4 @@ export const publicKeyCredential = {
       concat([cred.rawAuthData, await sha256(cred.rawClientData)]),
     )
   },
-}
-
-const encoder = new TextEncoder()
-
-const sha256 = async (input: string | Uint8Array_) => {
-  return new Uint8Array(
-    await crypto.subtle.digest(
-      'SHA-256',
-      typeof input === 'string' ? encoder.encode(input) : input,
-    ),
-  )
 }
