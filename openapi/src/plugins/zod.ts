@@ -1,5 +1,5 @@
 import z from 'zod'
-import type { SchemaPlugin, SchemaPluginConfig } from '../types.ts'
+import type {SchemaPlugin, SchemaPluginConfig} from '../types.ts'
 
 const componentName = '#/components/schemas'
 
