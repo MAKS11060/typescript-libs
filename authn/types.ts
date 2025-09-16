@@ -1,5 +1,7 @@
+export type Uint8Array_ = ReturnType<Uint8Array['slice']>
+
 //////////////////////////////// INPUT
-export type PublicKeyCredentialJSON = {
+export interface PublicKeyCredentialJSON {
   authenticatorAttachment: AuthenticatorAttachment
   clientExtensionResults: {}
   id: string
@@ -10,7 +12,7 @@ export type PublicKeyCredentialJSON = {
   type: 'public-key'
 }
 
-export type PublicKeyCredentialResponseAttestation = { // Attestation
+export interface PublicKeyCredentialResponseAttestation { // Attestation
   attestationObject: string
   authenticatorData: string
   clientDataJSON: string
@@ -19,7 +21,7 @@ export type PublicKeyCredentialResponseAttestation = { // Attestation
   transports: AuthenticatorTransport[]
 }
 
-export type PublicKeyCredentialResponseAssertion = { // Assertion
+export interface PublicKeyCredentialResponseAssertion { // Assertion
   authenticatorData: string
   clientDataJSON: string
   signature: string
@@ -103,8 +105,6 @@ export type AttestationObject = {
   }
 }
 
-export type AttestationObjectFmt = 'packed' | 'tpm' | 'android-key' | 'android-safetynet' | 'fido-u2f' | 'none'
-
 export interface AuthnPublicKeyCredential {
   authenticatorAttachment: AuthenticatorAttachment
   clientExtensionResults: {}
@@ -158,8 +158,6 @@ export interface AuthnPublicKeyCredentialAssertion {
   userHandle: Uint8Array_ | null
 }
 
-export type Uint8Array_ = ReturnType<Uint8Array['slice']>
-
 // Credentials
 export interface CredentialCreationOptions {
   publicKey?: PublicKeyCredentialCreationOptions
@@ -167,7 +165,7 @@ export interface CredentialCreationOptions {
 }
 
 // Create
-export interface PublicKeyCredentialCreationOptions {
+interface PublicKeyCredentialCreationOptions {
   attestation?: AttestationConveyancePreference
   authenticatorSelection?: AuthenticatorSelectionCriteria
   challenge: Uint8Array_
@@ -179,38 +177,38 @@ export interface PublicKeyCredentialCreationOptions {
   user: PublicKeyCredentialUserEntity
 }
 
-export interface AuthenticatorSelectionCriteria {
+interface AuthenticatorSelectionCriteria {
   authenticatorAttachment?: AuthenticatorAttachment
   requireResidentKey?: boolean
   residentKey?: ResidentKeyRequirement
   userVerification?: UserVerificationRequirement
 }
 
-export interface PublicKeyCredentialParameters {
+interface PublicKeyCredentialParameters {
   alg: COSEAlgorithmIdentifier
   type: PublicKeyCredentialType
 }
 
-export interface PublicKeyCredentialEntity {
+interface PublicKeyCredentialEntity {
   name: string
 }
 
-export interface PublicKeyCredentialRpEntity extends PublicKeyCredentialEntity {
+interface PublicKeyCredentialRpEntity extends PublicKeyCredentialEntity {
   id?: string
 }
 
-export interface PublicKeyCredentialUserEntity extends PublicKeyCredentialEntity {
+interface PublicKeyCredentialUserEntity extends PublicKeyCredentialEntity {
   displayName: string
   id: Uint8Array_
 }
 
-export interface PublicKeyCredentialDescriptor {
+interface PublicKeyCredentialDescriptor {
   id: Uint8Array_
   transports?: AuthenticatorTransport[]
   type: PublicKeyCredentialType
 }
 
-export interface AuthenticationExtensionsClientInputs {
+interface AuthenticationExtensionsClientInputs {
   appid?: string
   credProps?: boolean
   credentialProtectionPolicy?: string
@@ -221,18 +219,18 @@ export interface AuthenticationExtensionsClientInputs {
   prf?: AuthenticationExtensionsPRFInputs
 }
 
-export interface AuthenticationExtensionsLargeBlobInputs {
+interface AuthenticationExtensionsLargeBlobInputs {
   support?: 'preferred' | 'required'
   read?: boolean
   write?: Uint8Array_
 }
 
-export interface AuthenticationExtensionsPRFInputs {
+interface AuthenticationExtensionsPRFInputs {
   eval?: AuthenticationExtensionsPRFValues
   evalByCredential?: Record<string, AuthenticationExtensionsPRFValues>
 }
 
-export interface AuthenticationExtensionsPRFValues {
+interface AuthenticationExtensionsPRFValues {
   first: Uint8Array_
   second?: Uint8Array_
 }
@@ -287,7 +285,7 @@ export interface CredentialRequestOptions {
   // signal?: AbortSignal;
 }
 
-export interface PublicKeyCredentialRequestOptions {
+interface PublicKeyCredentialRequestOptions {
   allowCredentials?: PublicKeyCredentialDescriptor[]
   challenge: Uint8Array_
   extensions?: AuthenticationExtensionsClientInputs
@@ -315,6 +313,7 @@ type UserVerificationRequirement = 'discouraged' | 'preferred' | 'required'
 type COSEAlgorithmIdentifier = number
 type PublicKeyCredentialType = 'public-key'
 type AuthenticatorTransport = 'ble' | 'hybrid' | 'internal' | 'nfc' | 'usb'
+type AttestationObjectFmt = 'packed' | 'tpm' | 'android-key' | 'android-safetynet' | 'fido-u2f' | 'none'
 
 /**
  * A recommended set of algorithms that covers all devices. The list is taken from
