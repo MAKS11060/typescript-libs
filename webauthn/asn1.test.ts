@@ -2,7 +2,7 @@ import {decodeBase64Url} from '@std/encoding/base64url'
 import {expect} from 'jsr:@std/expect/expect'
 import {decodeAsn1} from './asn1.ts'
 
-Deno.test('ASN.1 parse ECDSA', async (t) => {
+Deno.test('decode DER_ECDSA_Sign', async (t) => {
   const signature = decodeBase64Url(
     'MEQCIDzvJw-L8UjQd6axnXhdaF9pI-RvYyyWWwRs0fK8wMm1AiA8Zvm6VJrw5Ta6HaYOR5V9gn9RFUKuzB1IGXTEBx_GNw',
   )
