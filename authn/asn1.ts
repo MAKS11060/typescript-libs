@@ -1,50 +1,8 @@
-import { concat } from '@std/bytes/concat'
-import type { Uint8Array_ } from './types.ts'
+import {concat} from '@std/bytes/concat'
+import type {Uint8Array_} from './types.ts'
 
-// export const asn1Parse = (input: Uint8Array) => {
-//   if (input[0] !== 0x30) throw new Error('Input is not an ASN.1 sequence')
-
-//   const seqLength = input[1]
-//   const elements = []
-//   let current = input.slice(2, 2 + seqLength)
-//   while (current.length > 0) {
-//     const tag = current[0]
-//     if (tag !== 0x02) throw new Error('Expected ASN.1 sequence element to be an INTEGER')
-
-//     const elLength = current[1]
-//     elements.push(current.slice(2, 2 + elLength))
-//     current = current.slice(2 + elLength)
-//   }
-
-//   if (elements.length !== 2) throw new Error('Expected 2 ASN.1 sequence elements')
-
-//   let [r, s] = elements
-
-//   // R and S length is assumed multiple of 128bit.
-//   // If leading is 0 and modulo of length is 1 byte then
-//   // leading 0 is for two's complement and will be removed.
-//   if (r[0] === 0 && r.byteLength % 16 == 1) r = r.slice(1)
-//   if (s[0] === 0 && s.byteLength % 16 == 1) s = s.slice(1)
-
-//   // R and S length is assumed multiple of 128bit.
-//   // If missing a byte then it will be padded by 0.
-//   if (r.byteLength % 16 == 15) r = concat([new Uint8Array([0]), r])
-//   if (s.byteLength % 16 == 15) s = concat([new Uint8Array([0]), s])
-
-//   // If R and S length is not still multiple of 128bit,
-//   // then error
-//   // if (r.byteLength % 16 != 0) throw Error('Unknown ECDSA sig r length error')
-//   // if (s.byteLength % 16 != 0) throw Error('Unknown ECDSA sig s length error')
-//   if (r.byteLength !== 32) throw Error('Unknown ECDSA sig r length error')
-//   if (s.byteLength !== 32) throw Error('Unknown ECDSA sig s length error')
-
-//   return concat([r, s])
-// }
-
-/**
- * Parse DER-sign ECDSA
- */
-export const asn1Parse = (input: Uint8Array_): Uint8Array_ => {
+/** Parse DER-sign ECDSA  */
+export const decode_DER_ECDSA_Sign = (input: Uint8Array_): Uint8Array_ => {
   if (input[0] !== 0x30) throw new Error('Input is not an ASN.1 SEQUENCE')
 
   const {length: seqLength, consumed: seqLenBytes} = parseLength(input.subarray(1))
@@ -110,4 +68,8 @@ const padToLength = (input: Uint8Array_, targetLength: number): Uint8Array_ => {
   const padded = new Uint8Array(targetLength)
   padded.set(input, targetLength - input.length)
   return padded
+}
+
+export const decodeAsn1 = {
+  DER_ECDSA_Sign: decode_DER_ECDSA_Sign,
 }

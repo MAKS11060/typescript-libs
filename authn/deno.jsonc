@@ -16,12 +16,6 @@
     ".": "./mod.ts",
     "./aaguid": "./aaguid.ts"
   },
-  "compilerOptions": {
-    "lib": [
-      "deno.window",
-      "dom"
-    ]
-  },
   "publish": {
     "exclude": [
       "**/*.test.ts"
