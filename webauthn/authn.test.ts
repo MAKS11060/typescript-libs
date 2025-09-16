@@ -1,37 +1,31 @@
-import { decodeBase64Url } from '@std/encoding/base64url'
-import { expect } from 'jsr:@std/expect'
-import {
-  getPublicKey,
-  isAssertion,
-  isAttestation,
-  PubKeyCredParams,
-  publicKeyCreateOptionsToJSON,
-  publicKeyCredentialFromJSON,
-  publicKeyRequestOptionsToJSON,
-  verifySignature,
-} from './authn.ts'
+import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
+import {expect} from 'jsr:@std/expect'
+import {credentials, publicKeyCredential} from './authn.ts'
+import {pubKeyCredParams} from './types.ts'
 
-Deno.test('publicKeyCreateOptionsToJSON()', async (t) => {
+Deno.test('credentials.create 1', async (t) => {
   const challenge = new Uint8Array([123])
-  const options = publicKeyCreateOptionsToJSON({
-    challenge,
-    rp: {
-      name: 'example',
-      id: 'example.com',
+  const options = credentials.create({
+    publicKey: {
+      challenge,
+      rp: {
+        name: 'example',
+        id: 'example.com',
+      },
+      user: {
+        id: new Uint8Array([1, 2, 3, 4]),
+        name: 'authn',
+        displayName: 'Authn Test',
+      },
+      timeout: 60_000,
+      authenticatorSelection: {
+        userVerification: 'required',
+      },
+      pubKeyCredParams,
     },
-    user: {
-      id: new Uint8Array([1, 2, 3, 4]),
-      name: 'authn',
-      displayName: 'Authn Test',
-    },
-    timeout: 60_000,
-    authenticatorSelection: {
-      userVerification: 'required',
-    },
-    pubKeyCredParams: PubKeyCredParams,
   })
 
-  expect(options).toEqual({
+  expect(options.toJSON()).toEqual({
     challenge: 'ew',
     user: {id: 'AQIDBA', name: 'authn', displayName: 'Authn Test'},
     excludeCredentials: undefined,
@@ -46,29 +40,133 @@ Deno.test('publicKeyCreateOptionsToJSON()', async (t) => {
   })
 })
 
-Deno.test('publicKeyRequestOptionsToJSON()', async (t) => {
-  const challenge = new Uint8Array([111])
-  const options = publicKeyRequestOptionsToJSON({
-    challenge,
-    rpId: 'example.com',
-    allowCredentials: [
-      {id: new Uint8Array([1, 2, 3, 4]), transports: ['internal', 'hybrid'], type: 'public-key'},
-    ],
-    userVerification: 'required',
+Deno.test('credentials.create 2', async (t) => {
+  const challenge = crypto.getRandomValues(new Uint8Array(32))
+  const cred = credentials.create({
+    publicKey: {
+      challenge,
+      rp: {
+        name: '',
+        id: '',
+      },
+      user: {
+        id: new Uint8Array([1, 2, 3, 4]),
+        name: '',
+        displayName: '',
+      },
+      pubKeyCredParams,
+      excludeCredentials: [{
+        id: new Uint8Array([1, 2, 3, 4]),
+        type: 'public-key',
+        transports: ['internal'],
+      }],
+      timeout: 0,
+      //
+      attestation: 'direct',
+      authenticatorSelection: {
+        userVerification: 'required',
+        authenticatorAttachment: 'cross-platform',
+        requireResidentKey: true,
+        residentKey: 'required',
+      },
+      extensions: {
+        appid: '',
+        credentialProtectionPolicy: '',
+        enforceCredentialProtectionPolicy: true,
+        credProps: true,
+        hmacCreateSecret: true,
+        largeBlob: {
+          read: true,
+          support: 'required',
+          write: new Uint8Array(),
+        },
+        minPinLength: true,
+      },
+    },
   })
 
-  expect(options).toEqual({
-    challenge: 'bw',
-    allowCredentials: [
-      {id: 'AQIDBA', transports: ['internal', 'hybrid'], type: 'public-key'},
+  expect(cred.toJSON()).toEqual({
+    challenge: encodeBase64Url(challenge),
+    user: {id: 'AQIDBA', name: '', displayName: ''},
+    excludeCredentials: [{id: 'AQIDBA', type: 'public-key', transports: ['internal']}],
+    rp: {name: '', id: ''},
+    pubKeyCredParams: [
+      {type: 'public-key', alg: -8},
+      {type: 'public-key', alg: -7},
+      {type: 'public-key', alg: -257},
     ],
+    timeout: 0,
+    attestation: 'direct',
+    authenticatorSelection: {
+      userVerification: 'required',
+      authenticatorAttachment: 'cross-platform',
+      requireResidentKey: true,
+      residentKey: 'required',
+    },
+    extensions: {
+      appid: '',
+      credentialProtectionPolicy: '',
+      enforceCredentialProtectionPolicy: true,
+      credProps: true,
+      hmacCreateSecret: true,
+      largeBlob: {read: true, support: 'required', write: ''},
+      minPinLength: true,
+    },
+  })
+})
+
+Deno.test('credentials.get', async (t) => {
+  const challenge = new Uint8Array([111])
+  const options = credentials.get({
+    publicKey: {
+      challenge,
+      rpId: 'example.com',
+      allowCredentials: [{
+        id: new Uint8Array([1, 2, 3, 4]),
+        transports: ['internal', 'hybrid'],
+        type: 'public-key',
+      }],
+      userVerification: 'required',
+      extensions: {
+        appid: '',
+        credentialProtectionPolicy: '',
+        enforceCredentialProtectionPolicy: true,
+        credProps: true,
+        hmacCreateSecret: true,
+        largeBlob: {
+          read: true,
+          support: 'required',
+          write: new Uint8Array([1, 2, 3, 4]),
+        },
+        minPinLength: true,
+      },
+    },
+  })
+
+  // console.log(options.toJSON())
+  expect(options.toJSON()).toEqual({
+    challenge: 'bw',
+    allowCredentials: [{
+      id: 'AQIDBA',
+      transports: ['internal', 'hybrid'],
+      type: 'public-key',
+    }],
     rpId: 'example.com',
     userVerification: 'required',
+    extensions: {
+      appid: '',
+      credentialProtectionPolicy: '',
+      enforceCredentialProtectionPolicy: true,
+      credProps: true,
+      hmacCreateSecret: true,
+      minPinLength: true,
+      largeBlob: {read: true, support: 'required', write: 'AQIDBA'},
+    },
   })
 })
 
 Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
-  const cred = publicKeyCredentialFromJSON({
+  const cred = publicKeyCredential.fromJSON({
     authenticatorAttachment: 'platform',
     clientExtensionResults: {},
     id: '931QGw1poO_Pr-aBvHhhyw',
@@ -85,7 +183,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     type: 'public-key',
   })
 
-  if (!isAttestation(cred)) throw new Error('not attestation')
+  if (!publicKeyCredential.isAttestation(cred)) throw new Error('not attestation')
 
   expect(cred.id).toEqual('931QGw1poO_Pr-aBvHhhyw')
   expect(cred.rawId).toEqual(decodeBase64Url('931QGw1poO_Pr-aBvHhhyw'))
@@ -114,121 +212,30 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     },
     signCount: 0,
     attestedCredentialData: {
+      // deno-fmt-ignore
       aaguid: new Uint8Array([
-        234,
-        155,
-        141,
-        102,
-        77,
-        1,
-        29,
-        33,
-        60,
-        228,
-        182,
-        180,
-        140,
-        181,
-        117,
-        212,
+        234, 155, 141, 102,  77,
+          1,  29,  33,  60, 228,
+        182, 180, 140, 181, 117,
+        212
       ]),
       credentialIdLength: 16,
+      // deno-fmt-ignore
       credentialId: new Uint8Array([
-        247,
-        125,
-        80,
-        27,
-        13,
-        105,
-        160,
-        239,
-        207,
-        175,
-        230,
-        129,
-        188,
-        120,
-        97,
-        203,
+        247, 125,  80,  27,  13,
+        105, 160, 239, 207, 175,
+        230, 129, 188, 120,  97,
+        203
       ]),
+      // deno-fmt-ignore
       credentialPublicKey: new Uint8Array([
-        165,
-        1,
-        2,
-        3,
-        38,
-        32,
-        1,
-        33,
-        88,
-        32,
-        83,
-        231,
-        101,
-        203,
-        43,
-        103,
-        68,
-        212,
-        180,
-        109,
-        125,
-        28,
-        246,
-        255,
-        39,
-        105,
-        95,
-        250,
-        45,
-        246,
-        255,
-        29,
-        255,
-        25,
-        127,
-        38,
-        128,
-        174,
-        81,
-        147,
-        186,
-        135,
-        34,
-        88,
-        32,
-        161,
-        13,
-        192,
-        171,
-        242,
-        1,
-        169,
-        20,
-        199,
-        74,
-        241,
-        0,
-        206,
-        154,
-        210,
-        41,
-        99,
-        149,
-        41,
-        235,
-        49,
-        74,
-        229,
-        209,
-        182,
-        171,
-        71,
-        192,
-        131,
-        200,
-        193,
-        54,
+        165,   1,   2,   3,  38,  32,   1,  33,  88,  32,  83, 231,
+        101, 203,  43, 103,  68, 212, 180, 109, 125,  28, 246, 255,
+        39, 105,  95, 250,  45, 246, 255,  29, 255,  25, 127,  38,
+        128, 174,  81, 147, 186, 135,  34,  88,  32, 161,  13, 192,
+        171, 242,   1, 169,  20, 199,  74, 241,   0, 206, 154, 210,
+        41,  99, 149,  41, 235,  49,  74, 229, 209, 182, 171,  71,
+        192, 131, 200, 193,  54
       ]),
     },
     extensions: undefined,
@@ -272,12 +279,13 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
       },
     },
   })
-
   // console.log(structuredClone(cred))
+
+  cred.attestation.authData.attestedCredentialData?.aaguid //
 })
 
 Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
-  const publicKey = await getPublicKey({
+  const publicKey = await publicKeyCredential.getPublicKey({
     publicKeyAlgorithm: -7,
     // deno-fmt-ignore
     publicKey: new Uint8Array([
@@ -291,7 +299,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
       79, 135,  23,  94,  48,  33, 163
     ]),
   })
-  const cred = publicKeyCredentialFromJSON({
+  const cred = publicKeyCredential.fromJSON({
     authenticatorAttachment: 'platform',
     clientExtensionResults: {},
     id: 'wBCk_EC4zWD8cAll0sLZwyW1cIE9lvZNl8E6lFXxE5c',
@@ -305,7 +313,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
     type: 'public-key',
   })
 
-  if (!isAssertion(cred)) throw new Error('not Assertion type')
+  if (!publicKeyCredential.isAssertion(cred)) throw new Error('not Assertion type')
 
   expect(cred.id).toEqual('wBCk_EC4zWD8cAll0sLZwyW1cIE9lvZNl8E6lFXxE5c')
   expect(cred.clientData).toEqual({
@@ -337,7 +345,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
     extensions: undefined,
   })
 
-  expect(await verifySignature(cred, publicKey)).toBeTruthy()
+  expect(await publicKeyCredential.verifySignature(cred, publicKey)).toBeTruthy()
 
   // console.log(structuredClone(cred))
 })
@@ -381,13 +389,13 @@ Deno.test('verify assertion signature', async (t) => {
   ] as const
 
   for (const [alg, key, response] of keys) {
-    const publicKey = await getPublicKey({
+    const publicKey = await publicKeyCredential.getPublicKey({
       publicKeyAlgorithm: alg,
       publicKey: decodeBase64Url(key),
     })
-    const cred = publicKeyCredentialFromJSON({response} as any)
-    if (!isAssertion(cred)) throw new Error('not Assertion type')
+    const cred = publicKeyCredential.fromJSON({response} as any)
+    if (!publicKeyCredential.isAssertion(cred)) throw new Error('not Assertion type')
 
-    expect(await verifySignature(cred, publicKey)).toBeTruthy()
+    expect(await publicKeyCredential.verifySignature(cred, publicKey)).toBeTruthy()
   }
 })

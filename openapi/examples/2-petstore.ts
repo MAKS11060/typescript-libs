@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno run -A
 
-import { z } from 'zod'
+import {z} from 'zod'
 import '../../debug/yaml.ts'
-import { createDoc } from '../mod.ts'
-import { zodPlugin } from '../src/plugins/zod.ts'
+import {createDoc} from '../mod.ts'
+import {zodPlugin} from '../src/plugins/zod.ts'
 
 setTimeout(() => console.yaml(doc.toDoc()))
 

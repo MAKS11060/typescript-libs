@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno test -A --watch
 
-import { expect } from 'jsr:@std/expect/expect'
+import {expect} from 'jsr:@std/expect/expect'
 import z from 'zod'
 import '../../../debug/yaml.ts'
-import { zodPlugin } from './zod.ts'
+import {zodPlugin} from './zod.ts'
 
 Deno.test('zodPlugin()', async (t) => {
   const plugin = zodPlugin()

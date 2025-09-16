@@ -1,6 +1,6 @@
 {
   "name": "@maks11060/webauthn",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "tasks": {
     "test": "deno test",
     "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
@@ -15,12 +15,6 @@
   "exports": {
     ".": "./mod.ts",
     "./aaguid": "./aaguid.ts"
-  },
-  "compilerOptions": {
-    "lib": [
-      "deno.window",
-      "dom"
-    ]
   },
   "publish": {
     "exclude": [

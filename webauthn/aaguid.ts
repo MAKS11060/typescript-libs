@@ -11,8 +11,8 @@
  * @module aaguid
  */
 
-import { decodeHex } from '@std/encoding/hex'
-import type { AuthnPublicKeyCredentialAttestation } from './types.ts'
+import {decodeHex} from '@std/encoding/hex'
+import type {AuthnPublicKeyCredentialAttestation} from './types.ts'
 
 import aaguidList from './aaguid.json' with {type: 'json'}
 

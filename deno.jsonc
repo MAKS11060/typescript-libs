@@ -15,11 +15,11 @@
     "zod": "npm:zod@^4.0.5"
   },
   "workspace": [
-    "./authn",
     "./kv",
     "./oauth2",
     "./openapi",
-    "./web"
+    "./web",
+    "./webauthn"
   ],
   "fmt": {
     "lineWidth": 120,

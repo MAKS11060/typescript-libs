@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import { createDoc, getOperationIds, getPaths } from '@maks11060/openapi'
-import { zodPlugin } from '@maks11060/openapi/zod'
-import { serve } from './serve.ts'
+import {createDoc, getOperationIds, getPaths} from '@maks11060/openapi'
+import {zodPlugin} from '@maks11060/openapi/zod'
+import {serve} from './serve.ts'
 
 setTimeout(() => console.yaml(doc.toDoc()))
 

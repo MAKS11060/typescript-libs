@@ -1,5 +1,5 @@
 {
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   }

@@ -9,12 +9,10 @@
   "imports": {
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
     "@std/yaml": "jsr:@std/yaml@^1.0.5",
-    "zod": "npm:zod@^4.0.5"
+    "zod": "npm:zod@^4.1.9"
   },
   "exports": {
     ".": "./mod.ts",
-    "./arktype": "./src/plugins/arktype.ts",
-    "./valibot": "./src/plugins/valibot.ts",
     "./zod": "./src/plugins/zod.ts"
   },
   "publish": {

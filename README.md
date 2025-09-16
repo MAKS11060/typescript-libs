@@ -48,14 +48,14 @@ npx jsr add @maks11060/kv
 ```
 
 ```ts
-import { kvModel } from '@maks11060/kv'
+import {kvModel} from '@maks11060/kv'
 ```
 
 <details>
 <summary>Usage example</summary>
 
 ```ts
-import { kvModel } from '@maks11060/kv'
+import {kvModel} from '@maks11060/kv'
 
 using kv = await Deno.openKv(':memory:')
 
@@ -116,7 +116,7 @@ const loginUser = async (data: z.input<typeof userLoginSchema>) => {
 <summary>Usage example</summary>
 
 ```ts
-import { createCachedFetch } from '@maks11060/web'
+import {createCachedFetch} from '@maks11060/web'
 
 const fetch = await createCachedFetch({
   name: 'cache-1',

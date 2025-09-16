@@ -5,13 +5,6 @@
  * The library does not create additional abstractions, it only transparently transforms data that is convenient to work with.
  *
  * Based on types from `lib.dom`
- * ```json
- * "compilerOptions": {
- *   "lib": [
- *     "dom"
- *   ]
- * }
- * ```
  *
  * It is recommended to use the following libraries for the client code
  * - [`@types/webappsec-credential-management`](https://www.npmjs.com/package/@types/webappsec-credential-management)
@@ -28,13 +21,17 @@
  * ```ts
  * // Client request options from server to register passkey
  * const publicKeyCredential = await navigator.credentials.create({
- *   publicKey: PublicKeyCredential.parseCreationOptionsFromJSON( options ),
+ *   publicKey: PublicKeyCredential.parseCreationOptionsFromJSON(options),
  * })
  *
  * // Server
  * // https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions
- * import { publicKeyCreateOptionsToJSON } from '@maks11060/webauthn'
- * const options = publicKeyCreateOptionsToJSON({}) // convert creation options to JSON
+ * import { credentials, publicKeyCredential } from '@maks11060/webauthn'
+ * const cred = credentials.create({
+ *   publicKey: {}
+ * })
+ * const options = cred.toJSON() // convert creation options to JSON
+ * options // send to client
  * ```
  *
  * @example Login with passkey
@@ -46,8 +43,12 @@
  *
  * // Server
  * // https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialRequestOptions
- * import { publicKeyRequestOptionsToJSON } from '@maks11060/webauthn'
- * const options = publicKeyRequestOptionsToJSON({}) // convert request options to JSON
+ * import { credentials, publicKeyCredential } from '@maks11060/webauthn'
+ * const cred = credentials.get({
+ *   publicKey: {}
+ * })
+ * const options = cred.toJSON() // convert request options to JSON
+ * options // send to client
  * ```
  *
  * @example Verify
@@ -59,34 +60,39 @@
  * const data = cred.toJSON() // Post credentials to server
  *
  * // Server
- * import {
- *   getPublicKey,
- *   isAssertion,
- *   isAttestation,
- *   publicKeyCredentialFromJSON,
- *   verifyRpIdHash,
- *   verifySignature,
- * } from '@maks11060/webauthn'
+ * import { credentials, publicKeyCredential } from '@maks11060/webauthn'
  *
- * const cred = publicKeyCredentialFromJSON(data) // Parse PublicKeyCredential from JSON format
+ * const cred = publicKeyCredential.fromJSON(data) // Parse PublicKeyCredential from JSON format
  * console.log(cred)
  *
- * if (!await verifyRpIdHash(cred, 'example.com')) throw new Error('invalid RpId')
+ * // verify RP
+ * if (!await publicKeyCredential.verifyRpIdHash(cred, 'example.com')) throw new Error('invalid RpId')
+ *
+ * // verify challenge
+ * if (cred.clientData.challenge !== session.challenge) throw new Error('invalid challenge')
  *
  * // https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Attestation_and_Assertion
  * // register passkey
- * if (isAttestation(cred)) {
+ * if (publicKeyCredential.isAttestation(cred)) {
+ *   // find saved passkey using cred.id
+ *   //   if (findPasskey(cred.id))
+ *   //     return authorize()
+ *   //   else
+ *   //     1. extract publicKey
+ *   //     2. registerPasskey()
+ *
  *   console.log(cred.authData)
  *   console.log(cred.authData.attestedCredentialData)
- *   const publicKey = await getPublicKey(cred)
+ *   const publicKey = await publicKeyCredential.getPublicKey(cred)
  *
- *   // save passkey data
+ *   // save passkey data (your implementation)
  *   registerPasskey({
- *     passkeyUserId: 'passkeyUserId',
+ *     passkeyId: cred.id, // uniq passkey id
+ *     passkeyUserId: 'passkeyUserId', // The user ID to associate with the passkey
  *     publicKey: cred.publicKey,
  *     publicKeyAlg: cred.publicKeyAlgorithm,
- *     backedUp: cred.attestation.authData.flags.bs,
- *     aaguid: cred.attestation.authData.attestedCredentialData?.AAGUID,
+ *     backedUp: cred.attestation.authData.flags.backupState,
+ *     aaguid: cred.attestation.authData.attestedCredentialData?.aaguid,
  *     transports: cred.transports,
  *   })
  *
@@ -94,12 +100,19 @@
  * }
  *
  * // login with passkey
- * if (isAssertion(cred)) {
- *   console.log(cred.assertion)
+ * if (publicKeyCredential.isAssertion(cred)) {
+ *   // minimal requirements
+ *   // 1. find the passkey using cred.id
+ *   // 2. check signature using saved public key
+ *   // 3. next, any logic for creating a session or authorization token
  *
- *   const passkey = findPasskeyById(cred.rawId)
- *   const publicKey = await getPublicKey({publicKey: passkey.publicKey, publicKeyAlgorithm: passkey.publicKeyAlg})
- *   if (!await verifySignature(cred, publicKey))  throw new Error('invalid signature')
+ *   console.log(cred.assertion)
+ *   const passkey = findPasskeyById(cred.id)
+ *   const publicKey = await publicKeyCredential.getPublicKey({
+ *     publicKey: passkey.publicKey,
+ *     publicKeyAlgorithm: passkey.publicKeyAlg
+ *   }) // saved public key convert to CryptoKey
+ *   if (!await publicKeyCredential.verifySignature(cred, publicKey))  throw new Error('invalid signature')
  *
  *   return // success / create session
  * }
@@ -110,4 +123,4 @@
 
 export * from './aaguid.ts'
 export * from './authn.ts'
-export * from './types.ts'
+export {pubKeyCredParams} from './types.ts'
