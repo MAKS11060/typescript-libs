@@ -33,11 +33,145 @@ const sha256 = async (input: string | Uint8Array_) => {
   )
 }
 
+interface Credential {
+  /**
+   * @example
+   * ```ts
+   * // Server
+   * const cred = credentials.create({})
+   * const options = cred.toJSON() // send to client
+   *
+   * // Client
+   * await navigator.credentials.create({
+   *   publicKey: PublicKeyCredential.parseCreationOptionsFromJSON(options),
+   * })
+   * ```
+   */
+  create(options: CredentialCreationOptions): {
+    type: 'public-key'
+    toJSON(): PublicKeyCredentialCreationOptionsJSON
+  }
+
+  /**
+   * @example
+   * ```ts
+   * // Server
+   * const cred = credentials.get({})
+   * const options = cred.toJSON() // send to client
+   *
+   * // Client
+   * await navigator.credentials.get({
+   *   publicKey: PublicKeyCredential.parseRequestOptionsFromJSON(options),
+   * })
+   * ```
+   */
+  get(options: CredentialRequestOptions): {
+    type: 'public-key'
+    toJSON(): PublicKeyCredentialRequestOptionsJSON
+  }
+}
+
+interface PublicKeyCredential {
+  /**
+   * @param cred - JSON representation of the PublicKeyCredential object
+   * @example
+   * ```ts
+   * // client (web)
+   * const cred = await navigator.credentials.create({publicKey: {}})
+   * if (cred instanceof PublicKeyCredential) {
+   *   const data = cred.toJSON() // send to server
+   * }
+   *
+   * // server
+   * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
+   * ```
+   */
+  fromJSON(cred: PublicKeyCredentialJSON): AuthnPublicKeyCredential
+
+  /**
+   * type guard for `Attestation` (Register)
+   * @example
+   * ```ts
+   * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
+   *
+   * if (publicKeyCredential.isAttestation(cred)) {
+   *  cred.attestation
+   *  cred.publicKey
+   *  cred.publicKeyAlgorithm
+   *  cred.transports
+   * }
+   * ```
+   */
+  isAttestation(cred: AuthnPublicKeyCredential): cred is
+    & Omit<AuthnPublicKeyCredential, keyof AuthnPublicKeyCredentialAssertion>
+    & AuthnPublicKeyCredentialAttestation
+
+  /**
+   * type guard for `Assertion` (Login)
+   * @example
+   * ```ts
+   * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
+   *
+   * if (publicKeyCredential.isAssertion(cred)) {
+   *   cred.assertion
+   * }
+   * ```
+   */
+  isAssertion(cred: AuthnPublicKeyCredential): cred is
+    & Omit<AuthnPublicKeyCredential, keyof AuthnPublicKeyCredentialAttestation>
+    & AuthnPublicKeyCredentialAssertion
+
+  /**
+   * The method extracts the public key from the `spki` format and converts it to {@linkcode CryptoKey}
+   *
+   * @example
+   * ```ts
+   * const cred = publicKeyCredential.fromJSON(data)
+   *
+   * if (isAttestation(cred)) {
+   *   const publicKey = await publicKeyCredential.getPublicKey(cred)
+   * }
+   * ```
+   */
+
+  getPublicKey(
+    cred: Pick<AuthnPublicKeyCredentialAttestation, 'publicKey' | 'publicKeyAlgorithm'>,
+  ): Promise<CryptoKey>
+  /**
+   * The method compares the `rpId` hash received from the client
+   *
+   * @example
+   * ```ts
+   * const cred = publicKeyCredential.fromJSON(data)
+   *
+   * await publicKeyCredential.verifyRpIdHash(cred, 'example.com') // true
+   * ```
+   */
+  verifyRpIdHash(cred: AuthnPublicKeyCredential, rpId: string): Promise<boolean>
+
+  /**
+   * The method verifies the `signature` using the public key obtained during `attestation`
+   *
+   * @example
+   * ```ts
+   * const cred = publicKeyCredential.fromJSON(data)
+   *
+   * if (publicKeyCredential.isAssertion(cred)) {
+   *   await publicKeyCredential.verifySignature(cred, publicKey)
+   * }
+   * ```
+   */
+  verifySignature(
+    cred: Pick<AuthnPublicKeyCredential, 'rawClientData' | 'rawAuthData'> & AuthnPublicKeyCredentialAssertion,
+    publicKey: CryptoKey,
+  ): Promise<boolean>
+}
+
 /**
  * The server version of the [Credential Management API](https://developer.mozilla.org/en-US/docs/Web/API/Credential_Management_API)
  * for working with [PublicKeyCredential](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential)
  */
-export const credentials = {
+export const credentials: Credential = {
   /**
    * @example
    * ```ts
@@ -53,7 +187,7 @@ export const credentials = {
    */
   create(options: CredentialCreationOptions) {
     return {
-      type: 'public-key' as const,
+      type: 'public-key',
 
       toJSON(): PublicKeyCredentialCreationOptionsJSON {
         if (!options.publicKey) throw new Error('Missing options.publicKey')
@@ -83,7 +217,7 @@ export const credentials = {
    */
   get(options: CredentialRequestOptions) {
     return {
-      type: 'public-key' as const,
+      type: 'public-key',
 
       toJSON(): PublicKeyCredentialRequestOptionsJSON {
         if (!options.publicKey) throw new Error('Missing options.publicKey')
@@ -155,21 +289,7 @@ const parseAttestation = (response: PublicKeyCredentialResponseAttestationJSON) 
  * The interface provides reverse methods for working with browser-based
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential PublicKeyCredential}
  */
-export const publicKeyCredential = {
-  /**
-   * @param cred - JSON representation of the PublicKeyCredential object
-   * @example
-   * ```ts
-   * // client (web)
-   * const cred = await navigator.credentials.create({publicKey: {}})
-   * if (cred instanceof PublicKeyCredential) {
-   *   const data = cred.toJSON() // send to server
-   * }
-   *
-   * // server
-   * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
-   * ```
-   */
+export const publicKeyCredential: PublicKeyCredential = {
   fromJSON(cred: PublicKeyCredentialJSON): AuthnPublicKeyCredential {
     return {
       authenticatorAttachment: cred.authenticatorAttachment,
@@ -226,55 +346,18 @@ export const publicKeyCredential = {
     }
   },
 
-  /**
-   * type guard for `Attestation` (Register)
-   * @example
-   * ```ts
-   * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
-   *
-   * if (publicKeyCredential.isAttestation(cred)) {
-   *  cred.attestation
-   *  cred.publicKey
-   *  cred.publicKeyAlgorithm
-   *  cred.transports
-   * }
-   * ```
-   */
   isAttestation(cred: AuthnPublicKeyCredential): cred is
     & Omit<AuthnPublicKeyCredential, keyof AuthnPublicKeyCredentialAssertion>
     & AuthnPublicKeyCredentialAttestation {
     return cred.clientData.type === 'webauthn.create'
   },
 
-  /**
-   * type guard for `Assertion` (Login)
-   * @example
-   * ```ts
-   * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
-   *
-   * if (publicKeyCredential.isAssertion(cred)) {
-   *   cred.assertion
-   * }
-   * ```
-   */
   isAssertion(cred: AuthnPublicKeyCredential): cred is
     & Omit<AuthnPublicKeyCredential, keyof AuthnPublicKeyCredentialAttestation>
     & AuthnPublicKeyCredentialAssertion {
     return cred.clientData.type === 'webauthn.get'
   },
 
-  /**
-   * The method extracts the public key from the `spki` format and converts it to {@linkcode CryptoKey}
-   *
-   * @example
-   * ```ts
-   * const cred = publicKeyCredential.fromJSON(data)
-   *
-   * if (isAttestation(cred)) {
-   *   const publicKey = await publicKeyCredential.getPublicKey(cred)
-   * }
-   * ```
-   */
   getPublicKey(
     cred: Pick<AuthnPublicKeyCredentialAttestation, 'publicKey' | 'publicKeyAlgorithm'>,
   ): Promise<CryptoKey> {
@@ -290,32 +373,10 @@ export const publicKeyCredential = {
     )
   },
 
-  /**
-   * The method compares the `rpId` hash received from the client
-   *
-   * @example
-   * ```ts
-   * const cred = publicKeyCredential.fromJSON(data)
-   *
-   * await publicKeyCredential.verifyRpIdHash(cred, 'example.com') // true
-   * ```
-   */
   async verifyRpIdHash(cred: AuthnPublicKeyCredential, rpId: string): Promise<boolean> {
     return timingSafeEqual(cred.authData.rpIdHash, await sha256(rpId))
   },
 
-  /**
-   * The method verifies the `signature` using the public key obtained during `attestation`
-   *
-   * @example
-   * ```ts
-   * const cred = publicKeyCredential.fromJSON(data)
-   *
-   * if (publicKeyCredential.isAssertion(cred)) {
-   *   await publicKeyCredential.verifySignature(cred, publicKey)
-   * }
-   * ```
-   */
   async verifySignature(
     cred: Pick<AuthnPublicKeyCredential, 'rawClientData' | 'rawAuthData'> & AuthnPublicKeyCredentialAssertion,
     publicKey: CryptoKey,
