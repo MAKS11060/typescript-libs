@@ -3,8 +3,8 @@ import {decodeAAGUID, getKnownAAGUID} from '@maks11060/webauthn/aaguid'
 import {expect} from 'jsr:@std/expect/expect'
 
 Deno.test('format', async (t) => {
-  const uuid = formatAAGUID(new Uint8Array(16))
-  expect(uuid).toEqual('00000000-0000-0000-0000-000000000000')
+  const uuid = formatAAGUID(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))
+  expect(uuid).toEqual('01020304-0506-0708-090a-0b0c0d0e0f10')
 
   await t.step('invalid uuid', async (t) => {
     expect(() => formatAAGUID(new Uint8Array(1))).toThrow()
@@ -25,7 +25,6 @@ Deno.test('getKnownAAGUID', async (t) => {
     expect(uuid).toEqual(null)
   })
 })
-
 
 Deno.test('decodeAAGUID', async (t) => {
   const uuid = decodeAAGUID('ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4')
