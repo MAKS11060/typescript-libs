@@ -133,10 +133,10 @@ interface PublicKeyCredential {
    * }
    * ```
    */
-
   getPublicKey(
     cred: Pick<AuthnPublicKeyCredentialAttestation, 'publicKey' | 'publicKeyAlgorithm'>,
   ): Promise<CryptoKey>
+
   /**
    * The method compares the `rpId` hash received from the client
    *
@@ -322,6 +322,11 @@ export const publicKeyCredential: PublicKeyCredential = {
       get attestation() {
         if (!(cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject) return
         return parseAttestation(cred.response as PublicKeyCredentialResponseAttestationJSON)
+      },
+
+      get rawAttestation() {
+        if (!(cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject) return
+        return decodeBase64Url((cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject)
       },
 
       get publicKey() {

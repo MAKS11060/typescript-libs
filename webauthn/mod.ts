@@ -123,4 +123,19 @@
 
 export * from './aaguid.ts'
 export * from './authn.ts'
-export {pubKeyCredParams} from './types.ts'
+export {alg, pubKeyCredParams} from './types.ts'
+export type {
+  AttestationObject,
+  AuthenticatorData,
+  AuthnPublicKeyCredential,
+  AuthnPublicKeyCredentialAssertion,
+  AuthnPublicKeyCredentialAttestation,
+  ClientDataJSON,
+  CredentialCreationOptions,
+  CredentialRequestOptions,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  PublicKeyCredentialResponseAssertionJSON,
+  PublicKeyCredentialResponseAttestationJSON,
+} from './types.ts'
