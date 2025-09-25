@@ -3,7 +3,8 @@
   "tasks": {
     "test": "deno test -A",
     "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
-    "publish": "deno publish --allow-slow-types"
+    "publish": "deno publish --allow-slow-types",
+    "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
   },
   "imports": {
     "@kv": "./deno/kvdb.ts",
