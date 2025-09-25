@@ -2,12 +2,15 @@
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno",
+<<<<<<< Updated upstream
   },
   "[jsonc]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
   "[markdown]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
+=======
+>>>>>>> Stashed changes
   },
   "[jsonc]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
