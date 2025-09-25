@@ -1,7 +1,19 @@
+import {concat} from '@std/bytes/concat'
 import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
 import {expect} from 'jsr:@std/expect'
 import {credentials, publicKeyCredential} from './authn.ts'
-import {pubKeyCredParams} from './types.ts'
+import {alg, pubKeyCredParams, type Uint8Array_} from './types.ts'
+
+const encoder = new TextEncoder()
+
+const sha256 = async (input: string | Uint8Array_) => {
+  return new Uint8Array(
+    await crypto.subtle.digest(
+      'SHA-256',
+      typeof input === 'string' ? encoder.encode(input) : input,
+    ),
+  )
+}
 
 Deno.test('credentials.create 1', async (t) => {
   const challenge = new Uint8Array([123])
@@ -281,6 +293,26 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
   })
   // console.log(structuredClone(cred))
 
+  // TODO: add tests for att sign
+  // TODO: wrap att verify sign to fn
+  if (cred.attestation.fmt === 'packed') {
+    console.log(cred.attestation.fmt, cred.attestation.attStmt.alg)
+    const publicKey = await publicKeyCredential.getPublicKey(cred)
+
+    const hash1 = await sha256(cred.rawClientData)
+    const hash2 = await sha256(cred.rawAttestation)
+    const hash = concat([hash1, hash2])
+    // console.log(hash)
+
+    const isValid = await crypto.subtle.verify(
+      alg.get(cred.attestation.attStmt.alg)!,
+      publicKey,
+      cred.attestation.attStmt.sig,
+      hash,
+    )
+    console.log({isValid})
+  }
+
   cred.attestation.authData.attestedCredentialData?.aaguid //
 })
 
@@ -309,6 +341,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
       authenticatorData: '-Jx3W2CIjpKPnIQIsHlBYdSZfagIar-Fvq4jvuvvrDoFAAAAAg',
       clientDataJSON: 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoib1d1UklnbXZ6eWc1QW5ZRmJSb3E3Tk14TWFWSkdsVGpCZjFtZlEtcExrNCIsIm9yaWdpbiI6Imh0dHBzOi8vbWFrczExMDYwLmtlZW5ldGljLmxpbmsiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ',
       signature: 'MEYCIQDo85-BqqR7VPWya8FgH_ucS8A2sA7BYOqd1chonY5H_wIhAJKMPVC7AfOV_UviC6pQ2yjWz5CLcEe_oH3zPi5GBnZV',
+      userHandle: null
     },
     type: 'public-key',
   })

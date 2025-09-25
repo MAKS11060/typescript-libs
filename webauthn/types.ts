@@ -74,7 +74,11 @@ export type AuthenticatorData = {
   signCount: number
   /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata MDN} */
   attestedCredentialData?: {
-    /** The Authenticator Attestation Globally Unique Identifier */
+    /**
+     * The Authenticator Attestation Globally Unique Identifier.
+     *
+     * `16 Bytes` contains `uuid`
+     */
     aaguid: Uint8Array_
     credentialIdLength: number
     /** A unique identifier for this credential so that it can be requested for future authentications */
@@ -82,6 +86,7 @@ export type AuthenticatorData = {
     /** A `COSE`-encoded public key */
     credentialPublicKey: Uint8Array_
   }
+
   /**
    * An optional `CBOR` map containing the response outputs from extensions processed by the authenticator
    *
@@ -90,19 +95,90 @@ export type AuthenticatorData = {
   extensions?: Uint8Array_
 }
 
-/** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject MDN} */
+// === attStmt ===
+/**
+ * `"packed"` format
+ * Most common for security keys and platform authenticators.
+ */
+type PackedAttestationStatement = {
+  alg: COSEAlgorithmIdentifier
+  sig: Uint8Array_
+  x5c?: Uint8Array_[] // X.509 certificate chain (optional)
+  ecdaaKeyId?: Uint8Array_ // Only if ECDAA used
+}
+
+/**
+ * `"fido-u2f"` format
+ * Used by U2F-style devices (e.g., older YubiKeys).
+ */
+type FidoU2fAttestationStatement = {
+  alg: -7 // ES256 (required)
+  sig: Uint8Array_
+  x5c: Uint8Array_[] // Always present, at least one cert
+}
+
+/**
+ * `"android-key"` or `"android-safetynet"`
+ * Both use JWK-style public key + cert chain.
+ */
+type AndroidKeyAttestationStatement = {
+  alg: COSEAlgorithmIdentifier
+  sig: Uint8Array_
+  x5c: Uint8Array_[]
+}
+
+type AndroidSafetyNetAttestationStatement = {
+  ver: string // Version of the SafetyNet API
+  response: Uint8Array_ // Signed JWT from Google
+}
+
+/**
+ * `"tpm"` format
+ * Complex: includes TPMS_ATTEST, signature, etc.
+ */
+type TpmAttestationStatement = {
+  ver: string
+  tpmsAttest: Uint8Array_ // CBOR-encoded TPMS_ATTEST structure
+  certInfo: Uint8Array_ // Hash of signed part
+  sig: Uint8Array_
+  alg: COSEAlgorithmIdentifier
+  x5c?: Uint8Array_[]
+}
+
+/**
+ * `"none"` format
+ * No attestation — just basic authData.
+ */
+type NoneAttestationStatement = Record<never, never>
+
+/**
+ * The actual attStmt structure depends on `fmt`.
+ */
+type AttestationStatementFormat =
+  | {fmt: 'packed'; attStmt: PackedAttestationStatement}
+  | {fmt: 'fido-u2f'; attStmt: FidoU2fAttestationStatement}
+  | {fmt: 'android-key'; attStmt: AndroidKeyAttestationStatement}
+  | {fmt: 'android-safetynet'; attStmt: AndroidSafetyNetAttestationStatement}
+  | {fmt: 'tpm'; attStmt: TpmAttestationStatement}
+  | {fmt: 'none'; attStmt: NoneAttestationStatement}
+
+/**
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject MDN}
+ *
+ * @example
+ * ```ts
+ * if (cred.attestation.fmt === 'packed') {
+ *   cred.attestation.attStmt.alg
+ *   cred.attestation.attStmt.sig
+ * }
+ * ```
+ */
 export type AttestationObject = {
   /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data MDN Authenticator data} */
   authData: AuthenticatorData
   /** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject#fmt MDN} */
   fmt: AttestationObjectFmt
-  attStmt: {} | {
-    alg: number
-    sig: Uint8Array_
-    x5c: Uint8Array_[]
-    // attestnCert?: unknown
-  }
-}
+} & AttestationStatementFormat
 
 export interface AuthnPublicKeyCredential {
   authenticatorAttachment: AuthenticatorAttachment
@@ -122,10 +198,14 @@ export interface AuthnPublicKeyCredential {
   // Attestation (Optional)
   /** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject MDN} */
   attestation?: AttestationObject
+  rawAttestation?: Uint8Array_
+
   /** Get `Attestation` publicKey */
   publicKey?: Uint8Array_
+
   /** Get `Attestation` {@link https://www.iana.org/assignments/cose/cose.xhtml#algorithms COSE Algorithm Identifier} */
   publicKeyAlgorithm?: number
+
   transports?: AuthenticatorTransport[]
 
   // Assertion (Optional)
@@ -140,12 +220,14 @@ export interface AuthnPublicKeyCredential {
    * | -257 | `RSASSA-PKCS1-v1_5` | `RAW`       |
    */
   signature?: Uint8Array_
+
   /** User identifier, specified as `user.id` in the options passed to the originating `navigator.credentials.create()` */
   userHandle?: Uint8Array_ | null
 }
 
 export interface AuthnPublicKeyCredentialAttestation {
   attestation: AttestationObject
+  rawAttestation: Uint8Array_
   publicKey: Uint8Array_
   publicKeyAlgorithm: number
   transports: AuthenticatorTransport[]
@@ -316,7 +398,7 @@ type AttestationObjectFmt = 'packed' | 'tpm' | 'android-key' | 'android-safetyne
 
 /**
  * A recommended set of algorithms that covers all devices. The list is taken from
- * {@link MDN https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions#pubkeycredparams}
+ * [MDN](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions#pubkeycredparams)
  *
  * |    alg | name                        |
  * | :----: | --------------------------- |

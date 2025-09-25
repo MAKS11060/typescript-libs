@@ -1,6 +1,6 @@
 {
   "name": "@maks11060/webauthn",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "tasks": {
     "test": "deno test",
     "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
