@@ -463,7 +463,10 @@ export const verifyOptionsByKey = new Map([
   ['RSASSA-PKCS1-v1_5', {name: 'RSASSA-PKCS1-v1_5'}],
 ])
 
-export const alg = new Map([
+export const alg: Map<
+  COSEAlgorithmIdentifier,
+  AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams
+> = new Map([
   [-7, {name: 'ECDSA', namedCurve: 'P-256'}], // ECDSA with P-256 and SHA-256
   [-8, {name: 'Ed25519'}], // EdDSA with Ed25519
   // [-35, {name: 'ECDSA', namedCurve: 'P-384'}], // ECDSA with P-384 and SHA-384
