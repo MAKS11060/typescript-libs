@@ -1,10 +1,9 @@
 {
   "name": "@maks11060/webauthn",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "tasks": {
     "test": "deno test",
-    "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
-    "check:types": "deno publish --allow-dirty --dry-run"
+    "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
   },
   "imports": {
     "@std/bytes": "jsr:@std/bytes@^1.0.6",
