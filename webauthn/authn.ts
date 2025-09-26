@@ -7,6 +7,7 @@ import {
   alg,
   type AttestationObject,
   type AuthenticatorData,
+  type AuthenticatorDataFlags,
   type AuthnPublicKeyCredential,
   type AuthnPublicKeyCredentialAssertion,
   type AuthnPublicKeyCredentialAttestation,
@@ -74,6 +75,7 @@ interface Credential {
 interface PublicKeyCredential {
   /**
    * @param cred - JSON representation of the PublicKeyCredential object
+   *
    * @example
    * ```ts
    * // client (web)
@@ -90,6 +92,7 @@ interface PublicKeyCredential {
 
   /**
    * type guard for `Attestation` (Register)
+   *
    * @example
    * ```ts
    * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
@@ -108,6 +111,7 @@ interface PublicKeyCredential {
 
   /**
    * type guard for `Assertion` (Login)
+   *
    * @example
    * ```ts
    * const cred = publicKeyCredential.fromJSON(data) // parse credential from client
@@ -245,16 +249,12 @@ const parseAuthenticatorData = (authData: string | Uint8Array_): AuthenticatorDa
 
   return {
     rpIdHash: authenticatorData.slice(0, 32),
-    flags: {
-      userPresent: !!(view.getUint8(32) & (1 << 0)),
-      userVerified: !!(view.getUint8(32) & (1 << 2)),
-      backupEligibility: !!(view.getUint8(32) & (1 << 3)),
-      backupState: !!(view.getUint8(32) & (1 << 4)),
-      attestedCredentialData: !!(view.getUint8(32) & (1 << 6)),
-      extensionData: !!(view.getUint8(32) & (1 << 7)),
+    flags: parseAuthenticatorDataFlags(view.getUint8(32)),
+    get rawFlags() {
+      return view.getUint8(32)
     },
-    signCount: view.getUint32(33, false), // Big-endian
-    get attestedCredentialData(): AuthenticatorData['attestedCredentialData'] {
+    signCount: view.getUint32(33),
+    get attestedCredentialData() {
       if (!this.flags.attestedCredentialData) return
       const credentialIdLength = view.getUint16(53) // 53,54
       return {
@@ -272,10 +272,25 @@ const parseAuthenticatorData = (authData: string | Uint8Array_): AuthenticatorDa
   }
 }
 
+/**
+ * The function converts `flags` to an object
+ *
+ * @param flags - A bitfield that indicates various attributes that were asserted by the authenticator
+ * @returns Representation of `flags` as an object
+ */
+export const parseAuthenticatorDataFlags = (flags: number): AuthenticatorDataFlags => ({
+  userPresent: !!(flags & (1 << 0)),
+  userVerified: !!(flags & (1 << 2)),
+  backupEligibility: !!(flags & (1 << 3)),
+  backupState: !!(flags & (1 << 4)),
+  attestedCredentialData: !!(flags & (1 << 6)),
+  extensionData: !!(flags & (1 << 7)),
+})
+
 /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject#value */
 const parseAttestation = (response: PublicKeyCredentialResponseAttestationJSON) => {
   const attestationBuffer = decodeBase64Url(response.attestationObject)
-  const attestation = decodeCbor(attestationBuffer) as AttestationObject
+  const attestation = decodeCbor(attestationBuffer) as unknown as AttestationObject
 
   return {
     ...attestation,

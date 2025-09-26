@@ -127,6 +127,8 @@ export {alg, pubKeyCredParams} from './types.ts'
 export type {
   AttestationObject,
   AuthenticatorData,
+  AuthenticatorDataAttestedCredentialData,
+  AuthenticatorDataFlags,
   AuthnPublicKeyCredential,
   AuthnPublicKeyCredentialAssertion,
   AuthnPublicKeyCredentialAttestation,

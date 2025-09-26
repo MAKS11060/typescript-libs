@@ -1,7 +1,7 @@
 import {concat} from '@std/bytes/concat'
 import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
 import {expect} from 'jsr:@std/expect'
-import {credentials, publicKeyCredential} from './authn.ts'
+import {credentials, parseAuthenticatorDataFlags, publicKeyCredential} from './authn.ts'
 import {alg, pubKeyCredParams, type Uint8Array_} from './types.ts'
 
 const encoder = new TextEncoder()
@@ -194,6 +194,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     },
     type: 'public-key',
   })
+  // console.log(structuredClone(cred))
 
   if (!publicKeyCredential.isAttestation(cred)) throw new Error('not attestation')
 
@@ -222,6 +223,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
       attestedCredentialData: true,
       extensionData: false,
     },
+    rawFlags: 93,
     signCount: 0,
     attestedCredentialData: {
       // deno-fmt-ignore
@@ -273,6 +275,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
         attestedCredentialData: true,
         extensionData: false,
       },
+      rawFlags: 93,
       signCount: 0,
       attestedCredentialData: {
         aaguid: new Uint8Array([234, 155, 141, 102, 77, 1, 29, 33, 60, 228, 182, 180, 140, 181, 117, 212]),
@@ -291,7 +294,6 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
       },
     },
   })
-  // console.log(structuredClone(cred))
 
   // TODO: add tests for att sign
   // TODO: wrap att verify sign to fn
@@ -312,8 +314,6 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     )
     console.log({isValid})
   }
-
-  cred.attestation.authData.attestedCredentialData?.aaguid //
 })
 
 Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
@@ -345,6 +345,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
     },
     type: 'public-key',
   })
+  // console.log(structuredClone(cred))
 
   if (!publicKeyCredential.isAssertion(cred)) throw new Error('not Assertion type')
 
@@ -373,14 +374,13 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
       attestedCredentialData: false,
       extensionData: false,
     },
+    rawFlags: 5,
     signCount: 2,
     attestedCredentialData: undefined,
     extensions: undefined,
   })
 
   expect(await publicKeyCredential.verifySignature(cred, publicKey)).toBeTruthy()
-
-  // console.log(structuredClone(cred))
 })
 
 Deno.test('verify assertion signature', async (t) => {
@@ -431,4 +431,24 @@ Deno.test('verify assertion signature', async (t) => {
 
     expect(await publicKeyCredential.verifySignature(cred, publicKey)).toBeTruthy()
   }
+})
+
+Deno.test('parseAuthenticatorDataFlags', async (t) => {
+  expect(parseAuthenticatorDataFlags(0)).toEqual({
+    attestedCredentialData: false,
+    backupEligibility: false,
+    backupState: false,
+    extensionData: false,
+    userPresent: false,
+    userVerified: false,
+  })
+
+  expect(parseAuthenticatorDataFlags(0b1101_1101)).toEqual({
+    attestedCredentialData: true,
+    backupEligibility: true,
+    backupState: true,
+    extensionData: true,
+    userPresent: true,
+    userVerified: true,
+  })
 })

@@ -52,50 +52,95 @@ export type AuthenticatorData = {
   /**
    * `SHA-256` hash of the `RP ID`
    *
-   * [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#rpidhash)
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#rpidhash MDN}
    */
   rpIdHash: Uint8Array_
-  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags MDN} */
-  flags: {
-    /** `UP` User Present */
-    userPresent: boolean
-    /** `UV` User Verified */
-    userVerified: boolean
-    /** `BE` Backup Eligibility */
-    backupEligibility: boolean
-    /** `BS` Backup State */
-    backupState: boolean
-    /** `AT` Attested credential Data */
-    attestedCredentialData: boolean
-    /** `ED` Extension data */
-    extensionData: boolean
-  }
-  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#signcount MDN} */
+
+  /**
+   * Representation of flags as an object
+   *
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags MDN}
+   */
+  flags: AuthenticatorDataFlags
+
+  /**
+   * A bitfield that indicates various attributes that were asserted by the authenticator
+   *
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags MDN}
+   */
+  rawFlags: number
+
+  /**
+   * A signature counter, if supported by the authenticator (set to 0 otherwise).
+   * Servers may optionally use this counter to detect authenticator cloning
+   *
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#signcount MDN}
+   */
   signCount: number
-  /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata MDN} */
-  attestedCredentialData?: {
-    /**
-     * The Authenticator Attestation Globally Unique Identifier.
-     *
-     * `16 Bytes` contains `uuid`
-     */
-    aaguid: Uint8Array_
-    credentialIdLength: number
-    /** A unique identifier for this credential so that it can be requested for future authentications */
-    credentialId: Uint8Array_
-    /** A `COSE`-encoded public key */
-    credentialPublicKey: Uint8Array_
-  }
+
+  /**
+   * The credential that was created. This is only present during a
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/CredentialsContainer/create navigator.credentials.create()} call
+   *
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata MDN}
+   */
+  attestedCredentialData?: AuthenticatorDataAttestedCredentialData
 
   /**
    * An optional `CBOR` map containing the response outputs from extensions processed by the authenticator
    *
-   * [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#extensions)
+   * {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#extensions MDN}
    */
   extensions?: Uint8Array_
 }
 
+/** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#flags MDN} */
+export interface AuthenticatorDataFlags {
+  /** `UP` User Present */
+  userPresent: boolean
+  /** `UV` User Verified */
+  userVerified: boolean
+  /** `BE` Backup Eligibility */
+  backupEligibility: boolean
+  /** `BS` Backup State */
+  backupState: boolean
+  /** `AT` Attested credential Data */
+  attestedCredentialData: boolean
+  /** `ED` Extension data */
+  extensionData: boolean
+}
+
+/** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data#attestedcredentialdata MDN} */
+export interface AuthenticatorDataAttestedCredentialData {
+  /**
+   * The Authenticator Attestation Globally Unique Identifier
+   *
+   * - `16 Bytes` contains `uuid`
+   */
+  aaguid: Uint8Array_
+
+  /** The length of the credential ID that immediately follows these bytes */
+  credentialIdLength: number
+
+  /** A unique identifier for this credential so that it can be requested for future authentications */
+  credentialId: Uint8Array_
+
+  /** A `COSE`-encoded public key */
+  credentialPublicKey: Uint8Array_
+}
+
 // === attStmt ===
+/**
+ * The actual attStmt structure depends on `fmt`.
+ */
+type AttestationStatementFormat =
+  | {fmt: 'packed'; attStmt: PackedAttestationStatement}
+  | {fmt: 'tpm'; attStmt: TpmAttestationStatement}
+  | {fmt: 'android-key'; attStmt: AndroidKeyAttestationStatement}
+  | {fmt: 'android-safetynet'; attStmt: AndroidSafetyNetAttestationStatement}
+  | {fmt: 'fido-u2f'; attStmt: FidoU2fAttestationStatement}
+  | {fmt: 'none'; attStmt: NoneAttestationStatement}
+
 /**
  * `"packed"` format
  * Most common for security keys and platform authenticators.
@@ -108,13 +153,16 @@ type PackedAttestationStatement = {
 }
 
 /**
- * `"fido-u2f"` format
- * Used by U2F-style devices (e.g., older YubiKeys).
+ * `"tpm"` format
+ * Complex: includes TPMS_ATTEST, signature, etc.
  */
-type FidoU2fAttestationStatement = {
-  alg: -7 // ES256 (required)
+type TpmAttestationStatement = {
+  ver: string
+  tpmsAttest: Uint8Array_ // CBOR-encoded TPMS_ATTEST structure
+  certInfo: Uint8Array_ // Hash of signed part
   sig: Uint8Array_
-  x5c: Uint8Array_[] // Always present, at least one cert
+  alg: COSEAlgorithmIdentifier
+  x5c?: Uint8Array_[]
 }
 
 /**
@@ -133,16 +181,13 @@ type AndroidSafetyNetAttestationStatement = {
 }
 
 /**
- * `"tpm"` format
- * Complex: includes TPMS_ATTEST, signature, etc.
+ * `"fido-u2f"` format
+ * Used by U2F-style devices (e.g., older YubiKeys).
  */
-type TpmAttestationStatement = {
-  ver: string
-  tpmsAttest: Uint8Array_ // CBOR-encoded TPMS_ATTEST structure
-  certInfo: Uint8Array_ // Hash of signed part
+type FidoU2fAttestationStatement = {
+  alg: -7 // ES256 (required)
   sig: Uint8Array_
-  alg: COSEAlgorithmIdentifier
-  x5c?: Uint8Array_[]
+  x5c: Uint8Array_[] // Always present, at least one cert
 }
 
 /**
@@ -150,17 +195,6 @@ type TpmAttestationStatement = {
  * No attestation — just basic authData.
  */
 type NoneAttestationStatement = Record<never, never>
-
-/**
- * The actual attStmt structure depends on `fmt`.
- */
-type AttestationStatementFormat =
-  | {fmt: 'packed'; attStmt: PackedAttestationStatement}
-  | {fmt: 'fido-u2f'; attStmt: FidoU2fAttestationStatement}
-  | {fmt: 'android-key'; attStmt: AndroidKeyAttestationStatement}
-  | {fmt: 'android-safetynet'; attStmt: AndroidSafetyNetAttestationStatement}
-  | {fmt: 'tpm'; attStmt: TpmAttestationStatement}
-  | {fmt: 'none'; attStmt: NoneAttestationStatement}
 
 /**
  * {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject MDN}
@@ -185,14 +219,16 @@ export interface AuthnPublicKeyCredential {
   clientExtensionResults: {}
   id: string
   rawId: Uint8Array_
+
   type: 'public-key'
 
   // response
   /** {@link https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/Authenticator_data MDN Authenticator data} */
   authData: AuthenticatorData
+  rawAuthData: Uint8Array_
+
   /** {@link https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorResponse/clientDataJSON MDN} */
   clientData: ClientDataJSON
-  rawAuthData: Uint8Array_
   rawClientData: Uint8Array_
 
   // Attestation (Optional)
@@ -427,7 +463,10 @@ export const verifyOptionsByKey = new Map([
   ['RSASSA-PKCS1-v1_5', {name: 'RSASSA-PKCS1-v1_5'}],
 ])
 
-export const alg = new Map([
+export const alg: Map<
+  COSEAlgorithmIdentifier,
+  AlgorithmIdentifier | RsaHashedImportParams | EcKeyImportParams
+> = new Map([
   [-7, {name: 'ECDSA', namedCurve: 'P-256'}], // ECDSA with P-256 and SHA-256
   [-8, {name: 'Ed25519'}], // EdDSA with Ed25519
   // [-35, {name: 'ECDSA', namedCurve: 'P-384'}], // ECDSA with P-384 and SHA-384
