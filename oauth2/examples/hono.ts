@@ -1,14 +1,8 @@
 #!/usr/bin/env -S deno run -A --env-file --watch
 
-import {
-    createGithubOauth2,
-    oauth2Authorize,
-    OAuth2Error,
-    oauth2ExchangeCode,
-    usePKCE,
-} from '@maks11060/oauth2'
-import { Hono } from 'hono'
-import { logger } from 'hono/logger'
+import {createGithubOauth2, oauth2Authorize, OAuth2Error, oauth2ExchangeCode, usePKCE} from '@maks11060/oauth2'
+import {Hono} from 'hono'
+import {logger} from 'hono/logger'
 
 const stateStore = new Map<string, {codeVerifier?: string}>()
 const config = createGithubOauth2({
