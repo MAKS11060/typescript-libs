@@ -1,6 +1,6 @@
-import { oauth2Authorize, oauth2ExchangeCode } from '@maks11060/oauth2/authorization'
-import { OAuth2ClientConfig } from '../client/types.ts'
-import { OAuth2StateStorage } from './state.ts'
+import {oauth2Authorize, oauth2ExchangeCode} from '@maks11060/oauth2/authorization'
+import {OAuth2ClientConfig} from '../client/types.ts'
+import {OAuth2StateStorage} from './state.ts'
 
 export interface OAuth2ServiceAuthorize {
   /** Subject */

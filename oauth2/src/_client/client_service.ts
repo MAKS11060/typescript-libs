@@ -1,5 +1,5 @@
-import { createDiscordOauth2, createGithubOauth2 } from '@maks11060/oauth2/providers'
-import { OAuth2ClientConfig } from '../client/types.ts'
+import {createDiscordOauth2, createGithubOauth2} from '@maks11060/oauth2/providers'
+import {OAuth2ClientConfig} from '../client/types.ts'
 
 interface ClientService {
   callback(): unknown

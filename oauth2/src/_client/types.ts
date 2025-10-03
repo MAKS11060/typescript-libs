@@ -1,4 +1,4 @@
-import { OAuth2ClientConfig } from '../oauth2.ts'
+import {OAuth2ClientConfig} from '../oauth2.ts'
 
 export interface StateData {
   /** OAuth2 provider name */

@@ -1,6 +1,6 @@
-import { expect } from 'jsr:@std/expect/expect'
-import type { OAuth2Token } from '../oauth2.ts'
-import { oauth2Password } from './password.ts'
+import {expect} from 'jsr:@std/expect/expect'
+import type {OAuth2Token} from '../oauth2.ts'
+import {oauth2Password} from './password.ts'
 
 Deno.test('oauth2Password()', async () => {
   const token = await oauth2Password({

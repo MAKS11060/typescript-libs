@@ -1,5 +1,5 @@
-import { createGithubOauth2 } from '@maks11060/oauth2/providers'
-import { OAuth2ClientConfig } from '../types.ts'
+import {createGithubOauth2} from '@maks11060/oauth2/providers'
+import {OAuth2ClientConfig} from '../types.ts'
 
 interface ClientService {}
 
@@ -33,7 +33,6 @@ interface DefaultStore {
 
 const createClientService2 = <
   T extends DefaultStore = DefaultStore,
-
   Props extends object = {},
   S extends PropertyKey = string,
 >(options: {
@@ -41,7 +40,7 @@ const createClientService2 = <
     get(key: string): Promise<T> | T | unknown
     set(key: string, value: T): Promise<void> | void | unknown
     delete?(key: string): Promise<void> | void | unknown
-  },
+  }
   service: ServiceOptions<Props, S>
 }) => {
   options
@@ -50,6 +49,6 @@ const createClientService2 = <
 createClientService2({
   store: new Map(),
   service: {
-    git: createGithubOauth2({clientId: ''})
-  }
+    git: createGithubOauth2({clientId: ''}),
+  },
 })

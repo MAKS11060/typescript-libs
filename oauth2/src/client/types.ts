@@ -1,4 +1,4 @@
-import type { OAuth2Client } from '../server/mod.ts'
+import type {OAuth2Client} from '../server/mod.ts'
 
 /**
  * Represents the configuration required for an `OAuth2` client.

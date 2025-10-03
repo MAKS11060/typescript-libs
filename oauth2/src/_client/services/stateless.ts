@@ -1,6 +1,6 @@
-import { decodeBase64Url, encodeBase64Url } from '@std/encoding/base64url'
-import { importKeyPair } from 'jsr:@maks11060/crypto'
-import { OAuth2StateStorage, StateData } from '../state.ts'
+import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
+import {importKeyPair} from 'jsr:@maks11060/crypto'
+import {OAuth2StateStorage, StateData} from '../state.ts'
 
 interface Options {
   keys: CryptoKeyPair

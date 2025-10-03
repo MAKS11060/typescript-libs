@@ -11,8 +11,8 @@
  * @module PKCE
  */
 
-import { decodeBase64Url, encodeBase64Url } from '@std/encoding/base64url'
-import { timingSafeEqual } from '@std/crypto/timing-safe-equal'
+import {timingSafeEqual} from '@std/crypto/timing-safe-equal'
+import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
 
 /**
  * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.

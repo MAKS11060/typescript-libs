@@ -1,5 +1,5 @@
 import { encodeBase64 } from '@std/encoding/base64'
-import { OAuth2Error, OAuth2Exception } from '../error.ts'
+import { OAuth2Error } from '../error.ts'
 import type { OAuth2Token } from '../oauth2.ts'
 
 export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2Token<T>> => {
@@ -7,11 +7,11 @@ export const handleOauth2Response = async <T>(response: Response): Promise<OAuth
 
   // Check for errors in the response
   if (!response.ok || 'error' in data) {
-    throw new OAuth2Exception(
-      data.error ?? OAuth2Error.server_error,
-      data.error_description || 'No additional information provided.',
-      data.error_uri,
-    )
+    throw new OAuth2Error({
+      error: data.error ?? 'server_error',
+      description: data.error_description || 'No additional information provided.',
+      uri: data.error_uri,
+    })
   }
 
   // Return the parsed token response

@@ -1,6 +1,6 @@
-import { encodeBase64Url } from '@std/encoding/base64url'
-import { expect } from 'jsr:@std/expect/expect'
-import { createPkceChallenge, PkceChallenge, pkceVerify, usePKCE } from './pkce.ts'
+import {encodeBase64Url} from '@std/encoding/base64url'
+import {expect} from 'jsr:@std/expect/expect'
+import {createPkceChallenge, PkceChallenge, pkceVerify, usePKCE} from './pkce.ts'
 
 const encoder = new TextEncoder()
 

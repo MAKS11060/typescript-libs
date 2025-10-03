@@ -1,6 +1,10 @@
 {
   "name": "@maks11060/oauth2",
   "version": "0.0.2",
+  "tasks": {
+    "test": "deno test -A",
+    "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
+  },
   "imports": {
     "@std/crypto": "jsr:@std/crypto@^1.0.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.7"

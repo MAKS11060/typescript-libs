@@ -4,9 +4,9 @@
  * @module password
  */
 
-import type { OAuth2Token } from '../oauth2.ts'
-import { basicAuth, handleOauth2Response, normalizeScope } from './_internal.ts'
-import type { OAuth2ClientConfig } from './types.ts'
+import type {OAuth2Token} from '../oauth2.ts'
+import {basicAuth, handleOauth2Response, normalizeScope} from './_internal.ts'
+import type {OAuth2ClientConfig} from './types.ts'
 
 /** */
 export const oauth2Password = async <T>(

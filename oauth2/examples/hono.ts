@@ -1,6 +1,12 @@
 #!/usr/bin/env -S deno run -A --env-file --watch
 
-import { createGithubOauth2, oauth2Authorize, OAuth2Exception, oauth2ExchangeCode, usePKCE } from '@maks11060/oauth2'
+import {
+    createGithubOauth2,
+    oauth2Authorize,
+    OAuth2Error,
+    oauth2ExchangeCode,
+    usePKCE,
+} from '@maks11060/oauth2'
 import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 
@@ -40,11 +46,8 @@ const app = new Hono() //
       const token = await oauth2ExchangeCode(config, {code, codeVerifier})
       return c.json({token})
     } catch (e) {
-      if (e instanceof OAuth2Exception) {
-        console.error(e.message)
-        return c.json({error: e.error, message: e.message})
-      }
       console.error(e)
+      if (e instanceof OAuth2Error) return c.json(e)
       return c.json({error: 'OAuth2 login failed'})
     }
   })

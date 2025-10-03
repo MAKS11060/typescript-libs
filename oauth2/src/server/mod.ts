@@ -15,4 +15,4 @@ export {
 } from './server.ts'
 
 export * from './adapter/web.ts'
-export { clientSecretCompareSHA256_B64Url, getClientRedirectUri } from './helper.ts'
+export {clientSecretCompareSHA256_B64Url, getClientRedirectUri} from './helper.ts'

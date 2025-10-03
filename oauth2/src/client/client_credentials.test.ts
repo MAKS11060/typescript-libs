@@ -1,6 +1,6 @@
-import { expect } from 'jsr:@std/expect/expect'
-import type { OAuth2Token } from '../oauth2.ts'
-import { oauth2ClientCredentials } from './client_credentials.ts'
+import {expect} from 'jsr:@std/expect/expect'
+import type {OAuth2Token} from '../oauth2.ts'
+import {oauth2ClientCredentials} from './client_credentials.ts'
 
 Deno.test('oauth2ClientCredentials()', async () => {
   const token = await oauth2ClientCredentials({

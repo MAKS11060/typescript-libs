@@ -1,6 +1,6 @@
-import { OAuth2Error, OAuth2Exception } from '../../error.ts'
-import { parseBasicAuth } from '../helper.ts'
-import type { OAuth2GrantType } from '../server.ts'
+import {OAuth2InvalidClient, OAuth2InvalidRequest, OAuth2UnsupportedGrantType} from '../../error.ts'
+import {parseBasicAuth} from '../helper.ts'
+import type {OAuth2GrantType} from '../server.ts'
 
 /**
  * Parses an OAuth 2.0 authorization request URL (e.g., from /authorize endpoint).
@@ -12,21 +12,21 @@ import type { OAuth2GrantType } from '../server.ts'
  *
  * @param url - The full authorization request URL (string or URL object)
  * @returns Parsed authorization request parameters
- * @throws {OAuth2Exception} If URL is invalid or malformed
+ * @throws If URL is invalid or malformed
  */
 export const parseAuthorizationUrl = (url: string | URL) => {
   let urlObj: URL
   try {
     urlObj = typeof url === 'string' ? new URL(url) : url
   } catch (e) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Invalid authorization URL')
+    throw new OAuth2InvalidRequest({description: 'Invalid authorization URL'})
   }
 
   const params = new URLSearchParams(urlObj.search)
 
   const clientId = params.get('client_id')
   if (!clientId) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing client_id')
+    throw new OAuth2InvalidRequest({description: 'Missing client_id'})
   }
 
   const redirectUri = params.get('redirect_uri')
@@ -34,7 +34,7 @@ export const parseAuthorizationUrl = (url: string | URL) => {
 
   const responseType = params.get('response_type')
   if (!responseType) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing response_type')
+    throw new OAuth2InvalidRequest({description: 'Missing response_type'})
   }
 
   const scope = params.get('scope')
@@ -52,7 +52,7 @@ export const parseAuthorizationUrl = (url: string | URL) => {
 
   // Validate code_challenge_method if code_challenge is present
   if (codeChallenge && codeChallengeMethod && !['S256', 'plain'].includes(codeChallengeMethod)) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Invalid code_challenge_method')
+    throw new OAuth2InvalidRequest({description: 'Invalid code_challenge_method'})
   }
 
   return {
@@ -118,21 +118,18 @@ export const parseAuthorizationUrl = (url: string | URL) => {
  * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
  * @param request - The incoming HTTP request (Fetch API compatible)
  * @returns Parsed token grant data
- * @throws {OAuth2Exception} On invalid request, missing parameters, or mismatches
+ * @throws On invalid request, missing parameters, or mismatches
  */
 export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantType> => {
   // Ensure the HTTP method is POST
   if (request.method !== 'POST') {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'HTTP method must be POST')
+    throw new OAuth2InvalidRequest({description: 'HTTP method must be POST'})
   }
 
   // Check for correct Content-Type
   const contentType = request.headers.get('Content-Type') || ''
   if (!contentType.includes('application/x-www-form-urlencoded')) {
-    throw new OAuth2Exception(
-      OAuth2Error.invalid_request,
-      'Content-Type must be application/x-www-form-urlencoded',
-    )
+    throw new OAuth2InvalidRequest({description: 'Content-Type must be application/x-www-form-urlencoded'})
   }
 
   // Read and parse the request body
@@ -141,7 +138,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
 
   const grantType = params.get('grant_type')
   if (!grantType) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing grant_type')
+    throw new OAuth2InvalidRequest({description: 'Missing grant_type'})
   }
 
   // Extract client_id and client_secret from body
@@ -155,10 +152,9 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
     console.log({auth})
     // If client_id is provided in body, it must match the one in the header
     if (client_id && client_id !== auth.username) {
-      throw new OAuth2Exception(
-        OAuth2Error.invalid_request,
-        'client_id in body does not match client_id in Authorization header',
-      )
+      throw new OAuth2InvalidRequest({
+        description: 'client_id in body does not match client_id in Authorization header',
+      })
     }
 
     // Use credentials from the header (more secure)
@@ -168,7 +164,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
 
   // client_id is required regardless of source
   if (!client_id) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing client_id')
+    throw new OAuth2InvalidRequest({description: 'Missing client_id'})
   }
 
   // Parse grant-specific parameters
@@ -176,7 +172,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
     case 'authorization_code': {
       const code = params.get('code')
       if (!code) {
-        throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing authorization code')
+        throw new OAuth2InvalidRequest({description: 'Missing authorization code'})
       }
 
       return {
@@ -192,7 +188,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
     case 'refresh_token': {
       const refresh_token = params.get('refresh_token')
       if (!refresh_token) {
-        throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing refresh_token')
+        throw new OAuth2InvalidRequest({description: 'Missing refresh_token'})
       }
 
       return {
@@ -205,7 +201,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
 
     case 'client_credentials': {
       if (!client_secret) {
-        throw new OAuth2Exception(OAuth2Error.invalid_client, 'Missing client_secret')
+        throw new OAuth2InvalidClient({description: 'Missing client_secret'})
       }
 
       return {
@@ -220,10 +216,10 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
       const password = params.get('password')
 
       if (!username || !password) {
-        throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing username or password')
+        throw new OAuth2InvalidRequest({description: 'Missing username or password'})
       }
       if (!client_secret) {
-        throw new OAuth2Exception(OAuth2Error.invalid_client, 'Missing client_secret')
+        throw new OAuth2InvalidClient({description: 'Missing client_secret'})
       }
 
       return {
@@ -236,7 +232,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
     }
 
     default:
-      throw new OAuth2Exception(OAuth2Error.unsupported_grant_type, `Unsupported grant_type: ${grantType}`)
+      throw new OAuth2UnsupportedGrantType({description: `Unsupported grant_type: ${grantType}`})
   }
 }
 
@@ -253,21 +249,18 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
  * @see https://datatracker.ietf.org/doc/html/rfc7009#section-2.1
  * @param request - Incoming HTTP request
  * @returns Parsed revocation data: token, client credentials, and optional hint
- * @throws {OAuth2Exception} On invalid request, missing parameters, or parsing errors
+ * @throws On invalid request, missing parameters, or parsing errors
  */
 export const parseRevokeRequest = async (request: Request) => {
   // Method must be POST
   if (request.method !== 'POST') {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'HTTP method must be POST')
+    throw new OAuth2InvalidRequest({description: 'HTTP method must be POST'})
   }
 
   // Content-Type must be application/x-www-form-urlencoded
   const contentType = request.headers.get('Content-Type') || ''
   if (!contentType.includes('application/x-www-form-urlencoded')) {
-    throw new OAuth2Exception(
-      OAuth2Error.invalid_request,
-      'Content-Type must be application/x-www-form-urlencoded',
-    )
+    throw new OAuth2InvalidRequest({description: 'Content-Type must be application/x-www-form-urlencoded'})
   }
 
   // Read and parse body
@@ -276,7 +269,7 @@ export const parseRevokeRequest = async (request: Request) => {
 
   const token = params.get('token')
   if (!token) {
-    throw new OAuth2Exception(OAuth2Error.invalid_request, 'Missing token parameter')
+    throw new OAuth2InvalidRequest({description: 'Missing token parameter'})
   }
 
   // token_type_hint is optional
@@ -292,10 +285,9 @@ export const parseRevokeRequest = async (request: Request) => {
   if (auth) {
     // If client_id is provided in body, it must match the one in the header
     if (client_id && client_id !== auth.username) {
-      throw new OAuth2Exception(
-        OAuth2Error.invalid_request,
-        'client_id in body does not match client_id in Authorization header',
-      )
+      throw new OAuth2InvalidRequest({
+        description: 'client_id in body does not match client_id in Authorization header',
+      })
     }
 
     client_id = auth.username

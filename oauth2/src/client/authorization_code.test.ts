@@ -1,6 +1,6 @@
-import { expect } from 'jsr:@std/expect/expect'
-import type { OAuth2Token } from '../oauth2.ts'
-import { oauth2Authorize, oauth2ExchangeCode } from './authorization_code.ts'
+import {expect} from 'jsr:@std/expect/expect'
+import type {OAuth2Token} from '../oauth2.ts'
+import {oauth2Authorize, oauth2ExchangeCode} from './authorization_code.ts'
 
 Deno.test('oauth2Authorize()', () => {
   const authorizeUri = oauth2Authorize({

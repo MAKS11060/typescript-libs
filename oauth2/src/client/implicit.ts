@@ -4,8 +4,8 @@
  * @module implicit
  */
 
-import { normalizeScope } from './_internal.ts'
-import type { OAuth2ClientConfig } from './types.ts'
+import {normalizeScope} from './_internal.ts'
+import type {OAuth2ClientConfig} from './types.ts'
 
 /**
  * Generates an authorization `URL` for `OAuth2' in the browser.

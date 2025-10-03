@@ -1,4 +1,4 @@
-import { oauth2Service } from './mod.ts'
+import {oauth2Service} from './mod.ts'
 
 oauth2Service({
   state: {},

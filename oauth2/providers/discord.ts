@@ -1,4 +1,4 @@
-import type { CreateOAuth2Config } from '../src/client/types.ts'
+import type {CreateOAuth2Config} from '../src/client/types.ts'
 
 /**
  * Returns the OAuth configuration for `Discord`
