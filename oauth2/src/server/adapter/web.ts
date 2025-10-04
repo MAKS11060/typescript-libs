@@ -2,8 +2,53 @@ import {OAuth2InvalidClient, OAuth2InvalidRequest, OAuth2UnsupportedGrantType} f
 import {parseBasicAuth} from '../helper.ts'
 import type {OAuth2GrantType} from '../server.ts'
 
+export interface AuthorizationUrl {
+  /**
+   * The client identifier.
+   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-11.2.2
+   */
+  client_id: string
+
+  /**
+   * Redirection URI to which the response will be sent.
+   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-11.2.2
+   */
+  redirect_uri: string | undefined
+
+  /**
+   * Determines the type of authorization grant.
+   * Must be one of: 'code', 'token', or others if supported.
+   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-11.2.2
+   */
+  response_type: string
+
+  /**
+   * Scope of the access request.
+   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-11.2.2
+   */
+  scope: string | undefined
+
+  /**
+   * Opaque value used to maintain state between request and callback.
+   * @see https://datatracker.ietf.org/doc/html/rfc6749#section-11.2.2
+   */
+  state: string | undefined
+
+  /**
+   * Proof Key for Code Exchange (PKCE) challenge.
+   * @see https://datatracker.ietf.org/doc/html/rfc7636
+   */
+  code_challenge: string | undefined
+
+  /**
+   * Method used to derive the code challenge.
+   * @default 'plain' if code_challenge is present but method is omitted
+   */
+  code_challenge_method: 'S256' | 'plain' | undefined
+}
+
 /**
- * Parses an OAuth 2.0 authorization request URL (e.g., from /authorize endpoint).
+ * Parses an OAuth 2.0 authorization request URL (e.g., from `/authorize` endpoint).
  *
  * Extracts and validates standard and extension parameters from the query string.
  *
@@ -14,7 +59,7 @@ import type {OAuth2GrantType} from '../server.ts'
  * @returns Parsed authorization request parameters
  * @throws If URL is invalid or malformed
  */
-export const parseAuthorizationUrl = (url: string | URL) => {
+export const parseAuthorizationUrl = (url: string | URL): AuthorizationUrl => {
   let urlObj: URL
   try {
     urlObj = typeof url === 'string' ? new URL(url) : url
@@ -40,9 +85,6 @@ export const parseAuthorizationUrl = (url: string | URL) => {
   const scope = params.get('scope')
   const state = params.get('state')
 
-  // Response mode (optional): query, fragment, form_post, etc.
-  const responseMode = params.get('response_mode')
-
   // PKCE parameters
   const codeChallenge = params.get('code_challenge') || undefined
   const codeChallengeMethod = (params.get('code_challenge_method') || undefined) as
@@ -56,64 +98,22 @@ export const parseAuthorizationUrl = (url: string | URL) => {
   }
 
   return {
-    /**
-     * The client identifier.
-     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.1
-     */
     client_id: clientId,
-
-    /**
-     * Redirection URI to which the response will be sent.
-     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2
-     */
     redirect_uri: redirectUri || undefined,
-
-    /**
-     * Determines the type of authorization grant.
-     * Must be one of: 'code', 'token', or others if supported.
-     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.1
-     */
     response_type: responseType,
-
-    /**
-     * Scope of the access request.
-     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.3
-     */
     scope: scope || undefined,
-
-    /**
-     * Opaque value used to maintain state between request and callback.
-     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.1
-     */
     state: state || undefined,
-
-    /**
-     * Determines where the response parameters are embedded.
-     * @default Based on response_type ('query' for code, 'fragment' for token)
-     * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.1
-     */
-    response_mode: responseMode || undefined,
-
-    /**
-     * Proof Key for Code Exchange (PKCE) challenge.
-     * @see https://datatracker.ietf.org/doc/html/rfc7636#section-3.1
-     */
     code_challenge: codeChallenge,
-
-    /**
-     * Method used to derive the code challenge.
-     * @default 'plain' if code_challenge is present but method is omitted
-     */
     code_challenge_method: codeChallengeMethod || (codeChallenge ? 'plain' : undefined),
-  } as const
+  }
 }
 
 /**
  * Parses an incoming HTTP request to extract OAuth 2.0 token endpoint parameters.
  *
  * Supports:
- * - application/x-www-form-urlencoded payload
- * - client credentials via Authorization: Basic header (RFC 6749 Section 2.3.1)
+ * - `application/x-www-form-urlencoded` payload
+ * - client credentials via `Authorization: Basic` header (RFC 6749 Section 2.3.1)
  *
  * @see https://datatracker.ietf.org/doc/html/rfc6749#section-3.2
  * @param request - The incoming HTTP request (Fetch API compatible)
@@ -149,7 +149,6 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
   const authHeader = request.headers.get('Authorization')
   const auth = parseBasicAuth(authHeader)
   if (auth) {
-    console.log({auth})
     // If client_id is provided in body, it must match the one in the header
     if (client_id && client_id !== auth.username) {
       throw new OAuth2InvalidRequest({
@@ -241,10 +240,10 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
  *
  * The request must:
  * - Use HTTP POST
- * - Have Content-Type: application/x-www-form-urlencoded
+ * - Have `Content-Type`: `application/x-www-form-urlencoded`
  * - Include `token` parameter
  * - Authenticate confidential clients via client_id + client_secret
- *   (in body or Authorization: Basic header)
+ *   (in body or `Authorization: Basic` header)
  *
  * @see https://datatracker.ietf.org/doc/html/rfc7009#section-2.1
  * @param request - Incoming HTTP request
