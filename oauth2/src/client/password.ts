@@ -4,6 +4,7 @@
  * @module password
  */
 
+import {OAuth2InvalidRequest} from '../error.ts'
 import type {OAuth2Token} from '../oauth2.ts'
 import {basicAuth, handleOauth2Response, normalizeScope} from './_internal.ts'
 import type {OAuth2ClientConfig} from './types.ts'
@@ -17,7 +18,12 @@ export const oauth2Password = async <T>(
     fetch?: typeof fetch
   },
 ): Promise<OAuth2Token<T>> => {
-  if (!config.clientSecret) throw new Error('Missing required configuration: clientSecret')
+  if (!config.clientId) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: clientId'})
+  }
+  if (!config.clientSecret) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: clientSecret'})
+  }
 
   const body = new URLSearchParams()
   body.set('grant_type', 'password')

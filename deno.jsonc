@@ -17,6 +17,7 @@
   },
   "workspace": [
     "./kv",
+    "./auth",
     "./oauth2",
     "./openapi",
     "./web",

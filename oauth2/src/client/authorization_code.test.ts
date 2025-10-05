@@ -1,6 +1,8 @@
 import {expect} from 'jsr:@std/expect/expect'
 import type {OAuth2Token} from '../oauth2.ts'
+import {parseTokenRequest} from '../server/adapter/web.ts'
 import {oauth2Authorize, oauth2ExchangeCode} from './authorization_code.ts'
+import {OAuth2ClientConfig} from './types.ts'
 
 Deno.test('oauth2Authorize()', () => {
   const authorizeUri = oauth2Authorize({
@@ -23,44 +25,53 @@ Deno.test('oauth2Authorize()', () => {
   )
 })
 
-Deno.test('oauth2ExchangeCode()', async () => {
-  const token = await oauth2ExchangeCode({
-    clientId: 'ID',
-    clientSecret: 'SECRET',
-    redirectUri: 'http://localhost/callback',
-    authorizeUri: 'http://localhost/authorize',
-    tokenUri: 'http://localhost/token',
-    scope: 'a b',
-  }, {
-    code: 'CODE',
-    async fetch(url, init) {
-      const req = new Request(url, init)
+Deno.test('oauth2ExchangeCode()', async (t) => {
+  const mockFetch: typeof fetch = async (url, init) => {
+    const req = new Request(url, init)
+    expect(req.url).toBe('http://localhost/token')
+    expect(req.method).toBe('POST')
+    expect(req.headers.get('content-type')?.includes('application/x-www-form-urlencoded')).toBe(true)
 
-      expect(req.url).toBe('http://localhost/token')
+    const tokenRequest = await parseTokenRequest(req.clone())
+    console.log(tokenRequest)
 
-      expect(req.method).toBe('POST')
-      expect(req.headers.get('content-type')?.includes('application/x-www-form-urlencoded')).toBe(true)
+    expect(tokenRequest.grant_type).toBe('authorization_code')
+    expect(tokenRequest.client_id).toBe('ID')
+    expect(tokenRequest.client_secret).toBe('SECRET')
 
-      const body = new URLSearchParams(await req.text())
-      expect(body.get('grant_type')).toBe('authorization_code')
-      expect(body.get('client_id')).toBe('ID')
-      expect(body.get('code')).toBe('CODE')
-      expect(body.get('redirect_uri')).toBe('http://localhost/callback')
+    if (tokenRequest.grant_type === 'authorization_code') {
+      expect(tokenRequest.code).toBe('CODE')
+      expect(tokenRequest.redirect_uri).toBe('http://localhost/callback')
+    }
 
-      const token = {
-        access_token: 'TOKEN',
-        token_type: 'Bearer',
-        expires_in: 3600,
-        scope: 'a b',
-      } satisfies OAuth2Token
-      return Response.json(token)
-    },
-  })
+    const token = {
+      access_token: 'TOKEN',
+      token_type: 'Bearer',
+      expires_in: 3600,
+      scope: 'a b',
+    } satisfies OAuth2Token
+    return Response.json(token)
+  }
 
-  expect(token).toEqual({
-    access_token: 'TOKEN',
-    token_type: 'Bearer',
-    expires_in: 3600,
-    scope: 'a b',
+  await t.step('ok', async (t) => {
+    const config: OAuth2ClientConfig = {
+      clientId: 'ID',
+      clientSecret: 'SECRET',
+      redirectUri: 'http://localhost/callback',
+      authorizeUri: 'http://localhost/authorize',
+      tokenUri: 'http://localhost/token',
+      scope: 'a b',
+    }
+    const token = await oauth2ExchangeCode(config, {
+      code: 'CODE',
+      fetch: mockFetch,
+    })
+
+    expect(token).toEqual({
+      access_token: 'TOKEN',
+      token_type: 'Bearer',
+      expires_in: 3600,
+      scope: 'a b',
+    })
   })
 })

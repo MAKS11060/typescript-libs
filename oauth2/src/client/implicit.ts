@@ -4,6 +4,7 @@
  * @module implicit
  */
 
+import {OAuth2InvalidRequest} from '../error.ts'
 import {normalizeScope} from './_internal.ts'
 import type {OAuth2ClientConfig} from './types.ts'
 
@@ -16,6 +17,13 @@ export const oauth2Implicit = (
     state?: string
   },
 ): URL => {
+  if (!config.authorizeUri) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: authorizeUri'})
+  }
+  if (!config.clientId) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: clientId'})
+  }
+
   const uri = new URL(config.authorizeUri)
   uri.searchParams.set('response_type', 'token')
   uri.searchParams.set('client_id', config.clientId)

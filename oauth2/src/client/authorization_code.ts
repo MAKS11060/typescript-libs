@@ -4,6 +4,7 @@
  * @module authorizationCode
  */
 
+import {OAuth2InvalidRequest} from '@maks11060/oauth2'
 import type {OAuth2Token} from '../oauth2.ts'
 import {handleOauth2Response, normalizeScope} from './_internal.ts'
 import type {OAuth2ClientConfig} from './types.ts'
@@ -13,13 +14,15 @@ import type {OAuth2ClientConfig} from './types.ts'
  */
 export interface OAuth2ExchangeCodeOptions {
   /**
-   * The authorization code received from the authorization server during the redirect.
-   * This code is exchanged for an access token and optionally a refresh token.
+   * The authorization `code` received from the authorization server during the redirect.
+   *
+   * This `code` is exchanged for an access token and optionally a refresh token.
    */
   code: string
 
   /**
-   * The PKCE (Proof Key for Code Exchange) verify code used to validate the authorization code.
+   * The `PKCE` (Proof Key for Code Exchange) verify code used to validate the authorization code.
+   *
    * This is required if PKCE was used during the authorization request.
    */
   codeVerifier?: string
@@ -39,7 +42,12 @@ export const oauth2Authorize = (
     state?: string
   },
 ): URL => {
-  if (!config.authorizeUri) throw new Error('authorizeUri is required')
+  if (!config.authorizeUri) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: authorizeUri'})
+  }
+  if (!config.clientId) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: clientId'})
+  }
 
   const uri = new URL(config.authorizeUri)
   uri.searchParams.set('response_type', 'code')
@@ -68,8 +76,12 @@ export const oauth2ExchangeCode = async <T>(
   config: OAuth2ClientConfig,
   options: OAuth2ExchangeCodeOptions,
 ): Promise<OAuth2Token<T>> => {
-  if (!config.clientId) throw new Error('Missing required configuration: clientId')
-  if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
+  if (!config.tokenUri) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: tokenUri'})
+  }
+  if (!config.clientId) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: clientId'})
+  }
 
   const headers = new Headers({
     accept: 'application/json',
@@ -93,13 +105,13 @@ export const oauth2ExchangeCode = async <T>(
     body,
   })
 
-  return handleOauth2Response(res)
+  return await handleOauth2Response(res)
 }
 
 /**
  * Refreshes an access token using a refresh token.
  * @param config - `OAuth2` client configuration.
- * @param refreshToken - Refresh token.
+ * @param refreshToken
  * @returns Token response.
  */
 export const oauth2RefreshToken = async <T>(
@@ -109,8 +121,12 @@ export const oauth2RefreshToken = async <T>(
     fetch?: typeof fetch
   },
 ): Promise<OAuth2Token<T>> => {
-  if (!config.clientId) throw new Error('Missing required configuration: clientId')
-  if (!config.tokenUri) throw new Error('Missing required configuration: tokenUri')
+  if (!config.clientId) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: clientId'})
+  }
+  if (!config.tokenUri) {
+    throw new OAuth2InvalidRequest({description: 'Missing required configuration: tokenUri'})
+  }
 
   const headers = new Headers({
     accept: 'application/json',
