@@ -1,11 +1,11 @@
 #!/usr/bin/env -S deno run -A --env-file --watch-hmr
 
-import {parseTokenRequest} from '@maks11060/oauth2/server'
-import {Hono} from 'hono'
-import {cors} from 'hono/cors'
-import {logger} from 'hono/logger'
-import {OAuth2Token} from '../src/oauth2.ts'
-import {parseAuthorizationUrl} from '../src/server/adapter/web.ts'
+import { parseTokenRequest } from '@maks11060/oauth2/server'
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { logger } from 'hono/logger'
+import { OAuth2Token } from '../src/oauth2.ts'
+import { parseAuthorizationUrl } from '../src/server/web.ts'
 
 const app = new Hono() //
   .use(cors())
