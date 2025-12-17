@@ -1,9 +1,9 @@
 #!/usr/bin/env -S deno test -A --watch
 
-import { createCachedFetch } from '../../web/cache.ts'
-import { createProxyFetch } from '../../web/proxy.ts'
-import { getURI } from './_utils.ts'
-import { contentPage, search } from './mod.ts'
+import {createCachedFetch} from '../../web/cache.ts'
+import {createProxyFetch} from '../../web/proxy.ts'
+import {getURI} from './_utils.ts'
+import {contentPage, search} from './mod.ts'
 
 const proxyFetch = createProxyFetch({proxyUrl: 'https://no-cors.deno.dev'})
 const fetch = await createCachedFetch({

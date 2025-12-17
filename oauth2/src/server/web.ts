@@ -1,6 +1,6 @@
-import { OAuth2InvalidClient, OAuth2InvalidRequest, OAuth2UnsupportedGrantType } from '../error.ts'
-import { parseBasicAuth } from './helper.ts'
-import type { OAuth2GrantType } from './server.ts'
+import {OAuth2InvalidClient, OAuth2InvalidRequest, OAuth2UnsupportedGrantType} from '../error.ts'
+import {parseBasicAuth} from './helper.ts'
+import type {OAuth2GrantType} from './server.ts'
 
 export interface AuthorizationUrl {
   /**

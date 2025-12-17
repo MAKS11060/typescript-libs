@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import { delay } from 'jsr:@std/async/delay'
-import { useWeekCache } from './weekCache.ts'
+import {delay} from 'jsr:@std/async/delay'
+import {useWeekCache} from './weekCache.ts'
 
 const fn1 = useWeekCache((a: string, b: string) => a + b)
 const fn2 = useWeekCache(async (a: string, b: string) => {

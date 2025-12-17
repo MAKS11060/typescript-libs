@@ -1,6 +1,6 @@
-import { concat } from 'jsr:@std/bytes/concat'
-import { decodeHex, encodeHex } from 'jsr:@std/encoding/hex'
-import { createMiddleware } from 'npm:hono/factory'
+import {concat} from 'jsr:@std/bytes/concat'
+import {decodeHex, encodeHex} from 'jsr:@std/encoding/hex'
+import {createMiddleware} from 'npm:hono/factory'
 
 const encoder = new TextEncoder()
 

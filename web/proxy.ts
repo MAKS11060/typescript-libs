@@ -1,4 +1,4 @@
-import { CustomFetch } from './types.ts'
+import {CustomFetch} from './types.ts'
 
 interface ProxyFetchOptions extends CustomFetch {
   proxyUrl: string

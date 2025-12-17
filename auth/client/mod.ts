@@ -55,7 +55,6 @@ export const initAuthService = (options: AuthOptions) => {
       const curToken = decodeJwt<TokenPayload>(token.access)
       const newToken = decodeJwt<TokenPayload>(t.access)
       if (curToken.iat > newToken.iat) {
-
       }
       // token = curToken.iat > newToken.iat ? token : t
     }

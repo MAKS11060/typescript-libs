@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import { Hono } from 'hono'
-import { createProxyFetch } from './proxy.ts'
-import { wrapFetch } from './types.ts'
+import {Hono} from 'hono'
+import {createProxyFetch} from './proxy.ts'
+import {wrapFetch} from './types.ts'
 
 const app = new Hono() //
   .use(async (c, next) => {

@@ -1,6 +1,6 @@
-import { concat } from '@std/bytes/concat'
-import { decodeBase64Url } from '@std/encoding/base64url'
-import { expect } from 'jsr:@std/expect/expect'
+import {concat} from '@std/bytes/concat'
+import {decodeBase64Url} from '@std/encoding/base64url'
+import {expect} from 'jsr:@std/expect/expect'
 
 type Asn1Primitive =
   | {INTEGER: number | 'variable'}

@@ -7,7 +7,6 @@ import {cors} from 'hono/cors'
 import {logger} from 'hono/logger'
 import {parseAuthorizationUrl} from '../src/server/web.ts'
 
-
 const app = new Hono() //
   .use(cors())
   .use(logger())
@@ -37,10 +36,12 @@ app.post('/api/oauth2/token', async (c) => {
     tokenRequest
   }
 
-  return c.json({
-    token_type: 'Bearer',
-    access_token: crypto.randomUUID(),
-  } satisfies OAuth2Token)
+  return c.json(
+    {
+      token_type: 'Bearer',
+      access_token: crypto.randomUUID(),
+    } satisfies OAuth2Token,
+  )
 })
 
 if (Deno.env.has('KEY') && Deno.env.has('CERT')) {

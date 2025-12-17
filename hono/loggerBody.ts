@@ -1,4 +1,4 @@
-import { createMiddleware } from 'hono/factory'
+import {createMiddleware} from 'hono/factory'
 
 function statusColor(status: number) {
   const code = (status / 100) | 0 // 404 => 4
