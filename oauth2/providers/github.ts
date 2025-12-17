@@ -9,7 +9,52 @@ export const createGithubOauth2: CreateOAuth2Config<{
   clientId: string
   clientSecret?: string
   redirectUri?: string
-  /** {@link https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps#available-scopes Oauth2 Scopes} */
+  /**
+   * {@link https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps#available-scopes Oauth2 Scopes}
+   *
+   * Available scopes:
+   * - (no scope) - Grants read-only access to public information (including user profile info, repository info, and gists)
+   * - `user`
+   *   - `read:user`
+   *   - `user:email`
+   *   - `user:follow`
+   *
+   * - `repo`
+   *   - `repo:status`
+   *   - `repo_deployment`
+   *   - `public_repo`
+   *   - `repo:invite`
+   *   - `security_events`
+   * - `delete_repo`
+   *
+   * - `gist`
+   * - `codespace`
+   * - `workflow`
+   * - `notifications`
+   *
+   * - `write:packages`
+   * - `read:packages`
+   * - `delete:packages`
+   *
+   * - `admin:repo_hook`
+   *   - `write:repo_hook`
+   *   - `read:repo_hook`
+   * - `admin:org`
+   *   - `write:org`
+   *   - `read:org`
+   * - `admin:org_hook`
+   * - `admin:public_key`
+   *   - `write:public_key`
+   *   - `read:public_key`
+   * - `admin:gpg_key`
+   *   - `write:gpg_key`
+   *   - `read:gpg_key`
+   *
+   * - `project`
+   *   - `read:project`
+   *
+   * - `read:audit_log`
+   */
   scope?: string | string[]
   /** Suggests a specific account to use for signing in and authorizing the app. */
   login?: string

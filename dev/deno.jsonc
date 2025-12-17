@@ -1,0 +1,9 @@
+{
+  "name": "@maks11060/dev",
+  "version": "0.0.0",
+  "publish": false,
+  "exports": {
+    ".": "./mod.ts",
+    "./yaml": "./yaml.ts"
+  }
+}

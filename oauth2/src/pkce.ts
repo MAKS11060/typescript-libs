@@ -44,8 +44,9 @@ const sha256 = async (data: string) => new Uint8Array(await crypto.subtle.digest
  * This function generates a `codeVerifier` and transforms it into a `codeChallenge`
  * using either the S256 or plain method.
  *
- * @param {'S256' | 'plain'} [method='S256'] - The method to use for transforming the code verifier.
- * @returns {Promise<PkceChallenge>} A Promise that resolves with the generated PKCE challenge.
+ * @param method - The method to use for transforming the code verifier.
+ * @returns A Promise that resolves with the generated PKCE challenge.
+ *
  * @example
  * ```ts
  * const pkce = await createPkceChallenge('S256')
@@ -73,9 +74,9 @@ export const createPkceChallenge = async (
  * This function integrates `PKCE` into the `OAuth2` authorization flow by adding the `code_challenge`
  * and `code_challenge_method` parameters to the authorization `URL`.
  *
- * @param {URL} uri - The authorization `URL` to which `PKCE` parameters will be added.
- * @param {'S256'|'plain'} [method='S256'] - The method to use for transforming the code verifier.
- * @returns {Promise<{uri: URL; codeVerifier: string}>} A Promise that resolves with the updated `URL` and the code verifier.
+ * @param uri - The authorization `URL` to which `PKCE` parameters will be added.
+ * @param method - The method to use for transforming the code verifier.
+ * @returns A Promise that resolves with the updated `URL` and the code verifier.
  * @example
  * ```ts
  * const {uri, codeVerifier} = await usePKCE(oauth2Authorize(config, state))

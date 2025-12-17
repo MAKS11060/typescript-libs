@@ -1,0 +1,8 @@
+{
+  "name": "@maks11060/danbooru",
+  "version": "0.0.0",
+  "publish": false,
+  "exports": {
+    ".": "./tags.ts"
+  }
+}

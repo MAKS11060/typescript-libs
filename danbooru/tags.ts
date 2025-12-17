@@ -34,7 +34,8 @@ const freeTags = new Set([
 
 /**
  * Builder for Danbooru tags.
- * @returns {Object} The builder object with methods to add tags.
+ *
+ * @returns The builder object with methods to add tags.
  * @see {@link https://danbooru.donmai.us/wiki_pages/help:cheatsheet}
  *
  * @example
@@ -66,9 +67,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a tag to the query.
-   * @param {string} tag - The tag to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the tag.
-   * @returns {Object} The builder object.
+   * @param tag The tag to add.
+   * @param exclude Whether to exclude the tag.
+   * @returns The builder object.
    * @example
    * builder.tag('cat')
    * builder.tag('dog', true) // Exclude posts with the 'dog' tag
@@ -84,9 +85,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a rating tag to the query.
-   * @param {Rating[]} rating - The ratings to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the ratings.
-   * @returns {Object} The builder object.
+   * @param rating The ratings to add.
+   * @param exclude Whether to exclude the ratings.
+   * @returns The builder object.
    * @example
    * builder.rating(['g', 's'])
    * builder.rating(['q'], true) // Exclude posts with the 'q' rating
@@ -102,9 +103,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds an ID range tag to the query.
-   * @param {string|number|(string|number)[]} range - The ID range to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the ID range.
-   * @returns {Object} The builder object.
+   * @param range The ID range to add.
+   * @param excludeWhether to exclude the ID range.
+   * @returns The builder object.
    * @example
    * builder.idRange(1000)
    * builder.idRange('1000..')
@@ -126,9 +127,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a date tag to the query.
-   * @param {string} date - The date to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the date.
-   * @returns {Object} The builder object.
+   * @param date The date to add.
+   * @param exclude Whether to exclude the date.
+   * @returns The builder object.
    * @example
    * builder.date('2007-01-01')
    */
@@ -139,9 +140,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds an age range tag to the query.
-   * @param {string|number} age - The age range to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the age range.
-   * @returns {Object} The builder object.
+   * @param age The age range to add.
+   * @param exclude Whether to exclude the age range.
+   * @returns The builder object.
    * @example
    * builder.age('2w..1y')
    * builder.age('2weeks..1year')
@@ -157,9 +158,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a user tag to the query.
-   * @param {string} username - The username to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the user.
-   * @returns {Object} The builder object.
+   * @param username The username to add.
+   * @param exclude Whether to exclude the user.
+   * @returns The builder object.
    * @example
    * builder.user('albert')
    * builder.user('albert', true) // Exclude posts uploaded by the user albert
@@ -171,9 +172,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a favorite tag to the query.
-   * @param {string} username - The username to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the favorite.
-   * @returns {Object} The builder object.
+   * @param username The username to add.
+   * @param exclude Whether to exclude the favorite.
+   * @returns The builder object.
    * @example
    * builder.fav('albert')
    * builder.fav('albert', true) // Exclude posts favorited by the user albert
@@ -185,8 +186,8 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds an ordered favorite tag to the query.
-   * @param {string} username - The username to add.
-   * @returns {Object} The builder object.
+   * @param username The username to add.
+   * @returns The builder object.
    * @example
    * builder.ordfav('albert')
    */
@@ -197,9 +198,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a favorite count tag to the query.
-   * @param {string|number} count - The favorite count to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the favorite count.
-   * @returns {Object} The builder object.
+   * @param count The favorite count to add.
+   * @param exclude Whether to exclude the favorite count.
+   * @returns The builder object.
    * @example
    * builder.favcount('>10')
    */
@@ -210,9 +211,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a score tag to the query.
-   * @param {string|number} score - The score to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the score.
-   * @returns {Object} The builder object.
+   * @param score The score to add.
+   * @param exclude Whether to exclude the score.
+   * @returns The builder object.
    * @example
    * builder.score('100')
    */
@@ -223,9 +224,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds a downvotes tag to the query.
-   * @param {string|number} count - The downvotes count to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the downvotes count.
-   * @returns {Object} The builder object.
+   * @param count The downvotes count to add.
+   * @param exclude Whether to exclude the downvotes count.
+   * @returns The builder object.
    * @example
    * builder.downvotes('>10')
    */
@@ -236,9 +237,9 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Adds an upvotes tag to the query.
-   * @param {string|number} count - The upvotes count to add.
-   * @param {boolean} [exclude=false] - Whether to exclude the upvotes count.
-   * @returns {Object} The builder object.
+   * @param count The upvotes count to add.
+   * @param exclude Whether to exclude the upvotes count.
+   * @returns The builder object.
    * @example
    * builder.upvotes('>10')
    */
@@ -251,8 +252,8 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   /**
    * Sets the order of the search results.
-   * @param {Order} order - The order to set.
-   * @returns {Object} The builder object.
+   * @param order The order to set.
+   * @returns The builder object.
    * @example
    * builder.order('id')
    * builder.order('id_asc')
@@ -289,3 +290,18 @@ export const danbooruTagsBuilder = (userLevel: keyof typeof maxTags = 'Member') 
 
   return self
 }
+
+/*
+class TagBuilder {
+  #tags: string[] = []
+
+  constructor(readonly tagsLimit: number = 2) {}
+
+  #checkLimit() {
+    if (this.#tags.length > this.tagsLimit) {
+      throw new Error(`Exceeded tag limit for users`)
+      // throw new Error(`Exceeded tag limit for ${userLevel} users`)
+    }
+  }
+}
+*/

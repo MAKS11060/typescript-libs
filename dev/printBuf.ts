@@ -4,35 +4,30 @@
 export interface PrintBufOptions {
   /**
    * The number of bytes to display per line.
-   * @type {number}
    * @default 16
    */
   bytesPerLine?: number
 
   /**
    * The format to use for displaying the byte number.
-   * @type {'hex' | 'dec' | 'bin'}
    * @default 'dec'
    */
   byteNumberFormat?: 'hex' | 'dec' // | 'bin'
 
   /**
    * The format to use for displaying the byte.
-   * @type {'hex' | 'dec'}
    * @default 'dec'
    */
   byteFormat?: 'hex' | 'dec' | 'bin'
 
   /**
    * The format to use for displaying the address.
-   * @type {'hex' | 'dec'}
    * @default 'hex'
    */
   addressFormat?: 'hex' | 'dec'
 
   /**
    * The maximum number of rows to display. If set to `0`, all rows will be displayed.
-   * @type {number}
    * @default 0
    */
   rowLimit?: number
@@ -52,8 +47,8 @@ const formatsPrintSize = {hex: 2, dec: 3, bin: 8}
 /**
  * Prints the contents of an {@linkcode ArrayBuffer} in a formatted table to the console.
  *
- * @param {ArrayBuffer} buffer - The buffer to print.
- * @param {PrintBufOptions} [options] - Configuration options for the {@linkcode printBuf} function.
+ * @param buffer The buffer to print.
+ * @param options Configuration options for the {@linkcode printBuf} function.
  *
  * @example
  * ```ts
@@ -144,7 +139,7 @@ export const printBuf = (buffer: Uint8Array, options?: PrintBufOptions) => {
 /**
  * Updates the default options for the {@linkcode printBuf} function.
  *
- * @param {PrintBufOptions} config - The new default options for the {@linkcode printBuf} function.
+ * @param config The new default options for the {@linkcode printBuf} function.
  */
 export const setPrintBufConfig = (config: PrintBufOptions) => {
   Object.assign(defaultOptions, config)

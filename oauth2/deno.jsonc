@@ -19,7 +19,7 @@
     "./authorization": "./src/client/authorization_code.ts",
     "./client-credentials": "./src/client/client_credentials.ts",
     "./implicit": "./src/client/implicit.ts",
-    "./password": "./src/client/password.ts"
+    "./password": "./src/client/password.ts",
   },
   "publish": {
     "exclude": [

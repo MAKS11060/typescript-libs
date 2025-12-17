@@ -4,11 +4,11 @@ export class OAuth2Error extends Error {
   public errorDescription?: string
   public errorUri?: string
 
-  constructor(options: {error?: string; description?: string; uri?: string}, errorOptions?: ErrorOptions) {
-    super(options.description, errorOptions)
-    this.error ??= options.error!
-    this.errorDescription = options.description
-    this.errorUri = options.uri
+  constructor(options?: {error?: string; description?: string; uri?: string}, errorOptions?: ErrorOptions) {
+    super(options?.description, errorOptions)
+    this.error ??= options?.error!
+    this.errorDescription = options?.description
+    this.errorUri = options?.uri
   }
 
   toJSON() {

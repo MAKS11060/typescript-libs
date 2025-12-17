@@ -15,5 +15,11 @@
       "examples",
       "README.md"
     ]
+  },
+  "compilerOptions": {
+    "lib": [
+      "deno.window",
+      "dom"
+    ]
   }
 }

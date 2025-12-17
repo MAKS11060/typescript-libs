@@ -10,6 +10,21 @@ export const createShikimoriOauth2: CreateOAuth2Config<{
   clientSecret: string
   redirectUri?: string
   userAgent: string
+  /**
+   * Available scopes:
+   *
+   * - `user_rates` - Change your list of anime and manga
+   * - `comments` - Comment on your behalf
+   * - `topics` - Create topics and reviews on your behalf
+   *
+   * Ask Shikimori administrator if you need access to disabled scopes:
+   * - `email` - Receive your email address
+   * - `messages` - Read your private messages, send private messages on your behalf
+   * - `content` - Change the database
+   * - `clubs` - Join and leave clubs
+   * - `friends` - Add and delete people as friends
+   * - `ignores` - Add and remove people to ignore
+   */
   scope?: string | string[]
 }> = (config) => ({
   clientId: config.clientId,

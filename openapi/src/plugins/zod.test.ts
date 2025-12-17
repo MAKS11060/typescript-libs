@@ -2,7 +2,7 @@
 
 import {expect} from 'jsr:@std/expect/expect'
 import z from 'zod'
-import '../../../debug/yaml.ts'
+import '../../../dev/yaml.ts'
 import {zodPlugin} from './zod.ts'
 
 Deno.test('zodPlugin()', async (t) => {

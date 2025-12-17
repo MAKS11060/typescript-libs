@@ -7,7 +7,6 @@
     "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
   },
   "imports": {
-    "@kv": "./deno/kvdb.ts",
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
     "@std/collections": "jsr:@std/collections@^1.0.9",
     "@std/ulid": "jsr:@std/ulid@^1.0.0",
@@ -16,12 +15,14 @@
     "zod": "npm:zod@^4.0.5"
   },
   "workspace": [
-    "./kv",
-    "./auth",
-    "./oauth2",
-    "./openapi",
-    "./web",
-    "./webauthn"
+    "./*"
+    // "./kv",
+    // "./auth",
+    // "./oauth2",
+    // "./openapi",
+    // "./web",
+    // "./danbooru",
+    // "./webauthn"
   ],
   "fmt": {
     "lineWidth": 120,
@@ -30,8 +31,8 @@
     "semiColons": false,
     "singleQuote": true,
     "spaceSurroundingProperties": false
-  },
-  "unstable": [
-    "kv"
-  ]
+  }
+  // "unstable": [
+  //   "kv"
+  // ]
 }

@@ -6,7 +6,7 @@
  *
  * @template T - An optional type to extend the response with additional fields specific to the authorization server.
  */
-export type OAuth2Token<T extends object = Record<string, string>> = T & {
+export type OAuth2Token<T extends object = object> = T & {
   /**
    * The access token issued by the authorization server.
    * This token is used to access protected resources on behalf of the user.
