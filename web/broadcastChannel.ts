@@ -1,9 +1,10 @@
-export type MessageEventWithTypedData<T> = Omit<MessageEvent, 'data'> & {data: T}
+// export type MessageEventWithTypedData<T> = Omit<MessageEvent, 'data'> & {data: T}
 
-type BroadcastChannelEventListener<T> = (this: BroadcastChannel, ev: MessageEventWithTypedData<T>) => any
+type BroadcastChannelEventListener<T> = (this: BroadcastChannel, ev: MessageEvent<T>) => any
 
 interface BroadcastChannelTypedEventMap<T = unknown> {
-  message: MessageEventWithTypedData<T>
+  // message: MessageEventWithTypedData<T>
+  message: MessageEvent<T>
   messageerror: MessageEvent
 }
 
@@ -11,9 +12,8 @@ interface BroadcastChannelTypedEventMap<T = unknown> {
 export class BroadcastChannelTyped<T extends unknown> {
   private bc: BroadcastChannel
 
-  constructor(name: string) {
+  constructor(readonly name: string) {
     this.bc = new BroadcastChannel(name)
-    this.bc.dispatchEvent
   }
 
   set onmessage(handler: BroadcastChannelEventListener<T> | null) {
@@ -21,7 +21,7 @@ export class BroadcastChannelTyped<T extends unknown> {
       this.bc.onmessage = null
     } else {
       this.bc.onmessage = (event) => {
-        handler.call(this.bc, event as MessageEventWithTypedData<T>)
+        handler.call(this.bc, event)
       }
     }
   }
