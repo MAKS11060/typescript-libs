@@ -1,56 +1,35 @@
-// export type MessageEventWithTypedData<T> = Omit<MessageEvent, 'data'> & {data: T}
-
-type BroadcastChannelEventListener<T> = (this: BroadcastChannel, ev: MessageEvent<T>) => any
-
 interface BroadcastChannelTypedEventMap<T = unknown> {
-  // message: MessageEventWithTypedData<T>
   message: MessageEvent<T>
   messageerror: MessageEvent
 }
 
 /** [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel) */
-export class BroadcastChannelTyped<T extends unknown> {
-  private bc: BroadcastChannel
-
-  constructor(readonly name: string) {
-    this.bc = new BroadcastChannel(name)
+export class BroadcastChannelTyped<T extends unknown> extends BroadcastChannel {
+  constructor(name: string) {
+    super(name)
   }
 
-  set onmessage(handler: BroadcastChannelEventListener<T> | null) {
-    if (handler === null) {
-      this.bc.onmessage = null
-    } else {
-      this.bc.onmessage = (event) => {
-        handler.call(this.bc, event)
-      }
-    }
+  override set onmessage(handler: ((this: BroadcastChannel, ev: MessageEvent<T>) => any) | null) {
+    super.onmessage = handler
   }
 
-  get onmessage(): BroadcastChannelEventListener<T> | null {
-    return this.bc.onmessage as BroadcastChannelEventListener<T> | null
+  override postMessage(message: T): void {
+    super.postMessage(message)
   }
 
-  postMessage(message: T): void {
-    this.bc.postMessage(message)
-  }
-
-  addEventListener<K extends keyof BroadcastChannelTypedEventMap<T>>(
+  override addEventListener<K extends keyof BroadcastChannelTypedEventMap<T>>(
     type: K,
     listener: (this: BroadcastChannel, ev: BroadcastChannelTypedEventMap<T>[K]) => any,
     options?: boolean | AddEventListenerOptions,
   ): void {
-    this.bc.addEventListener(type, listener, options)
+    super.addEventListener(type, listener, options)
   }
 
-  removeEventListener<K extends keyof BroadcastChannelTypedEventMap<T>>(
+  override removeEventListener<K extends keyof BroadcastChannelTypedEventMap<T>>(
     type: K,
     listener: (this: BroadcastChannel, ev: BroadcastChannelTypedEventMap<T>[K]) => any,
     options?: boolean | EventListenerOptions,
   ): void {
-    this.bc.removeEventListener(type, listener, options)
-  }
-
-  close(): void {
-    this.bc.close()
+    super.removeEventListener(type, listener, options)
   }
 }
