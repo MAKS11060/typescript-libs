@@ -1,4 +1,4 @@
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import {oauth2Implicit} from './implicit.ts'
 
 Deno.test('oauth2Implicit()', () => {

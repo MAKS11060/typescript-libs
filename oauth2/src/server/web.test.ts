@@ -1,5 +1,5 @@
 import {usePKCE} from '@maks11060/oauth2/pkce'
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import {parseAuthorizationUrl, parseRevokeRequest, parseTokenRequest} from './web.ts'
 
 parseAuthorizationUrl

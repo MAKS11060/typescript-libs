@@ -1,4 +1,4 @@
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import type {OAuth2Token} from '../oauth2.ts'
 import {parseTokenRequest} from '../server/web.ts'
 import {oauth2Authorize, oauth2ExchangeCode} from './authorization_code.ts'

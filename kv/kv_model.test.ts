@@ -1,4 +1,4 @@
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import {z} from 'zod'
 import {indexManager, kvModel} from './kv_model.ts'
 

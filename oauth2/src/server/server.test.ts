@@ -1,5 +1,5 @@
 import * as Client from '@maks11060/oauth2/client'
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import {createOauth2Server, DefaultCtx, OAuth2Client, OAuth2Storage, OAuth2StorageData} from './server.ts'
 import {parseTokenRequest} from './web.ts'
 
