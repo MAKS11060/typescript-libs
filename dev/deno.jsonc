@@ -6,7 +6,6 @@
     "@std/yaml": "jsr:@std/yaml@^1.0.10"
   },
   "exports": {
-    ".": "./mod.ts",
-    "./yaml": "./yaml.ts"
+    ".": "./mod.ts"
   }
 }

@@ -6,7 +6,7 @@
 */
 
 import * as page from './page.ts'
-import * as querySearch from './querySearch.ts'
+import * as querySearch from './query-search.ts'
 import * as search from './search.ts'
 import {formatUri, parseUri} from './utils.ts'
 

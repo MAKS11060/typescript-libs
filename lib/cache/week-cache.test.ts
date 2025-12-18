@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A --watch
 
 import {assertEquals} from 'jsr:@std/assert'
-import {useWeekCache} from './weekCache.ts'
+import {useWeekCache} from './week-cache.ts'
 
 Deno.test('useWeekCache cache', (t) => {
   let counter = 0
