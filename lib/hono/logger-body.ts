@@ -18,6 +18,7 @@ export const loggerBody = <T = unknown, O = unknown>(
 ) => {
   options.pad ??= 0
   options.incoming ??= console.log
+
   const {pad} = options
   const padFill = ' '
 

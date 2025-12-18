@@ -7,7 +7,7 @@
   },
   "imports": {
     "@std/bytes": "jsr:@std/bytes@^1.0.6",
-    "@std/cbor": "jsr:@std/cbor@^0.1.8",
+    "@std/cbor": "jsr:@std/cbor@^0.1.9",
     "@std/crypto": "jsr:@std/crypto@^1.0.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.10"
   },
