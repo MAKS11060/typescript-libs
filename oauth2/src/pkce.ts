@@ -12,7 +12,7 @@
  */
 
 import {timingSafeEqual} from '@std/crypto/timing-safe-equal'
-import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
+// import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
 
 /**
  * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.
@@ -58,8 +58,12 @@ const sha256 = async (data: string) => new Uint8Array(await crypto.subtle.digest
 export const createPkceChallenge = async (
   method: PkceChallenge['codeChallengeMethod'] = 'S256',
 ): Promise<PkceChallenge> => {
-  const codeVerifier = encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
-  const codeChallenge = method === 'S256' ? encodeBase64Url(await sha256(codeVerifier)) : codeVerifier
+  // const codeVerifier = encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+  // const codeChallenge = method === 'S256' ? encodeBase64Url(await sha256(codeVerifier)) : codeVerifier
+  const codeVerifier = crypto.getRandomValues(new Uint8Array(32)).toBase64({alphabet: 'base64url'})
+  const codeChallenge = method === 'S256'
+    ? (await sha256(codeVerifier)).toBase64({alphabet: 'base64url'})
+    : codeVerifier
 
   return {
     codeVerifier,
@@ -97,7 +101,11 @@ export const usePKCE = async (
 //
 export const pkceVerify = async (pkce: PkceChallenge): Promise<boolean> => {
   if (pkce.codeChallengeMethod === 'S256') {
-    return timingSafeEqual(await sha256(pkce.codeVerifier), decodeBase64Url(pkce.codeChallenge))
+    // return timingSafeEqual(await sha256(pkce.codeVerifier), decodeBase64Url(pkce.codeChallenge)) // TODO: Remove
+    return timingSafeEqual(
+      await sha256(pkce.codeVerifier),
+      Uint8Array.fromBase64(pkce.codeChallenge, {alphabet: 'base64url'}),
+    )
   } else if (pkce.codeChallengeMethod === 'plain') {
     return pkce.codeVerifier === pkce.codeChallenge
   }
