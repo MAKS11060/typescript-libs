@@ -1,7 +1,6 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
 import {DOMParser, Element} from 'jsr:@b-fuze/deno-dom'
-import {createCachedFetch} from '../../web/cache.ts'
 import {parseDateString} from './_utils.ts'
 
 type FetchOptions = {
@@ -10,12 +9,6 @@ type FetchOptions = {
 }
 
 const origin = ['https://animego.me', 'https://animego.ong']
-
-const getPage = await createCachedFetch({
-  name: 'animego.org',
-  ttl: 60 * 60 * 24 * 7,
-  log: true,
-})
 
 export const typeAlias = new Map<string, string>([
   ['тв сериал', 'tv'],
