@@ -5,6 +5,7 @@ import {Hono} from 'hono'
 import {cors} from 'hono/cors'
 import {logger} from 'hono/logger'
 import {parseAuthorizationUrl} from '../src/server/web.ts'
+import {OAuth2Token} from '../src/oauth2.ts'
 
 const app = new Hono() //
   .use(cors())

@@ -1,7 +1,8 @@
 import {OpenAPI} from '@maks11060/openapi'
-import {Hono} from 'npm:hono'
-import {cors} from 'npm:hono/cors'
-import '../../dev/yaml.ts'
+import {Hono} from 'hono'
+import {cors} from 'hono/cors'
+import '../../lib/dev/yaml.ts'
+
 
 export const serve = (doc: OpenAPI) => {
   const app = new Hono() //

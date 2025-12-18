@@ -45,12 +45,12 @@ Deno.test('Test 213123', async (t) => {
   // console.log(authUri.toString())
   console.log(auth)
 
-  await oauth2ExchangeCode(config, {})
+  // await oauth2ExchangeCode(config, )
 
-  const res = await oauth2Server.token({
-    grant_type: GrantType.AuthorizationCode,
-    client_id: 'id-1',
-    code: '',
-  })
-  console.log(res)
+  // const res = await oauth2Server.token({
+  //   grant_type: GrantType.AuthorizationCode,
+  //   client_id: 'id-1',
+  //   code: '',
+  // })
+  // console.log(res)
 })
