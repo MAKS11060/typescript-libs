@@ -7,6 +7,6 @@ Deno.test('Test 016143', async (t) => {
 })
 
 Deno.test('Test 551983', async (t) => {
-  const data = await Rezka.search({type: "films"})
+  const data = await Rezka.search({type: 'films'})
   console.log(data)
 })
