@@ -2,7 +2,7 @@
 
 import {DOMParser, Element} from 'jsr:@b-fuze/deno-dom'
 import {createCachedFetch} from '../../web/cache.ts'
-import {parseDateString} from '../utils.ts'
+import {parseDateString} from './_utils.ts'
 
 type FetchOptions = {
   fetch?: typeof fetch

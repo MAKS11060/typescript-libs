@@ -2,6 +2,7 @@
 
 import {createCachedFetch} from '../../web/cache.ts'
 import {createProxyFetch} from '../../web/proxy.ts'
+import {URLPatternTyped} from '../../web/url-pattern.ts'
 import {getURI} from './_utils.ts'
 import {contentPage, search} from './mod.ts'
 
@@ -35,4 +36,23 @@ Deno.test('contentPage', async () => {
 Deno.test('search', async () => {
   const list = await search({fetch, type: 'new', filter: 'popular', page: 3})
   console.log(list)
+})
+
+Deno.test('Test 773306', async (t) => {
+  const p = new URLPatternTyped({
+    pathname: '/:type/:genre/:id(\\d+)-{:title}-{:year(\\d+)}{-:latest}?.html',
+  })
+
+  const uris = [
+    'https://hdrezka.me/films/adventures/1171-nazad-v-buduschee-1985.html',
+    'https://hdrezka.me/series/fiction/1745-doktor-kto-2005.html',
+    'https://hdrezka.me/series/fantasy/45-igra-prestolov-2011.html',
+    'https://hdrezka.me/animation/adventures/72100-rebenok-aydola-2024.html',
+    'https://hdrezka.me/cartoons/comedy/1760-yuzhnyy-park-1997.html',
+    'https://hdrezka.me/cartoons/comedy/1760-yuzhny-park-1997-latest.html',
+  ]
+
+  for (const uri of uris) {
+    console.log(p.exec(uri)?.pathname.groups)
+  }
 })

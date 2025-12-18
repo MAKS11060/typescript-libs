@@ -1,4 +1,4 @@
-import {BroadcastChannelTyped} from '@maks11060/web/broadcastChannel'
+import {BroadcastChannelTyped} from './broadcast-channel.ts'
 
 type BcType =
   | {type: 'req'}

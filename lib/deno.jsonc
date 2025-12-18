@@ -1,8 +1,8 @@
 {
-  "name": "@maks11060/danbooru",
+  "name": "@maks11060/lib",
   "version": "0.0.0",
   "publish": false,
   "exports": {
-    ".": "./tags.ts"
+    ".": "./mod.ts"
   }
 }

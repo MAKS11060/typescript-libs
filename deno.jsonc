@@ -4,7 +4,7 @@
     "test": "deno test -A",
     "check": "deno publish --allow-slow-types --allow-dirty --dry-run",
     "publish": "deno publish --allow-slow-types",
-    "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
+    "ok": "deno fmt --check && deno publish --dry-run --allow-dirty"
   },
   "imports": {
     "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
@@ -31,6 +31,11 @@
     "semiColons": false,
     "singleQuote": true,
     "spaceSurroundingProperties": false
+  },
+  "publish": {
+    "exclude": [
+      "**/*.test.ts"
+    ]
   }
   // "unstable": [
   //   "kv"

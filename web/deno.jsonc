@@ -4,7 +4,7 @@
   "exports": {
     ".": "./mod.ts",
     "./cache": "./cache.ts",
-    "./broadcast-channel": "./broadcastChannel.ts"
+    "./broadcast-channel": "./broadcast-channel.ts"
   },
   "publish": {
     "exclude": [
