@@ -21,6 +21,7 @@ const app = new Hono() //
     console.log({uri: uri.toString()})
     return c.redirect(uri)
   })
+  // login with pkce
   .get('/login/pkce', async (c) => {
     const state = crypto.randomUUID()
     const {uri, codeVerifier} = await usePKCE(oauth2Authorize(config, {state}))

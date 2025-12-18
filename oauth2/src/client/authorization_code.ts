@@ -33,7 +33,7 @@ export interface OAuth2ExchangeCodeOptions {
 /**
  * Generates an authorization URL for `OAuth2`.
  * @param config - `OAuth2` client configuration.
- * @param state - Optional `state` parameter.
+ * @param options - Optional `state` parameter.
  * @returns Authorization {@linkcode URL}.
  */
 export const oauth2Authorize = (
@@ -42,6 +42,7 @@ export const oauth2Authorize = (
     state?: string
   },
 ): URL => {
+  console.log(config)
   if (!config.authorizeUri) {
     throw new OAuth2InvalidRequest({description: 'Missing required configuration: authorizeUri'})
   }
@@ -72,7 +73,7 @@ export const oauth2Authorize = (
  * @param options - Exchange `code` options.
  * @returns Token response.
  */
-export const oauth2ExchangeCode = async <T>(
+export const oauth2ExchangeCode = async <T extends object>(
   config: OAuth2ClientConfig,
   options: OAuth2ExchangeCodeOptions,
 ): Promise<OAuth2Token<T>> => {
@@ -114,7 +115,7 @@ export const oauth2ExchangeCode = async <T>(
  * @param refreshToken
  * @returns Token response.
  */
-export const oauth2RefreshToken = async <T>(
+export const oauth2RefreshToken = async <T extends object>(
   config: OAuth2ClientConfig,
   options: {
     refresh_token: string

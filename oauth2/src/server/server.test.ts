@@ -1,7 +1,7 @@
 import * as Client from '@maks11060/oauth2/client'
 import {expect} from 'jsr:@std/expect/expect'
-import {parseTokenRequest} from './adapter/web.ts'
 import {createOauth2Server, DefaultCtx, OAuth2Client, OAuth2Storage, OAuth2StorageData} from './server.ts'
+import {parseTokenRequest} from './web.ts'
 
 export const OAuth2Error = {
   access_denied: 'access_denied',

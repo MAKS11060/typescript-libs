@@ -2,7 +2,7 @@ import {encodeBase64} from '@std/encoding/base64'
 import {OAuth2Error} from '../error.ts'
 import type {OAuth2Token} from '../oauth2.ts'
 
-export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2Token<T>> => {
+export const handleOauth2Response = async <T extends object>(response: Response): Promise<OAuth2Token<T>> => {
   const data: Record<string, string> = await response.json()
 
   // Check for errors in the response

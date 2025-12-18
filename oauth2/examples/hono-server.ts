@@ -1,6 +1,5 @@
 #!/usr/bin/env -S deno run -A --env-file --watch-hmr
 
-// import {} from '@maks11060/oauth2/client/authorization'
 import {parseTokenRequest} from '@maks11060/oauth2/server'
 import {Hono} from 'hono'
 import {cors} from 'hono/cors'

@@ -1,5 +1,5 @@
 import {OAuth2InvalidClient, OAuth2InvalidRequest, OAuth2UnsupportedGrantType} from '../error.ts'
-import {parseBasicAuth} from './helper.ts'
+import {GrantType, parseBasicAuth} from './helper.ts'
 import type {OAuth2GrantType} from './server.ts'
 
 export interface AuthorizationUrl {
@@ -168,14 +168,14 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
 
   // Parse grant-specific parameters
   switch (grantType) {
-    case 'authorization_code': {
+    case GrantType.AuthorizationCode: {
       const code = params.get('code')
       if (!code) {
         throw new OAuth2InvalidRequest({description: 'Missing authorization code'})
       }
 
       return {
-        grant_type: 'authorization_code',
+        grant_type: GrantType.AuthorizationCode,
         client_id,
         client_secret,
         code,
@@ -184,33 +184,33 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
       } as const
     }
 
-    case 'refresh_token': {
+    case GrantType.RefreshToken: {
       const refresh_token = params.get('refresh_token')
       if (!refresh_token) {
         throw new OAuth2InvalidRequest({description: 'Missing refresh_token'})
       }
 
       return {
-        grant_type: 'refresh_token',
+        grant_type: GrantType.RefreshToken,
         client_id,
         client_secret,
         refresh_token,
       } as const
     }
 
-    case 'client_credentials': {
+    case GrantType.ClientCredentials: {
       if (!client_secret) {
         throw new OAuth2InvalidClient({description: 'Missing client_secret'})
       }
 
       return {
-        grant_type: 'client_credentials',
+        grant_type: GrantType.ClientCredentials,
         client_id,
         client_secret,
       } as const
     }
 
-    case 'password': {
+    case GrantType.Password: {
       const username = params.get('username')
       const password = params.get('password')
 
@@ -222,7 +222,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
       }
 
       return {
-        grant_type: 'password',
+        grant_type: GrantType.Password,
         client_id,
         client_secret,
         username,

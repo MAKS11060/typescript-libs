@@ -10,7 +10,7 @@ import {basicAuth, handleOauth2Response, normalizeScope} from './_internal.ts'
 import type {OAuth2ClientConfig} from './types.ts'
 
 /** */
-export const oauth2Password = async <T>(
+export const oauth2Password = async <T extends object>(
   config: OAuth2ClientConfig,
   options: {
     username: string

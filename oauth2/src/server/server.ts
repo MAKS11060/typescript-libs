@@ -1,4 +1,3 @@
-import {encodeBase64Url} from '@std/encoding/base64url'
 import {
   OAuth2InvalidClient,
   OAuth2InvalidGrant,
@@ -10,7 +9,14 @@ import {
 } from '../error.ts'
 import type {OAuth2Token} from '../oauth2.ts'
 import {type PkceChallenge, pkceVerify} from '../pkce.ts'
-import {clientSecretCompareSHA256_B64Url, getClientRedirectUri, isGrantType, isResponseType} from './helper.ts'
+import {
+  clientSecretCompareRaw,
+  clientSecretCompareSHA256_B64Url,
+  defaultGenerateCode,
+  getClientRedirectUri,
+  GrantType,
+  ResponseType,
+} from './helper.ts'
 
 // export type { OAuth2Token, PkceChallenge }
 
@@ -488,7 +494,9 @@ export type OAuth2GrantType =
   | OAuth2GrantTypePassword
 
 type GetGrant<T, G extends string> = T extends {grants: { [K in G]: (...args: any[]) => infer O }}
-  ? O extends Promise<infer P> ? P : O
+  ? O extends Promise<infer P> ? P
+  : O extends object ? O
+  : object
   : never
 
 // Very Sensitive code
@@ -548,11 +556,9 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
   options.options ??= {}
   options.options.codeTimeout ??= CODE_EXPIRED_TIME
 
-  const {
-    generateCode = () => encodeBase64Url(crypto.getRandomValues(new Uint8Array(32))),
-  } = options.options!
+  const {generateCode = defaultGenerateCode} = options.options!
 
-  let clientSecretCompare: ClientSecretCompare = (client, clientSecret) => client.clientSecret === clientSecret
+  let clientSecretCompare: ClientSecretCompare = clientSecretCompareRaw
   if (options.clientSecretCompare === 'SHA-256-B64Url') {
     clientSecretCompare = clientSecretCompareSHA256_B64Url
   }
@@ -569,12 +575,18 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
 
       // response_type
       const responseType = uri.searchParams.get(RESPONSE_TYPE)
-      if (!isResponseType(responseType)) throw new OAuth2InvalidRequest({description: 'Invalid response_type'})
+      if (responseType !== ResponseType.Code && responseType !== ResponseType.Token) {
+        throw new OAuth2InvalidRequest({description: 'Invalid response_type'})
+      }
 
       if (
-        (responseType === 'code' && !options.grants?.authorizationCode) ||
-        (responseType === 'token' && !options.grants?.implicit)
-      ) throw new OAuth2UnsupportedResponseType({})
+        (responseType === ResponseType.Code && !options.grants?.authorizationCode) ||
+        (responseType === ResponseType.Token && !options.grants?.implicit)
+      ) throw new OAuth2UnsupportedResponseType()
+
+      // if (!options.grants?.authorizationCode && !options.grants?.implicit) {
+      //   throw new OAuth2UnsupportedResponseType()
+      // }
 
       // client_id
       const clientId = uri.searchParams.get(CLIENT_ID)!
@@ -607,7 +619,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       const authorizeUri = new URL(redirectUri)
 
       // results
-      if (responseType === 'code') {
+      if (responseType === ResponseType.Code) {
         // generate code
         const code = generateCode!({client})
 
@@ -630,7 +642,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         return {responseType, authorizeUri, client, ...(ctx && {ctx})} as any
       }
 
-      if (responseType === 'token') {
+      if (responseType === ResponseType.Token) {
         const token = await options.grants.implicit?.({client})
         if (!token) throw new OAuth2ServerError({})
 
@@ -661,12 +673,11 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
     async token(data: OAuth2GrantType): Promise<any> {
       const {grant_type: grantType, client_id} = data
 
-      if (!isGrantType(grantType)) throw new OAuth2UnsupportedGrantType({})
       if (
-        (grantType === 'authorization_code' && !options.grants?.authorizationCode) ||
-        (grantType === 'refresh_token' && !options.grants?.refreshToken) ||
-        (grantType === 'password' && !options.grants?.password) ||
-        (grantType === 'client_credentials' && !options.grants?.credentials)
+        (grantType === GrantType.AuthorizationCode && !options.grants?.authorizationCode) ||
+        (grantType === GrantType.RefreshToken && !options.grants?.refreshToken) ||
+        (grantType === GrantType.Password && !options.grants?.password) ||
+        (grantType === GrantType.ClientCredentials && !options.grants?.credentials)
       ) throw new OAuth2UnsupportedGrantType({})
 
       // required parameters
@@ -675,7 +686,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       const client = await options.getClient(client_id)
       if (!client) throw new OAuth2UnauthorizedClient({})
 
-      if (grantType === 'authorization_code') {
+      if (grantType === GrantType.AuthorizationCode) {
         const {code, redirect_uri, client_secret, code_verifier: codeVerifier} = data
 
         // check code
@@ -750,7 +761,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         return {grantType, token}
       }
 
-      if (grantType === 'refresh_token') {
+      if (grantType === GrantType.RefreshToken) {
         const {client_id, refresh_token} = data
 
         const token = await options.grants.refreshToken?.({client, client_id, refresh_token})
@@ -759,7 +770,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         return {grantType, token}
       }
 
-      if (grantType === 'password') {
+      if (grantType === GrantType.Password) {
         const {client_id, client_secret, username, password} = data
 
         const token = await options.grants.password?.({client_id, client_secret, username, password})
@@ -768,7 +779,7 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
         return {grantType, token}
       }
 
-      if (grantType === 'client_credentials') {
+      if (grantType === GrantType.ClientCredentials) {
         const {client_id, client_secret} = data
 
         const token = await options.grants.credentials?.({client_id, client_secret})

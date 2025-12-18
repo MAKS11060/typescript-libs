@@ -41,7 +41,7 @@ import type {OAuth2ClientConfig} from './types.ts'
  * const token = await oauth2ClientCredentials(discordOauth2)
  * ```
  */
-export const oauth2ClientCredentials = async <T>(
+export const oauth2ClientCredentials = async <T extends object>(
   config: OAuth2ClientConfig,
   options?: {
     /** @default 'header' */

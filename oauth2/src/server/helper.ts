@@ -3,27 +3,19 @@ import {encodeBase64Url} from '@std/encoding/base64url'
 import {OAuth2InvalidClient, OAuth2InvalidRequest} from '../error.ts'
 import type {ClientSecretCompare, OAuth2Client} from './server.ts'
 
-export const ResponseType = [
-  'code',
-  'token',
-] as const
-export const GrantType = [
-  'client_credentials',
-  'authorization_code',
-  'refresh_token',
-  'password',
-] as const
+export const ResponseType = {
+  Code: 'code',
+  Token: 'token',
+} as const
+export const GrantType = {
+  ClientCredentials: 'client_credentials',
+  AuthorizationCode: 'authorization_code',
+  RefreshToken: 'refresh_token',
+  Password: 'password',
+} as const
 
-export type ResponseType = typeof ResponseType[number]
-export type GrantType = typeof GrantType[number]
-
-export const isResponseType = (type: unknown): type is ResponseType => {
-  return ResponseType.includes(String(type) as ResponseType)
-}
-
-export const isGrantType = (type: unknown): type is GrantType => {
-  return GrantType.includes(String(type) as GrantType)
-}
+export type ResponseType = typeof ResponseType[keyof typeof ResponseType]
+export type GrantType = typeof GrantType[keyof typeof GrantType]
 
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
@@ -65,6 +57,14 @@ export const getClientRedirectUri = (client: OAuth2Client, redirect_uri?: string
   }
 
   throw new OAuth2InvalidRequest({description: 'Missing redirect_uri and client has multiple redirect_uris'})
+}
+
+export const defaultGenerateCode = () => {
+  return encodeBase64Url(crypto.getRandomValues(new Uint8Array(32)))
+}
+
+export const clientSecretCompareRaw: ClientSecretCompare = (client, clientSecret) => {
+  return client.clientSecret === clientSecret
 }
 
 export const clientSecretCompareSHA256_B64Url: ClientSecretCompare = async (client, clientSecret) => {
