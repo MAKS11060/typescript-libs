@@ -59,9 +59,7 @@ type ParamKeyToRecord<T extends string> = T extends `${infer R}?` //
   ? { [K in R]: string | undefined }
   : { [K in T]: string }
 
-type UnionToIntersection<U> =
-  (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
-
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
 
 // type URLPatternTypedResult<Input extends URLPatternInput> = Input extends string //
 //   ? URLPatternResult
