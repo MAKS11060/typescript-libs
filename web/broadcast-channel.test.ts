@@ -22,6 +22,7 @@ Deno.test('Test 155848', async (t) => {
 
   bc2.addEventListener('message', (e) => {
     // console.log(e)
+    // if (e.data.type === 'req')
     switch (e.data.type) {
       case 'req':
         bc1.postMessage({type: 'res', value: Date.now()})
