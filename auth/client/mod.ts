@@ -1,4 +1,4 @@
-import {BroadcastChannelTyped} from './lib/typedBroadcastChannel.ts'
+import {BroadcastChannelTyped} from '../../web/broadcast-channel.ts'
 import {decodeJwt} from 'npm:jose'
 
 interface AuthOptions {}
