@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
-import {DOMParser, Element} from 'jsr:@b-fuze/deno-dom'
+import {DOMParser, Element} from '@b-fuze/deno-dom'
 import {parseDateString} from './_utils.ts'
 
 type FetchOptions = {
