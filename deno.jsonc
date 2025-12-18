@@ -17,13 +17,12 @@
   },
   "workspace": [
     "./*"
-    // "./kv",
-    // "./auth",
-    // "./oauth2",
-    // "./openapi",
-    // "./web",
-    // "./danbooru",
-    // "./webauthn"
+    // "kv",
+    // "auth",
+    // "oauth2",
+    // "openapi",
+    // "web",
+    // "webauthn"
   ],
   "fmt": {
     "lineWidth": 120,
@@ -37,8 +36,8 @@
     "exclude": [
       "**/*.test.ts"
     ]
-  }
-  // "unstable": [
-  //   "kv"
-  // ]
+  },
+  "unstable": [
+    "kv"
+  ]
 }

@@ -235,6 +235,13 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
   }
 }
 
+export interface OAuth2RevokeRequest {
+  token: string
+  token_type_hint: 'refresh_token' | 'access_token' | undefined
+  client_id: string | undefined
+  client_secret: string | undefined
+}
+
 /**
  * Parses an OAuth 2.0 token revocation request as defined in RFC 7009.
  *
@@ -250,7 +257,7 @@ export const parseTokenRequest = async (request: Request): Promise<OAuth2GrantTy
  * @returns Parsed revocation data: token, client credentials, and optional hint
  * @throws On invalid request, missing parameters, or parsing errors
  */
-export const parseRevokeRequest = async (request: Request) => {
+export const parseRevokeRequest = async (request: Request): Promise<OAuth2RevokeRequest> => {
   // Method must be POST
   if (request.method !== 'POST') {
     throw new OAuth2InvalidRequest({description: 'HTTP method must be POST'})

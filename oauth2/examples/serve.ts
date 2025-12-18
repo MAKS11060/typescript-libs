@@ -4,7 +4,6 @@ import {Hono} from 'hono'
 import {cors} from 'hono/cors'
 import {logger} from 'hono/logger'
 
-
 const app = new Hono()
   .use(cors())
   .use(logger())
@@ -12,8 +11,6 @@ const app = new Hono()
 app.get('/', (c) => {
   return c.json(i++)
 })
-
-
 
 if (Deno.env.has('KEY') && Deno.env.has('CERT')) {
   const key = Deno.readTextFileSync(Deno.env.get('KEY')!)

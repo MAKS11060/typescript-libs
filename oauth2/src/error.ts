@@ -11,7 +11,11 @@ export class OAuth2Error extends Error {
     this.errorUri = options?.uri
   }
 
-  toJSON() {
+  toJSON(): {
+    error: string
+    error_description: string | undefined
+    error_uri: string | undefined
+  } {
     return {
       error: this.error,
       error_description: this.errorDescription,

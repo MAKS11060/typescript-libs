@@ -1,7 +1,7 @@
 import {oauth2Authorize, oauth2ExchangeCode} from '@maks11060/oauth2/authorization'
 import {createOauth2Server, OAuth2StorageData} from './server.ts'
-import { GrantType } from './helper.ts'
-import { OAuth2ClientConfig } from '@maks11060/oauth2/client'
+import {GrantType} from './helper.ts'
+import {OAuth2ClientConfig} from '@maks11060/oauth2/client'
 
 const redirectUri = 'http://localhost/oauth2/callback'
 const store = new Map<string, OAuth2StorageData>()

@@ -14,7 +14,9 @@
       "LICENSE",
       "mod.ts",
       "cache.ts",
-      "types.ts"
+      "types.ts",
+      "broadcast-channel.ts",
+      "url-pattern.ts"
     ]
   }
 }

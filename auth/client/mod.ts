@@ -1,5 +1,5 @@
-import {BroadcastChannelTyped} from '../../web/broadcast-channel.ts'
-import {decodeJwt} from 'npm:jose'
+import {BroadcastChannelTyped} from '@maks11060/web/broadcast-channel'
+import {decodeJwt} from 'jose'
 
 interface AuthOptions {}
 
@@ -17,7 +17,7 @@ type AuthTabEvents =
   | {type: 'res_token'; token: TokenResponse}
   | {type: 'set_token'; token: TokenResponse | null}
 
-export const initAuthService = (options: AuthOptions) => {
+const initAuthService = (options: AuthOptions) => {
   let token: TokenResponse | null = null
 
   const session = initSessionStore('auth')
