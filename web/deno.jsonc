@@ -1,10 +1,10 @@
 {
   "name": "@maks11060/web",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "exports": {
     ".": "./mod.ts",
-    "./fetch": "./fetch/mod.ts",
     "./broadcast-channel": "./broadcast-channel.ts",
+    "./fetch": "./fetch/mod.ts",
     "./url-pattern": "./url-pattern.ts"
   }
 }

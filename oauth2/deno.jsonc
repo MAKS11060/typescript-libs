@@ -20,12 +20,5 @@
     "./client-credentials": "./src/client/client_credentials.ts",
     "./implicit": "./src/client/implicit.ts",
     "./password": "./src/client/password.ts"
-  },
-  "publish": {
-    "exclude": [
-      "**/*.test.ts",
-      "examples",
-      "README.md"
-    ]
   }
 }

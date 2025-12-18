@@ -1,6 +1,7 @@
 {
   "name": "@maks11060/auth",
   "version": "0.0.0",
+  "publish": false,
   "tasks": {
     "test": "deno test -A",
     "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
@@ -11,13 +12,6 @@
   "exports": {
     "./client": "./client/mod.ts",
     "./server": "./server/mod.ts"
-  },
-  "publish": {
-    "exclude": [
-      "**/*.test.ts",
-      "examples",
-      "README.md"
-    ]
   },
   "compilerOptions": {
     "lib": [

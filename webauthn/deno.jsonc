@@ -14,10 +14,5 @@
   "exports": {
     ".": "./mod.ts",
     "./aaguid": "./aaguid.ts"
-  },
-  "publish": {
-    "exclude": [
-      "**/*.test.ts"
-    ]
   }
 }

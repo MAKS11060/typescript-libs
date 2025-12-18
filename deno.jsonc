@@ -17,12 +17,6 @@
   },
   "workspace": [
     "./*"
-    // "kv",
-    // "auth",
-    // "oauth2",
-    // "openapi",
-    // "web",
-    // "webauthn"
   ],
   "fmt": {
     "lineWidth": 120,
@@ -34,7 +28,9 @@
   },
   "publish": {
     "exclude": [
-      "**/*.test.ts"
+      "**/*.test.ts",
+      "**/*.bench.ts",
+      "**/examples"
     ]
   },
   "unstable": [
