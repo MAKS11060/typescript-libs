@@ -22,7 +22,7 @@ interface XxdOptions {
 }
 const xxd = async (options: Partial<XxdOptions>, data: Uint8Array<ArrayBuffer>) => {
   const args = Object.entries(options).map(([key, value]) => `-${key} ${value}`).join(' ')
-  if (args.length)  await $`xxd ${args} < ${buf}`
+  if (args.length) await $`xxd ${args} < ${buf}`
   else await $`xxd < ${buf}`
 }
 

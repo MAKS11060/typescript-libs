@@ -22,4 +22,3 @@ export * from './types.ts'
 
 export * from './broadcast-channel.ts'
 export * from './url-pattern.ts'
-
