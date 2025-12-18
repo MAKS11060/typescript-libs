@@ -426,7 +426,7 @@ Deno.test('createDoc() schemas io', async (t) => {
           type: 'object',
           properties: {
             login: {
-              anyOf: [{
+              oneOf: [{
                 type: 'object',
                 properties: {
                   type: {type: 'string', const: 'email'},

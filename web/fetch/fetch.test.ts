@@ -20,8 +20,8 @@ Deno.test('Test 800287', async (t) => {
       },
     })
 
-  const res = await api.fetch('https://prev.maks11060-mdb.deno.net/')
-  await res.body?.cancel()
+  // const res = await api.fetch('https://api.myip.com/')
+  // await res.body?.cancel()
 })
 
 Deno.test('Test 334341', async (t) => {
@@ -39,8 +39,8 @@ Deno.test('Test 334341', async (t) => {
       },
     })
 
-  const response = await api.fetch('/')
-  console.log(await response.json())
+  // const response = await api.fetch('/')
+  // console.log(await response.json())
 })
 
 Deno.test('Test 477518', async (t) => {

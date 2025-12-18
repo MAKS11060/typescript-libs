@@ -382,7 +382,7 @@ Deno.test('zodPlugin() global io mixed 3', async (t) => {
       type: 'object',
       properties: {
         login: {
-          anyOf: [{
+          oneOf: [{
             type: 'object',
             properties: {
               type: {type: 'string', const: 'email'},
