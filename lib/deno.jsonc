@@ -1,5 +1,5 @@
 {
-  // "name": "@maks11060/lib",
+  "name": "@maks11060/lib",
   "version": "0.0.0",
   "publish": false,
   "imports": {
@@ -8,5 +8,12 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/yaml": "jsr:@std/yaml@^1.0.10",
     "hono": "npm:hono@^4.11.1"
+  },
+  "exports": {
+    "./animego": "./animego/mod.ts",
+    "./danbooru/tags": "./danbooru/tags.ts",
+    "./hono": "./hono/mod.ts",
+    "./hono/hono-var": "./hono/hono-var.ts",
+    "./rezka": "./rezka/mod.ts"
   }
 }
