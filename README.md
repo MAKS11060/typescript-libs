@@ -36,7 +36,89 @@ pnpm jsr:@maks11060/kv
 npx jsr add @maks11060/kv
 ```
 
-### Kv
+</details>
+
+## Web
+
+**Features:**
+
+- [Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) with middleware
+- [BroadcastChannel](https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API) with types
+- [URLPattern](https://developer.mozilla.org/en-US/docs/Web/API/URL_Pattern_API) with typed exec (WIP)
+
+<details>
+<summary>Usage example</summary>
+
+#### Fetch with middleware
+
+```ts
+import {Fetch} from '@maks11060/web/fetch'
+
+const api = Fetch({baseUrl: 'https://api.myip.com/'})
+  .use({
+    onRequest({request, options}) {
+      // Add authorization header
+      const headers = new Headers(request.headers)
+      headers.set('Authorization', 'Bearer token')
+      return new Request(request, {headers})
+    },
+    onResponse({response}) {
+      // Log response status
+      console.log(`Response: ${response.status}`)
+    },
+  })
+
+const response = await api.fetch('/')
+console.log(await response.json())
+```
+
+#### BroadcastChannel with types
+
+```ts
+import {BroadcastChannelTyped} from '@maks11060/web/broadcast-channel'
+
+type BcType =
+  | {type: 'req'}
+  | {type: 'res'; value: number}
+
+const bc = new BroadcastChannelTyped<BcType>('bc-test')
+
+bc.addEventListener('message', (e) => {
+  console.log(e.data)
+  if (e.data.type === 'req') bc.postMessage({type: 'res', value: Date.now()})
+})
+```
+
+#### URLPattern with typed exec (WIP)
+
+```ts
+import {URLPatternTyped} from '@maks11060/web/url-pattern'
+
+const p = new URLPatternTyped({
+  pathname: '/users/:userId{/posts/:postId}?',
+})
+const res = p.exec({pathname: '/users/123'})!
+console.log(
+  res.pathname.groups satisfies {userId: string; postId?: string},
+)
+```
+
+</details>
+
+## Webauthn
+
+implementation of the `Webauthn` api for a server with a browser-based api
+
+## Openapi
+
+Openapi 3.1 Schema builder.
+
+- [Usage example (github.com/maks11060/openapi)](https://github.com/MAKS11060/openapi)
+
+## Kv. Based on [Deno.Kv](https://docs.deno.com/api/deno/~/Deno.Kv)
+
+<details>
+<summary>Usage example</summary>
 
 ```jsonc
 // deno.json
@@ -49,13 +131,7 @@ npx jsr add @maks11060/kv
 
 ```ts
 import {kvModel} from '@maks11060/kv'
-```
-
-<details>
-<summary>Usage example</summary>
-
-```ts
-import {kvModel} from '@maks11060/kv'
+import {z} from 'zod'
 
 using kv = await Deno.openKv(':memory:')
 
@@ -107,22 +183,3 @@ const loginUser = async (data: z.input<typeof userLoginSchema>) => {
   return user
 }
 ```
-
-</details>
-
-### Web
-
-<details>
-<summary>Usage example</summary>
-
-```ts
-import {createCachedFetch} from '@maks11060/web'
-
-const fetch = await createCachedFetch({
-  name: 'cache-1',
-  ttl: 60 * 60 * 24, // 1 day
-  log: true,
-})
-```
-
-</details>
