@@ -1,5 +1,4 @@
 {
-  "lock": false,
   "tasks": {
     "ok": "deno fmt --check && deno publish --dry-run --allow-dirty",
     "publish": "deno publish --allow-slow-types"
