@@ -1,5 +1,5 @@
-import { kvModel } from '@maks11060/kv'
-import { z } from 'zod'
+import {kvModel} from '@maks11060/kv'
+import {z} from 'zod'
 
 Deno.test('Test 594775', async (t) => {
   using kv = await Deno.openKv(':memory:')

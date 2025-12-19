@@ -1,0 +1,11 @@
+{
+  "name": "@maks11060/dev",
+  "version": "0.0.0",
+  "publish": false,
+  "imports": {
+    "@std/yaml": "jsr:@std/yaml@^1.0.10"
+  },
+  "exports": {
+    ".": "./mod.ts"
+  }
+}

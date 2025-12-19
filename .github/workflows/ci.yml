@@ -2,24 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [main]
     paths:
       - '**.yml'
       - '**.ts'
       - '**.json'
       - '**.jsonc'
-
   pull_request:
     branches: [main]
+  workflow_call:
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
-
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
@@ -28,29 +23,17 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           cache: true
+
+      - name: Format
+        run: deno fmt --check
 
       - name: Test
         run: >
           deno test --parallel
           kv/
           openapi/
+          web/
           webauthn/
 
-  publish-dry-run:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
-        with:
-          cache: true
-
-      - name: Publish (dry run)
+      - name: Publish dry run
         run: deno publish --allow-slow-types --dry-run

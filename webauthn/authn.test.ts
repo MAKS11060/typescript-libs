@@ -1,6 +1,6 @@
 import {concat} from '@std/bytes/concat'
 import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
-import {expect} from 'jsr:@std/expect'
+import {expect} from '@std/expect'
 import {credentials, parseAuthenticatorDataFlags, publicKeyCredential} from './authn.ts'
 import {alg, pubKeyCredParams, type Uint8Array_} from './types.ts'
 

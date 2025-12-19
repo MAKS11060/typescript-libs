@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno test -A --watch
 
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import z from 'zod'
-import '../../../debug/yaml.ts'
+import '../../../lib/dev/yaml.ts'
 import {zodPlugin} from './zod.ts'
 
 Deno.test('zodPlugin()', async (t) => {
@@ -382,7 +382,7 @@ Deno.test('zodPlugin() global io mixed 3', async (t) => {
       type: 'object',
       properties: {
         login: {
-          anyOf: [{
+          oneOf: [{
             type: 'object',
             properties: {
               type: {type: 'string', const: 'email'},

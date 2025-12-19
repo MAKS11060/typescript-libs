@@ -7,18 +7,13 @@
     "check": "deno publish --allow-slow-types --allow-dirty --dry-run"
   },
   "imports": {
-    "@standard-schema/spec": "npm:@standard-schema/spec@^1.0.0",
-    "@std/yaml": "jsr:@std/yaml@^1.0.5",
-    "zod": "npm:zod@^4.1.9"
+    "@standard-schema/spec": "npm:@standard-schema/spec@^1.1.0",
+    "@std/yaml": "jsr:@std/yaml@^1.0.10",
+    "hono": "npm:hono@^4.11.1",
+    "zod": "npm:zod@^4.2.1"
   },
   "exports": {
     ".": "./mod.ts",
     "./zod": "./src/plugins/zod.ts"
-  },
-  "publish": {
-    "exclude": [
-      "**/*.test.ts",
-      "examples"
-    ]
   }
 }

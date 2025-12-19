@@ -1,5 +1,5 @@
 import {decodeBase64Url} from '@std/encoding/base64url'
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import {decodeAsn1} from './asn1.ts'
 
 Deno.test('decode DER_ECDSA_Sign', async (t) => {

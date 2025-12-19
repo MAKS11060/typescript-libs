@@ -1,6 +1,6 @@
 import {formatAAGUID} from '@maks11060/webauthn'
 import {decodeAAGUID, getKnownAAGUID} from '@maks11060/webauthn/aaguid'
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 
 Deno.test('format', async (t) => {
   const uuid = formatAAGUID(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]))

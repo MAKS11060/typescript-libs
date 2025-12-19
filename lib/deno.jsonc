@@ -1,0 +1,12 @@
+{
+  // "name": "@maks11060/lib",
+  "version": "0.0.0",
+  "publish": false,
+  "imports": {
+    "@b-fuze/deno-dom": "jsr:@b-fuze/deno-dom@^0.1.56",
+    "@std/bytes": "jsr:@std/bytes@^1.0.6",
+    "@std/encoding": "jsr:@std/encoding@^1.0.10",
+    "@std/yaml": "jsr:@std/yaml@^1.0.10",
+    "hono": "npm:hono@^4.11.1"
+  }
+}

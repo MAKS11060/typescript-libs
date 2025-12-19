@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A
 
 import {z} from 'zod'
-import '../../debug/yaml.ts'
+import '../../lib/dev/yaml.ts'
 import {createDoc} from '../mod.ts'
 import {zodPlugin} from '../src/plugins/zod.ts'
 

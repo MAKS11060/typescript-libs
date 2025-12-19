@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import { expect } from 'jsr:@std/expect/expect'
-import { fromKvIterator, getKvPage } from './kv_helper.ts'
+import {expect} from '@std/expect/expect'
+import {fromKvIterator, getKvPage} from './kv_helper.ts'
 
 Deno.test('kvLib', async (t) => {
   using kv = await Deno.openKv(':memory:')

@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run -A --watch-hmr
 
 import {zodPlugin} from '@maks11060/openapi/zod'
-import {expect} from 'jsr:@std/expect/expect'
+import {expect} from '@std/expect/expect'
 import z from 'zod'
 import {createDoc} from './openapi.ts'
 
@@ -426,7 +426,7 @@ Deno.test('createDoc() schemas io', async (t) => {
           type: 'object',
           properties: {
             login: {
-              anyOf: [{
+              oneOf: [{
                 type: 'object',
                 properties: {
                   type: {type: 'string', const: 'email'},
