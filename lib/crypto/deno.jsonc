@@ -1,0 +1,10 @@
+{
+  "name": "@maks11060/lib-crypto",
+  "publish": false,
+  "imports": {
+    "@std/crypto": "jsr:@std/crypto@^1.0.5"
+  },
+  "exports": {
+    "./hash": "./hash.ts"
+  }
+}

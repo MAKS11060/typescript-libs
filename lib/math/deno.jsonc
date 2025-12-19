@@ -1,0 +1,7 @@
+{
+  "name": "@maks11060/lib-math",
+  "publish": false,
+  "exports": {
+    ".": "./mod.ts"
+  }
+}
