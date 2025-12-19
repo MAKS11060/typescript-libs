@@ -1,0 +1,5 @@
+#!/bin/sh
+
+export NO_COLOR=true
+
+deno task ok
