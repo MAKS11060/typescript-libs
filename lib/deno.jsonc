@@ -14,6 +14,7 @@
     "./danbooru/tags": "./danbooru/tags.ts",
     "./hono": "./hono/mod.ts",
     "./hono/hono-var": "./hono/hono-var.ts",
+    "./iqdb": "./iqdb/wasm.js",
     "./rezka": "./rezka/mod.ts"
   }
 }
