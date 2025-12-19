@@ -11,7 +11,7 @@
  * @module PKCE
  */
 
-import { encodeBase64Url } from '@std/encoding/base64url'
+import {encodeBase64Url} from '@std/encoding/base64url'
 
 /**
  * Represents a `PKCE` {@link https://datatracker.ietf.org/doc/html/rfc7636 (Proof Key for Code Exchange)} challenge.

@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run -A --watch
 
-import { expect } from 'jsr:@std/expect/expect'
-import type { OAuth2TokenResponse } from './oauth2.ts'
-import { isTokenExpired, normalizeOAuth2Token } from './utils.ts'
+import {expect} from 'jsr:@std/expect/expect'
+import type {OAuth2TokenResponse} from './oauth2.ts'
+import {isTokenExpired, normalizeOAuth2Token} from './utils.ts'
 
 Deno.test('isTokenExpired', (t) => {
   const rawTokenResponse: OAuth2TokenResponse = {

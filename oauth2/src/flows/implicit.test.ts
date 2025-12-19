@@ -1,6 +1,6 @@
-import { expect } from 'jsr:@std/expect/expect'
-import { Hono } from 'npm:hono'
-import { oauth2Implicit } from './implicit.ts'
+import {expect} from 'jsr:@std/expect/expect'
+import {Hono} from 'npm:hono'
+import {oauth2Implicit} from './implicit.ts'
 
 Deno.test('oauth2Implicit', async (t) => {
   const app = new Hono()

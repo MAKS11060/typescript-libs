@@ -17,9 +17,9 @@
  * @module clientCredentials
  */
 
-import { encodeBase64 } from '@std/encoding/base64'
-import { handleOauth2Response, normalizeScope } from '../_internal.ts'
-import type { OAuth2ClientConfig, OAuth2TokenResponse } from '../oauth2.ts'
+import {encodeBase64} from '@std/encoding/base64'
+import {handleOauth2Response, normalizeScope} from '../_internal.ts'
+import type {OAuth2ClientConfig, OAuth2TokenResponse} from '../oauth2.ts'
 
 /**
  * Client Credentials Grant

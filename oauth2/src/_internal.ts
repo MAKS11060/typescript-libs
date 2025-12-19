@@ -1,5 +1,5 @@
-import type { OAuth2TokenResponse } from './oauth2.ts'
-import { type OAuth2Error, OAuth2Exception } from './error.ts'
+import type {OAuth2TokenResponse} from './oauth2.ts'
+import {type OAuth2Error, OAuth2Exception} from './error.ts'
 
 export const handleOauth2Response = async <T>(response: Response): Promise<OAuth2TokenResponse<T>> => {
   const data: Record<string, any> = await response.json()

@@ -4,8 +4,8 @@
  * @module authorizationCode
  */
 
-import { handleOauth2Response, normalizeScope } from '../_internal.ts'
-import type { OAuth2ClientConfig, OAuth2ExchangeCodeOptions, OAuth2TokenResponse } from '../oauth2.ts'
+import {handleOauth2Response, normalizeScope} from '../_internal.ts'
+import type {OAuth2ClientConfig, OAuth2ExchangeCodeOptions, OAuth2TokenResponse} from '../oauth2.ts'
 
 /**
  * Generates an authorization URL for `OAuth2`.
