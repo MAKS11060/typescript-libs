@@ -2,17 +2,12 @@ name: CI
 
 on:
   push:
-    paths:
-      - '**.yml'
-      - '**.ts'
-      - '**.json'
-      - '**.jsonc'
   pull_request:
     branches: [main]
   workflow_call:
 
 jobs:
-  ci:
+  check:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

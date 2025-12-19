@@ -5,7 +5,7 @@
  * ```ts
  * import {Fetch} from '@maks11060/web/fetch'
  *
- * const api = Fetch({baseUrl: 'https://api.example.com'})
+ * const api = Fetch({baseUrl: 'https://api.myip.com/'})
  *   .use({
  *     onRequest({request, options}) {
  *       // Add authorization header
