@@ -41,7 +41,7 @@ deno add jsr:@maks11060/web
 ```
 
 ```ps
-pnpm jsr:@maks11060/we
+pnpm jsr:@maks11060/web
 ```
 
 ```ps
