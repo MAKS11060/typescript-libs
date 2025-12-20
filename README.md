@@ -1,15 +1,21 @@
-# Deno-libs
+# Typescript libs
 
 [![JSR Score](https://jsr.io/badges/@maks11060)](https://jsr.io/@maks11060)
 [![CI](https://github.com/MAKS11060/typescript-libs/actions/workflows/ci.yml/badge.svg)](https://github.com/MAKS11060/typescript-libs/actions/workflows/ci.yml)
 
-| Package                                    |                           Link                           |
+| Packages                                   |             [JSR](https://jsr.io/@maks11060)             |
 | ------------------------------------------ | :------------------------------------------------------: |
 | [@maks11060/kv][@maks11060/kv]             |       [![JSR][@maks11060/kv badge]][@maks11060/kv]       |
 | [@maks11060/web][@maks11060/web]           |      [![JSR][@maks11060/web badge]][@maks11060/web]      |
 | [@maks11060/oauth2][@maks11060/oauth2]     |   [![JSR][@maks11060/oauth2 badge]][@maks11060/oauth2]   |
 | [@maks11060/openapi][@maks11060/openapi]   |  [![JSR][@maks11060/openapi badge]][@maks11060/openapi]  |
 | [@maks11060/webauthn][@maks11060/webauthn] | [![JSR][@maks11060/webauthn badge]][@maks11060/webauthn] |
+
+| Packages                               |           [JSR](https://jsr.io/@maks11060)           | Repo                                          |
+| -------------------------------------- | :--------------------------------------------------: | --------------------------------------------- |
+| [@maks11060/crypto][@maks11060/crypto] | [![JSR][@maks11060/crypto badge]][@maks11060/crypto] | [github](https://github.com/MAKS11060/crypto) |
+| [@maks11060/bits][@maks11060/bits]     |   [![JSR][@maks11060/bits badge]][@maks11060/bits]   | [github](https://github.com/MAKS11060/bits)   |
+| [@maks11060/otp][@maks11060/otp]       |    [![JSR][@maks11060/otp badge]][@maks11060/otp]    | [github](https://github.com/MAKS11060/otp)    |
 
 [@maks11060/kv]: https://jsr.io/@maks11060/kv
 [@maks11060/kv badge]: https://jsr.io/badges/@maks11060/kv
@@ -21,6 +27,12 @@
 [@maks11060/openapi badge]: https://jsr.io/badges/@maks11060/openapi
 [@maks11060/webauthn]: https://jsr.io/@maks11060/webauthn
 [@maks11060/webauthn badge]: https://jsr.io/badges/@maks11060/webauthn
+[@maks11060/crypto]: https://jsr.io/@maks11060/crypto
+[@maks11060/crypto badge]: https://jsr.io/badges/@maks11060/crypto
+[@maks11060/otp]: https://jsr.io/@maks11060/otp
+[@maks11060/otp badge]: https://jsr.io/badges/@maks11060/otp
+[@maks11060/bits]: https://jsr.io/@maks11060/bits
+[@maks11060/bits badge]: https://jsr.io/badges/@maks11060/bits
 
 ## Install
 
@@ -29,11 +41,11 @@ deno add jsr:@maks11060/web
 ```
 
 ```ps
-pnpm jsr:@maks11060/kv
+pnpm jsr:@maks11060/web
 ```
 
 ```ps
-npx jsr add @maks11060/kv
+npx jsr add @maks11060/web
 ```
 
 </details>
