@@ -219,7 +219,9 @@ export type URLPatternTypedResult<T extends string | URLPatternInit> = T extends
 
 export class URLPatternTyped<const T extends URLPatternInput> extends URLPattern {
   constructor(input?: T, options?: URLPatternOptions) {
-    super(...arguments)
+    super(...arguments as unknown as ConstructorParameters<typeof URLPattern>)
+    // super(input as URLPatternInput, options as any)
+    // super(...arguments)
   }
   override exec(input: URLPatternInput, baseURL?: string): URLPatternTypedResult<T> | null {
     return super.exec(input, baseURL) as URLPatternTypedResult<T> | null
