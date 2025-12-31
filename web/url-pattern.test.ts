@@ -1,4 +1,4 @@
-import {URLPatternTyped} from './url-pattern.ts'
+import {ParsePathname, URLPatternTyped} from './url-pattern.ts'
 
 Deno.test('Test 169101', async (t) => {
   const p = new URLPatternTyped({
@@ -71,93 +71,31 @@ Deno.test('Test 780232', async (t) => {
   // console.log(p.exec({pathname: '/books/1'})?.pathname.groups)
 })
 
-// --- TEST ---
-type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
+// --- TEST Types ---
 type Expect<T extends true> = T
+type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false
 
-type Test = [
-  // Expect<Equal<1, 1>>,
+type TestParsePathname = Expect<
+  | Equal<ParsePathname<'/posts/:id'>, 'id'>
+  | Equal<ParsePathname<'/posts/:id?'>, 'id?'>
+  | Equal<ParsePathname<'/posts/:id+'>, 'id'>
+  | Equal<ParsePathname<'/posts/:id*'>, 'id'>
+  | Equal<ParsePathname<'/users{/:userId}/posts{/:postId}?'>, 'userId' | 'postId?'>
+  | Equal<ParsePathname<'/users{/:userId}?/posts{/:postId}?'>, 'userId?' | 'postId?'>
+  | Equal<ParsePathname<'/users/:userId{/posts/:postId}?'>, 'userId' | 'postId?'>
+  | Equal<ParsePathname<'/img/:hash([a-fA-F0-9]{32}){/info}?'>, 'hash'>
+>
+
+type TestURLPatternTypedExec = [
   Expect<
     Equal<
-      ReturnType<URLPatternTyped<{pathname: '/users/:userId'}>['exec']>,
-      (URLPatternResult & {
-        pathname: {
-          input: string
-          groups: {userId: string}
-        }
-      }) | null
-    >
-  >,
-
-  Expect<
-    Equal<
-      ReturnType<URLPatternTyped<{pathname: '/users/:userId{/posts/:postId}?'}>['exec']>,
-      (URLPatternResult & {
-        pathname: {
-          input: string
-          groups: {userId: string} & {postId: string | undefined}
-        }
-      }) | null
-    >
-  >,
-
-  Expect<
-    Equal<
-      ReturnType<URLPatternTyped<{pathname: '/img/:hash([a-fA-F0-9]{32}){/info}?'}>['exec']>,
+      ReturnType<URLPatternTyped<{pathname: '/books/:id'}>['exec']>,
       (URLPatternResult & {
         pathname: {
           input: string
           groups: {
-            hash: string
+            id: string
           }
-        }
-      }) | null
-    >
-  >,
-
-  Expect<
-    Equal<
-      ReturnType<URLPatternTyped<{pathname: '(/b.*)'}>['exec']>,
-      (URLPatternResult & {
-        pathname: {
-          input: string
-          groups: unknown
-        }
-      }) | null
-    >
-  >,
-
-  Expect<
-    Equal<
-      ReturnType<URLPatternTyped<{pathname: '(/path$)'}>['exec']>,
-      (URLPatternResult & {
-        pathname: {
-          input: string
-          groups: unknown
-        }
-      }) | null
-    >
-  >,
-
-  Expect<
-    Equal<
-      ReturnType<URLPatternTyped<{pathname: '(/a(?=b).*)'}>['exec']>,
-      (URLPatternResult & {
-        pathname: {
-          input: string
-          groups: unknown
-        }
-      }) | null
-    >
-  >,
-
-  Expect<
-    Equal<
-      ReturnType<URLPatternTyped<{pathname: '/books/(\\d+)'}>['exec']>,
-      (URLPatternResult & {
-        pathname: {
-          input: string
-          groups: unknown
         }
       }) | null
     >
@@ -212,9 +150,9 @@ type Test = [
         pathname: {
           input: string
           groups: {
-            postId: string | undefined
-          } & {
             userId: string
+          } & {
+            postId: string | undefined
           }
         }
       }) | null
@@ -232,6 +170,85 @@ type Test = [
           } & {
             userId: string | undefined
           }
+        }
+      }) | null
+    >
+  >,
+
+  Expect<
+    Equal<
+      ReturnType<URLPatternTyped<{pathname: '/users/:userId{/posts/:postId}?'}>['exec']>,
+      (URLPatternResult & {
+        pathname: {
+          input: string
+          groups: {
+            userId: string
+          } & {
+            postId: string | undefined
+          }
+        }
+      }) | null
+    >
+  >,
+
+  Expect<
+    Equal<
+      ReturnType<URLPatternTyped<{pathname: '/img/:hash([a-fA-F0-9]{32}){/info}?'}>['exec']>,
+      (URLPatternResult & {
+        pathname: {
+          input: string
+          groups: {
+            hash: string
+          }
+        }
+      }) | null
+    >
+  >,
+
+  // extra
+  Expect<
+    Equal<
+      ReturnType<URLPatternTyped<{pathname: '/books/(\\d+)'}>['exec']>,
+      (URLPatternResult & {
+        pathname: {
+          input: string
+          groups: unknown
+        }
+      }) | null
+    >
+  >,
+
+  Expect<
+    Equal<
+      ReturnType<URLPatternTyped<{pathname: '(/b.*)'}>['exec']>,
+      (URLPatternResult & {
+        pathname: {
+          input: string
+          groups: unknown
+        }
+      }) | null
+    >
+  >,
+
+  Expect<
+    Equal<
+      ReturnType<URLPatternTyped<{pathname: '(/path$)'}>['exec']>,
+      (URLPatternResult & {
+        pathname: {
+          input: string
+          groups: unknown
+        }
+      }) | null
+    >
+  >,
+
+  Expect<
+    Equal<
+      ReturnType<URLPatternTyped<{pathname: '(/a(?=b).*)'}>['exec']>,
+      (URLPatternResult & {
+        pathname: {
+          input: string
+          groups: unknown
         }
       }) | null
     >

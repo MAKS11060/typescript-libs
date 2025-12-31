@@ -198,7 +198,7 @@ type ParsePathnameHelper<T extends string> = T extends `${string}:${infer Rest}`
   : never
   : never
 
-type ParsePathname<T extends string> = ParsePathnameHelper<RemoveBraces<T>>
+export type ParsePathname<T extends string> = ParsePathnameHelper<RemoveBraces<T>>
 
 // --- helper ---
 type ParamKeyToRecord<T extends string> = T extends `${infer R}?` //
