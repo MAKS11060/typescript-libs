@@ -55,6 +55,62 @@ export type ParamKeys<Path extends string> = ParamKeysFromSegments<
 
 type ParsePathname<T extends string> = ParamKeys<T> */
 
+// --- V6 ---
+/* type Special = '?' | '+' | '*' | '(' | '/' | '{' | '}';
+
+type ExtractUntilSpecial<T, Acc extends string = ''> =
+  T extends `${infer First}${infer Rest}`
+    ? First extends Special
+      ? [Acc, T]
+      : ExtractUntilSpecial<Rest, `${Acc}${First}`>
+    : [Acc, ''];
+
+type ParseParam<T> =
+  T extends `:${infer Rest}`
+    ? ExtractUntilSpecial<Rest> extends [infer Name, infer Remaining]
+      ? Remaining extends `?${infer Rest2}`
+        ? { name: `${Name & string}?`; rest: Rest2 }
+        : Remaining extends `+${infer Rest2}`
+          ? { name: Name & string; rest: Rest2 }
+          : Remaining extends `*${infer Rest2}`
+            ? { name: Name & string; rest: Rest2 }
+            : Remaining extends `(${string})${infer Rest2}`
+              ? { name: Name & string; rest: Rest2 }
+              : { name: Name & string; rest: Remaining & string }
+      : never
+    : never;
+
+// Функция для добавления ? только к параметрам внутри группы с ?
+type ProcessGroupWithOptional<T extends string, HasGroupOptional extends boolean = false> =
+  T extends `${infer Pre}:${infer Rest}`
+    ? ParseParam<`:${Rest}`> extends { name: infer Name, rest: infer Rest2 }
+      ? Name extends string
+        ? Name extends `${infer Base}?`
+          ? `${Pre}:${Name}${ProcessGroupWithOptional<Rest2 & string, HasGroupOptional>}`
+          : HasGroupOptional extends true
+            ? `${Pre}:${Name}?${ProcessGroupWithOptional<Rest2 & string, HasGroupOptional>}`
+            : `${Pre}:${Name}${ProcessGroupWithOptional<Rest2 & string, HasGroupOptional>}`
+        : never
+      : never
+    : T;
+
+type RemoveBraces<T> =
+  T extends `${infer Pre}{${infer Inner}}?${infer Post}`
+    ? `${Pre}${ProcessGroupWithOptional<Inner, true>}${RemoveBraces<Post>}`
+    : T extends `${infer Pre}{${infer Inner}}${infer Post}`
+      ? `${Pre}${Inner}${RemoveBraces<Post>}`
+      : T;
+
+type ParsePathnameHelper<T extends string> =
+  T extends `${string}:${infer Rest}`
+    ? ParseParam<`:${Rest}`> extends { name: infer Name, rest: infer Rest2 }
+      ? Name | (Rest2 extends string ? ParsePathnameHelper<Rest2> : never)
+      : never
+    : never;
+
+type ParsePathname<T extends string> = ParsePathnameHelper<RemoveBraces<T>>;
+ */
+
 // --- V7 --- // TODO: optimize code
 type Special = '?' | '+' | '*' | '(' | '/' | '{' | '}'
 
