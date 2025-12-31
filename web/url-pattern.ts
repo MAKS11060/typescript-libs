@@ -1,6 +1,7 @@
 // TODO: rewrite/improve pathname parser
 
-type StripRegex<S extends string> = S extends `${infer A}(${string})${infer B}` ? StripRegex<`${A}${B}`> : S
+// --- V1 ---
+/* type StripRegex<S extends string> = S extends `${infer A}(${string})${infer B}` ? StripRegex<`${A}${B}`> : S
 
 type MakeParamOptionalInSegment<S extends string> = S extends `${infer Pref}:${infer Rest}`
   ? Rest extends `${infer Segment}/${infer Tail}`
@@ -52,7 +53,96 @@ export type ParamKeys<Path extends string> = ParamKeysFromSegments<
   >
 >
 
-type ParsePathname<T extends string> = ParamKeys<T>
+type ParsePathname<T extends string> = ParamKeys<T> */
+
+// --- V7 --- // TODO: optimize code
+type Special = '?' | '+' | '*' | '(' | '/' | '{' | '}'
+
+type ExtractUntilSpecial<T, Acc extends string = ''> = T extends `${infer First}${infer Rest}`
+  ? First extends Special ? [Acc, T]
+  : ExtractUntilSpecial<Rest, `${Acc}${First}`>
+  : [Acc, '']
+
+type Inc<T extends any[]> = [...T, any]
+type Dec<T extends any[]> = T extends [any, ...infer R] ? R : []
+
+type ExtractUntilCloseParen<T, Depth extends any[] = [any], Acc extends string = ''> = T extends '' ? never
+  : T extends `(${infer Rest}` //
+    ? ExtractUntilCloseParen<Rest, Inc<Depth>, `${Acc}(`>
+  : T extends `)${infer Rest}` ? Dec<Depth> extends [] ? [Acc, Rest]
+    : ExtractUntilCloseParen<Rest, Dec<Depth>, `${Acc})`>
+  : T extends `${infer F}${infer Rest}` //
+    ? ExtractUntilCloseParen<Rest, Depth, `${Acc}${F}`>
+  : never
+
+type ParseParam<T> = T extends `:${infer Rest}`
+  ? ExtractUntilSpecial<Rest> extends [infer Name, infer Remaining]
+    ? Remaining extends `?${infer Rest2}` ? {name: `${Name & string}?`; rest: Rest2}
+    : Remaining extends `+${infer Rest2}` ? {name: Name & string; rest: Rest2}
+    : Remaining extends `*${infer Rest2}` ? {name: Name & string; rest: Rest2}
+    : Remaining extends `(${infer R}`
+      ? ExtractUntilCloseParen<R> extends [infer _, infer Rest2] ? {name: Name & string; rest: Rest2}
+      : never
+    : {name: Name & string; rest: Remaining & string}
+  : never
+  : never
+
+// Function to add ? only to parameters within the group with ?
+type ProcessGroupWithOptional<T extends string, HasGroupOptional extends boolean = false> = T extends
+  `${infer Pre}:${infer Rest}`
+  ? ParseParam<`:${Rest}`> extends {name: infer Name; rest: infer Rest2}
+    ? Name extends string
+      ? Name extends `${infer Base}?` ? `${Pre}:${Name}${ProcessGroupWithOptional<Rest2 & string, HasGroupOptional>}`
+      : HasGroupOptional extends true ? `${Pre}:${Name}?${ProcessGroupWithOptional<Rest2 & string, HasGroupOptional>}`
+      : `${Pre}:${Name}${ProcessGroupWithOptional<Rest2 & string, HasGroupOptional>}`
+    : never
+  : never
+  : T
+
+type ExtractGroupInner<T extends string, Depth extends any[] = [], Acc extends string = ''> = T extends '' //
+  ? never
+  : T extends `(${infer Rest}` //
+    ? ExtractGroupInner<Rest, Inc<Depth>, `${Acc}(`>
+  : T extends `)${infer Rest}` ? Depth extends [] ? never
+    : ExtractGroupInner<Rest, Dec<Depth>, `${Acc})`>
+  : T extends `}${infer Rest}` ? Depth extends [] ? [Acc, Rest]
+    : ExtractGroupInner<Rest, Depth, `${Acc}}`>
+  : T extends `${infer F}${infer Rest}` //
+    ? ExtractGroupInner<Rest, Depth, `${Acc}${F}`>
+  : never
+
+type BuildPath<T extends string, Acc extends string = ''> = T extends '' ? Acc
+  : T extends `:${infer Rest}`
+    ? ExtractUntilSpecial<Rest> extends [infer Name, infer Remaining extends string]
+      ? Remaining extends `?${infer Rest2}` ? BuildPath<Rest2, `${Acc}:${Name & string}?`>
+      : Remaining extends `+${infer Rest2}` ? BuildPath<Rest2, `${Acc}:${Name & string}+`>
+      : Remaining extends `*${infer Rest2}` ? BuildPath<Rest2, `${Acc}:${Name & string}*`>
+      : Remaining extends `(${infer R}`
+        ? ExtractUntilCloseParen<R> extends [infer Regex extends string, infer Rest2 extends string]
+          ? BuildPath<Rest2, `${Acc}:${Name & string}(${Regex})`>
+        : never
+      : BuildPath<Remaining, `${Acc}:${Name & string}`>
+    : never
+  : T extends `{${infer U}`
+    ? ExtractGroupInner<U> extends [infer Inner extends string, infer V extends string]
+      ? V extends `?${infer Post}`
+        ? ProcessGroupWithOptional<BuildPath<Inner>, true> extends infer Processed extends string
+          ? BuildPath<Post, `${Acc}${Processed}`>
+        : never
+      : BuildPath<V, `${Acc}${BuildPath<Inner>}`>
+    : never
+  : T extends `${infer F}${infer Rest}` ? BuildPath<Rest, `${Acc}${F}`>
+  : never
+
+type RemoveBraces<T extends string> = BuildPath<T>
+
+type ParsePathnameHelper<T extends string> = T extends `${string}:${infer Rest}`
+  ? ParseParam<`:${Rest}`> extends {name: infer Name; rest: infer Rest2}
+    ? Name | (Rest2 extends string ? ParsePathnameHelper<Rest2> : never)
+  : never
+  : never
+
+type ParsePathname<T extends string> = ParsePathnameHelper<RemoveBraces<T>>
 
 // --- helper ---
 type ParamKeyToRecord<T extends string> = T extends `${infer R}?` //
@@ -61,14 +151,6 @@ type ParamKeyToRecord<T extends string> = T extends `${infer R}?` //
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never
 
-// type URLPatternTypedResult<Input extends URLPatternInput> = Input extends string //
-//   ? URLPatternResult
-//   : URLPatternResult & {
-//     pathname: {
-//       input: string
-//       groups: ParamKeyToRecord<ParsePathname<Input>>
-//     }
-//   }
 export type URLPatternTypedResult<T extends string | URLPatternInit> = T extends string //
   ? URLPatternResult & {
     pathname: {
