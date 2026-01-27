@@ -5,10 +5,8 @@
     "jsr:@denosaurs/plug@1.1.0": "1.1.0",
     "jsr:@std/assert@^1.0.14": "1.0.17",
     "jsr:@std/assert@^1.0.17": "1.0.17",
-    "jsr:@std/async@*": "1.0.15",
     "jsr:@std/bytes@^1.0.6": "1.0.6",
     "jsr:@std/cbor@~0.1.9": "0.1.9",
-    "jsr:@std/cli@*": "1.0.24",
     "jsr:@std/cli@^1.0.26": "1.0.26",
     "jsr:@std/collections@^1.1.4": "1.1.4",
     "jsr:@std/crypto@^1.0.5": "1.0.5",
@@ -55,9 +53,6 @@
         "jsr:@std/internal@^1.0.12"
       ]
     },
-    "@std/async@1.0.15": {
-      "integrity": "55d1d9d04f99403fe5730ab16bdcc3c47f658a6bf054cafb38a50f046238116e"
-    },
     "@std/bytes@1.0.6": {
       "integrity": "f6ac6adbd8ccd99314045f5703e23af0a68d7f7e58364b47d2c7f408aeb5820a"
     },
@@ -67,9 +62,6 @@
         "jsr:@std/bytes",
         "jsr:@std/streams"
       ]
-    },
-    "@std/cli@1.0.24": {
-      "integrity": "b655a5beb26aa94f98add6bc8889f5fb9bc3ee2cc3fc954e151201f4c4200a5e"
     },
     "@std/cli@1.0.26": {
       "integrity": "53679a2b041406f15c3ff193986852595f3d11ba7b9d4b0c71a42589662e8fb5",
