@@ -8,7 +8,7 @@
   "imports": {
     "@std/crypto": "jsr:@std/crypto@^1.0.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
-    "hono": "npm:hono@^4.11.4"
+    "hono": "npm:hono@^4.11.7"
   },
   "exports": {
     ".": "./mod.ts",
