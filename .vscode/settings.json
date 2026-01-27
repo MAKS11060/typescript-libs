@@ -1,5 +1,6 @@
 {
   "deno.enable": true,
+  "prettier.enable": false,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
 
   "[json]": { "editor.defaultFormatter": "denoland.vscode-deno" },
