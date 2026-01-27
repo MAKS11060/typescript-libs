@@ -6,9 +6,12 @@ import {parse} from '@std/jsonc/parse'
 
 const args = parseArgs(Deno.args, {
   boolean: ['verbose'],
+  string: ['config'],
   alias: {
     v: 'verbose',
+    c: 'config',
   },
+  '--': true,
 })
 
 interface PackageJson {
@@ -33,6 +36,7 @@ const readDenoJson = (path?: string) => {
     else throw new Error('Not Found deno.json[c] file')
   }
 
+  if (args.verbose) console.log('load config', path)
   const data = Deno.readTextFileSync(path)
   return parse(data) as DenoConfig
 }
@@ -86,27 +90,22 @@ const jsrToNpmSpecifier = (jsr: ReturnType<typeof parseDenoImports>['jsr']) => {
 }
 
 if (import.meta.main) {
-  if (args.verbose) {
-    const imports = readDenoJson('./deno.jsonc').imports!
-    console.log(parseDenoImports(imports))
-  }
-
   if (existsSync('./package.json')) {
     await Deno.remove('./package.json') // remove package.json
   }
 
-  // run deno with: './install.ts add npm:hono'
-  console.log(Deno.args)
-  if (Deno.args.length > 1) {
+  // run deno with: './install.ts -- add npm:hono'
+  if (args['--'].length > 1) {
     const proc = new Deno.Command(Deno.execPath(), {
-      args: Deno.args,
+      args: args['--'],
       stdout: 'inherit',
       stderr: 'inherit',
     }).outputSync()
     if (!proc.success) Deno.exit(1)
   }
 
-  const imports = parseDenoImports(readDenoJson().imports)
+  const imports = parseDenoImports(readDenoJson(args.config).imports)
+  if (args.verbose) console.log('deno.json imports', imports)
 
   createNpmRc() // create .npmrc
   createPackageJson({

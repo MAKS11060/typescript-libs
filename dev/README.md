@@ -11,7 +11,7 @@ deno run -A jsr:@maks11060/dev/install
 Run `deno` with arguments, before creating `package.json`
 
 ```ps
-deno run -A jsr:@maks11060/dev/install add jsr:@std/fs
+deno run -A jsr:@maks11060/dev/install -- add jsr:@std/fs
 ```
 
 > What does the `install` command do?
