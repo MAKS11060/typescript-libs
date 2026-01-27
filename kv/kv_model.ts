@@ -12,7 +12,7 @@
 import type {StandardSchemaV1} from '@standard-schema/spec'
 import {chunk} from '@std/collections/chunk'
 import {ulid} from '@std/ulid/ulid'
-import {generate as randomUUID7} from '@std/uuid/unstable-v7'
+import {generate as randomUUID7} from '@std/uuid/v7'
 import {equal} from '@std/assert/equal'
 import {standardValidate} from './_standardValidate.ts'
 import {getKvPage, type KvPageOptions} from './kv_helper.ts'
