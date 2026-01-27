@@ -489,3 +489,31 @@ Deno.test('zodPlugin() global io mixed 4', async (t) => {
     additionalProperties: false,
   })
 })
+
+Deno.test('Test 447843', async (t) => {
+  // --- schemas ---
+  const ID = z.int().positive().describe('The ID')
+  const userID = ID.describe('The user ID').meta({example: 406192})
+
+  const user = z.object({
+    id: userID,
+    nickname: z.string(),
+    avatar: z.string(),
+    image: z.record(z.enum(['x160', 'x148', 'x80', 'x64', 'x48', 'x32', 'x16']), z.string()),
+    last_online_at: z.iso.datetime(),
+    url: z.string(),
+  })
+
+  // --- test
+  const plugin = zodPlugin()
+
+  // plugin.addSchemaGlobal(ID, 'ID')
+  plugin.addSchemaGlobal(userID, 'userID')
+  plugin.addSchemaGlobal(user, 'user')
+
+  try {
+    console.dir(plugin.getSchemas(), {depth: null}) // https://github.com/colinhacks/zod/issues/5635
+  } catch (e) {
+    console.error(e)
+  }
+})

@@ -10,7 +10,7 @@ import * as querySearch from './query-search.ts'
 import * as search from './search.ts'
 import {formatUri, parseUri} from './utils.ts'
 
-export {Kind, RezkaKindType} from './page.ts'
+export {Kind, type RezkaKindType} from './page.ts'
 
 export * as config from './config.ts'
 export const Rezka = {
