@@ -1,11 +1,15 @@
 {
   "name": "@maks11060/dev",
-  "version": "0.0.0",
-  "publish": false,
+  "version": "0.0.1",
+  "tasks": {
+    "ok": "deno fmt --check"
+  },
   "imports": {
-    "@std/yaml": "jsr:@std/yaml@^1.0.10"
+    "@std/cli": "jsr:@std/cli@^1.0.26",
+    "@std/fs": "jsr:@std/fs@^1.0.22",
+    "@std/jsonc": "jsr:@std/jsonc@^1.0.2"
   },
   "exports": {
-    ".": "./mod.ts"
+    "./install": "./install.ts"
   }
 }
