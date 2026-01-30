@@ -1,51 +1,53 @@
-import {DOMParser, type Element} from '@b-fuze/deno-dom'
-import {userAgent} from './config.ts'
-import type {BaseOptions} from './types.ts'
-import {parseDateString, parseUri} from './utils.ts'
+import {DOMParser, type Element, type HTMLDocument} from '@b-fuze/deno-dom'
+import {config} from '../core/config.ts'
+import {RezkaFetchError, RezkaParseError, RezkaValidationError} from '../core/errors.ts'
+import {parseDateString, parseUri} from '../core/utils.ts'
+import type {BaseOptions} from '../types.ts'
 
-export const Kind = ['films', 'series', 'animation', 'cartoons'] as const
-export type RezkaKindType = (typeof Kind)[number]
+const Type = {
+  films: 'movie',
+  series: 'series',
+  animation: 'anime',
+  cartoons: 'cartoon',
+} as const
+
+export const getDetails = async (url: string | URL, options?: BaseOptions) => {
+  const uri = parseUri(url)
+
+  const _type = Type[uri.type as keyof typeof Type]
+  if (!_type) throw new RezkaValidationError(`Unknown type: ${uri.type}`)
+
+  const _fetch = options?.fetch ?? config.fetch ?? fetch
+  const headers = new Headers({
+    'user-agent': options?.userAgent ?? config.userAgent!,
+    ...config?.headers,
+    ...options?.headers,
+  })
+
+  const response = await _fetch(url, {headers})
+  if (!response.ok) throw new RezkaFetchError(response)
+
+  const html = await response.text()
+  const dom = new DOMParser().parseFromString(html, 'text/html')
+  const data = parse(dom)
+
+  return {
+    get response() {
+      return response
+    },
+    data: {
+      url: response.url || url.toString(),
+      type: _type,
+      ...data,
+    },
+  }
+}
 
 const trim = (v: string) => v.trim()
 
-export const resolve = async (href: string | URL, options?: BaseOptions) => {
-  try {
-    const uri = parseUri(href)
-    if (!Kind.includes(uri.type as any)) {
-      throw new Error('href: kind type invalid')
-    }
-
-    const _fetch = options?.fetch ?? fetch
-    const headers = new Headers({
-      'user-agent': options?.userAgent ?? userAgent,
-      ...options?.headers,
-    })
-
-    const response = await _fetch(href.toString(), {headers})
-    if (!response.ok) {
-      throw new Error(`[Rezka] Failed to fetch ${href.toString()}: ${response.statusText}`)
-    }
-
-    const html = await response.text()
-    const data = parse(html)
-    if (!data) return null
-
-    return {
-      url: response.url || href,
-      type: uri.type as RezkaKindType,
-      ...data,
-    } as const
-  } catch (e) {
-    console.error(`[Rezka] Parse failed`, e)
-  }
-
-  return null
-}
-
-export const parse = (html: string) => {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
+const parse = (doc: HTMLDocument) => {
   const contentMain = doc.body.querySelector('.b-content__main')
-  if (!contentMain) return null
+  if (!contentMain) throw new RezkaParseError('Empty .b-content__main')
 
   // title
   const title = contentMain?.querySelector('.b-post__title')?.textContent.trim() || null
@@ -64,7 +66,7 @@ export const parse = (html: string) => {
 
   // info
   const postInfo = contentMain?.querySelector('.b-post__info')!
-  if (!postInfo) return null
+  if (!postInfo) throw new RezkaParseError('Empty .b-post__info')
 
   // table rows
   const postEntries = Array.from(

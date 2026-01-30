@@ -15,6 +15,6 @@
     "./hono": "./hono/mod.ts",
     "./hono/hono-var": "./hono/hono-var.ts",
     "./iqdb": "./iqdb/wasm.js",
-    "./rezka": "./rezka/mod.ts"
+    "./rezka": "./rezka/src/mod.ts"
   }
 }
