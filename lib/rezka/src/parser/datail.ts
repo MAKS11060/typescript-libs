@@ -1,21 +1,15 @@
 import {DOMParser, type Element, type HTMLDocument} from '@b-fuze/deno-dom'
 import {config} from '../core/config.ts'
-import {RezkaFetchError, RezkaParseError, RezkaValidationError} from '../core/errors.ts'
-import {parseDateString, parseUri} from '../core/utils.ts'
+import type {CatalogType} from '../core/constants.ts'
+import {RezkaFetchError, RezkaParseError} from '../core/errors.ts'
+import {detectLanguage, parseDateString, parseUri} from '../core/utils.ts'
 import type {BaseOptions} from '../types.ts'
-
-const Type = {
-  films: 'movie',
-  series: 'series',
-  animation: 'anime',
-  cartoons: 'cartoon',
-} as const
 
 export const getDetails = async (url: string | URL, options?: BaseOptions) => {
   const uri = parseUri(url)
 
-  const _type = Type[uri.type as keyof typeof Type]
-  if (!_type) throw new RezkaValidationError(`Unknown type: ${uri.type}`)
+  // const _type = Type[uri.type as keyof typeof Type]
+  // if (!_type) throw new RezkaValidationError(`Unknown type: ${uri.type}`)
 
   const _fetch = options?.fetch ?? config.fetch ?? fetch
   const headers = new Headers({
@@ -37,7 +31,7 @@ export const getDetails = async (url: string | URL, options?: BaseOptions) => {
     },
     data: {
       url: response.url || url.toString(),
-      type: _type,
+      type: uri.type as keyof typeof CatalogType,
       ...data,
     },
   }
@@ -50,8 +44,15 @@ const parse = (doc: HTMLDocument) => {
   if (!contentMain) throw new RezkaParseError('Empty .b-content__main')
 
   // title
-  const title = contentMain?.querySelector('.b-post__title')?.textContent.trim() || null
-  const titleOrig = contentMain?.querySelector('.b-post__origtitle')?.textContent.trim() || null
+  const titles = [
+    contentMain?.querySelector('.b-post__title')?.textContent.trim(),
+    contentMain?.querySelector('.b-post__origtitle')?.textContent.trim(),
+  ].filter(Boolean)
+    .flatMap((v) => v?.split(' / ')!)
+    .map((v) => ({
+      name: v!,
+      lang: detectLanguage(v!).lang,
+    }))
 
   // status
   const statusStr = contentMain?.querySelector('.b-post__infolast')?.textContent.trim() || null
@@ -100,8 +101,8 @@ const parse = (doc: HTMLDocument) => {
   const lists = Array.from(
     post['Входит в списки']?.querySelectorAll('td:nth-child(2) a') || [],
     (el) => ({
-      href: el.getAttribute('href'),
-      text: el.textContent,
+      name: el.textContent,
+      href: el.getAttribute('href')!,
       place: parseInt((el.nextSibling?.textContent.match(/\((\d+)/) || [, 0])[1] as string, 10),
     }),
   )
@@ -114,7 +115,7 @@ const parse = (doc: HTMLDocument) => {
 
   // countries
   const countries = Array.from(
-    post['Страна']?.querySelectorAll('td:nth-child(2) a'),
+    post['Страна']?.querySelectorAll('td:nth-child(2) a') || [],
     (el) => el.textContent,
   )
 
@@ -122,8 +123,7 @@ const parse = (doc: HTMLDocument) => {
   const genres = post['Жанр']?.querySelector('td:nth-child(2)')?.textContent?.split(',').map(trim) || []
 
   // dubs
-  const dubs = post['В переводе']?.querySelector('td:nth-child(2)')?.textContent
-    ?.split(' и ').join(',').split(',').map(trim) || []
+  const dubs = post['В переводе']?.querySelector('td:nth-child(2)')?.textContent?.split(/\, |\sи\s/).map(trim) || []
 
   // duration in min
   const durationStr = post['Время']?.querySelector('td:nth-child(2)')?.textContent || ''
@@ -132,11 +132,22 @@ const parse = (doc: HTMLDocument) => {
   const directors = Array.from(
     post['Режиссер']?.querySelectorAll('td:nth-child(2) a') || [],
     (el) => ({
-      name: el?.textContent || null,
-      href: el?.getAttribute('href'),
+      name: el?.textContent,
+      href: el?.getAttribute('href')!,
       poster: el.parentElement?.getAttribute('data-photo') === 'null'
         ? null
-        : el.parentElement?.getAttribute('data-photo'),
+        : el.parentElement?.getAttribute('data-photo')!,
+    }),
+  )
+
+  const persons = Array.from(
+    post['В ролях актеры']?.querySelectorAll('a') || [],
+    (el) => ({
+      name: el?.textContent,
+      href: el?.getAttribute('href')!,
+      poster: el.parentElement?.getAttribute('data-photo') === 'null'
+        ? null
+        : el.parentElement?.getAttribute('data-photo')!,
     }),
   )
 
@@ -146,19 +157,8 @@ const parse = (doc: HTMLDocument) => {
   const collections = Array.from(
     post['Из серии']?.querySelectorAll('td:nth-child(2) a') || [],
     (el) => ({
-      href: el.getAttribute('href'),
-      text: el.textContent,
-    }),
-  )
-
-  const persons = Array.from(
-    post['В ролях актеры']?.querySelectorAll(' a') || [],
-    (el) => ({
-      name: el?.textContent || null,
-      href: el?.getAttribute('href'),
-      poster: el.parentElement?.getAttribute('data-photo') === 'null'
-        ? null
-        : el.parentElement?.getAttribute('data-photo'),
+      name: el.textContent,
+      href: el.getAttribute('href')!,
     }),
   )
 
@@ -167,10 +167,10 @@ const parse = (doc: HTMLDocument) => {
 
   // related content
   const related = Array.from(
-    contentMain?.querySelectorAll('.b-post__partcontent_item:not(.current)')!,
+    contentMain?.querySelectorAll('.b-post__partcontent_item:not(.current)') || [],
     (e) => ({
-      href: e.getAttribute('data-url'),
-      title: e.querySelector('.title')?.textContent || null,
+      name: e.querySelector('.title')?.textContent!,
+      href: e.getAttribute('data-url')!,
       year: Number(e.querySelector('.year')?.textContent.split(' ', 2).at(0)) || null,
       rating: Number(e.querySelector('.rating')?.textContent) || null,
     }),
@@ -178,27 +178,30 @@ const parse = (doc: HTMLDocument) => {
 
   // episodes
   const episodes = Array.from(
-    contentMain?.querySelectorAll('.b-post__schedule .b-post__schedule_table tbody tr')!,
+    contentMain?.querySelectorAll('.b-post__schedule .b-post__schedule_table tbody tr') || [],
     (e) => {
       const textContent = e.querySelector('.td-1')?.textContent || ''
       const parts = textContent.split(' ', 4)
-      const title = e.querySelector('.td-2 b')?.textContent || null
-      const titleAlt = e.querySelector('.td-2 span')?.textContent || null
+      const titles = [
+        e.querySelector('.td-2 b')?.textContent,
+        e.querySelector('.td-2 span')?.textContent,
+      ].filter(Boolean).map((v) => ({
+        name: v!,
+        lang: detectLanguage(v!).lang,
+      }))
       const airDate = e.querySelector('.td-4')?.textContent
 
       return {
         season: parts[0] ? parseInt(parts[0]) : 0,
-        episodes: parts[2] ? parseInt(parts[2]) : 0,
-        title,
-        titleAlt,
+        episode: parts[2] ? parseInt(parts[2]) : 0,
+        titles,
         airDate: parseDateString(airDate),
       }
     },
-  ).filter((v) => v.season && v.episodes)
+  ).filter((v) => v.season && v.episode)
 
   return {
-    title,
-    titleOrig,
+    titles,
     poster,
     status,
     ratings,
@@ -207,14 +210,16 @@ const parse = (doc: HTMLDocument) => {
     genres,
     duration,
     rating,
-    dubs,
-    lists,
     slogan,
+    dubs,
     description,
+    lists,
     collections,
     directors,
     persons,
     related,
-    episodes,
+    get episodes() {
+      return episodes
+    },
   } as const
 }

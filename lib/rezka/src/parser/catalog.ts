@@ -22,7 +22,7 @@ type Genres = {
 }
 
 export const catalog = {
-  async get<Type extends keyof typeof CatalogType>(
+  async get<Type extends keyof Genres>(
     type: Type,
     query?: BaseOptions & {
       filter?: 'last' | 'popular' | 'soon' | 'watching' | AnyString
@@ -41,7 +41,7 @@ export const catalog = {
     return await makeRequest(url, query)
   },
 
-  async getBest<Type extends keyof typeof CatalogType>(
+  async getBest<Type extends keyof Genres>(
     type: keyof typeof CatalogType,
     query?: BaseOptions & {
       genre?: Genres[Type]
