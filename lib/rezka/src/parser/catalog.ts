@@ -1,25 +1,8 @@
 import {DOMParser, type HTMLDocument} from '@b-fuze/deno-dom'
 import {config} from '../core/config.ts'
-import {
-  type CatalogAnimationGenres,
-  type CatalogCartoonsGenres,
-  type CatalogFilmGenres,
-  CatalogQueryType,
-  type CatalogSeriesGenres,
-  CatalogType,
-} from '../core/constants.ts'
+import type {AnyString, BaseOptions, Genres} from '../core/constants.ts'
+import {CatalogQueryType} from '../core/constants.ts'
 import {RezkaFetchError} from '../core/errors.ts'
-import type {BaseOptions} from '../types.ts'
-
-type AnyString = {} & string
-// type Strict<T> = T extends string ? (string extends T ? never : T) : T
-
-type Genres = {
-  movie: typeof CatalogFilmGenres[number]
-  series: typeof CatalogSeriesGenres[number]
-  cartoon: typeof CatalogCartoonsGenres[number]
-  anime: typeof CatalogAnimationGenres[number]
-}
 
 export const catalog = {
   async get<Type extends keyof Genres>(
@@ -30,7 +13,7 @@ export const catalog = {
       page?: number
     },
   ) {
-    const url = new URL(`/${CatalogType[type]}/`, config.base)
+    const url = new URL(`/${type}/`, config.base)
 
     if (query) {
       if (query.genre) url.pathname += `${query.genre}/`
@@ -42,14 +25,14 @@ export const catalog = {
   },
 
   async getBest<Type extends keyof Genres>(
-    type: keyof typeof CatalogType,
+    type: Type,
     query?: BaseOptions & {
       genre?: Genres[Type]
       year?: number
       page?: number
     },
   ) {
-    const url = new URL(`/${CatalogType[type]}/best/`, config.base)
+    const url = new URL(`/${type}/best/`, config.base)
 
     if (query) {
       if (query.genre) url.pathname += `${query.genre}/`

@@ -1,228 +1,174 @@
-// deno-fmt-ignore
-export const CatalogType = {
-  movie:   'films',
-  series:  'series',
-  anime:   'animation',
-  cartoon: 'cartoons',
-  show:    'show',
-  games:   'games',
-} as const
+export interface BaseOptions {
+  fetch?: typeof fetch
+  headers?: HeadersInit
+  userAgent?: string
 
-// deno-fmt-ignore
-export const URLType = {
-  films:     'movie',
-  series:    'series',
-  animation: 'anime',
-  cartoons:  'cartoon',
-  show:      'show',
-  games:     'games',
-} as const
+  /** @default 'https://hdrezka.me' */
+  base?: string
+}
+
+export type AnyString = {} & string
+// type Strict<T> = T extends string ? (string extends T ? never : T) : T
+
+export type Type =
+  | 'films'
+  | 'series'
+  | 'cartoons'
+  | 'animation'
+  | 'show'
+  | 'games'
+
+export type Genres = {
+  films: GenresFilm | AnyString
+  series: GenresSeries | AnyString
+  cartoons: GenresCartoons | AnyString
+  animation: GenresAnimation | AnyString
+  show: string
+  games: string
+}
+
+type GenresFilm =
+  | 'action'
+  | 'adventures'
+  | 'arthouse'
+  | 'biographical'
+  | 'cognitive'
+  | 'comedy'
+  | 'concert'
+  | 'crime'
+  | 'detective'
+  | 'documentary'
+  | 'drama'
+  | 'erotic'
+  | 'family'
+  | 'fantasy'
+  | 'fiction'
+  | 'foreign'
+  | 'historical'
+  | 'horror'
+  | 'kids'
+  | 'melodrama'
+  | 'military'
+  | 'musical'
+  | 'musical'
+  | 'russian'
+  | 'short'
+  | 'sport'
+  | 'standup'
+  | 'theatre'
+  | 'thriller'
+  | 'travel'
+  | 'ukrainian'
+  | 'western'
+
+type GenresSeries =
+  | 'action'
+  | 'adventures'
+  | 'arthouse'
+  | 'biographical'
+  | 'comedy'
+  | 'crime'
+  | 'detective'
+  | 'documentary'
+  | 'drama'
+  | 'erotic'
+  | 'family'
+  | 'fantasy'
+  | 'fiction'
+  | 'foreign'
+  | 'historical'
+  | 'horror'
+  | 'melodrama'
+  | 'military'
+  | 'musical'
+  | 'realtv'
+  | 'russian'
+  | 'sport'
+  | 'standup'
+  | 'telecasts'
+  | 'thriller'
+  | 'ukrainian'
+  | 'western'
+
+type GenresCartoons =
+  | 'action'
+  | 'adult'
+  | 'adventures'
+  | 'anime'
+  | 'arthouse'
+  | 'biographical'
+  | 'cognitive'
+  | 'comedy'
+  | 'crime'
+  | 'detective'
+  | 'documentary'
+  | 'drama'
+  | 'erotic'
+  | 'fairytale'
+  | 'family'
+  | 'fantasy'
+  | 'fiction'
+  | 'foreign'
+  | 'full-length'
+  | 'historical'
+  | 'horror'
+  | 'kids'
+  | 'melodrama'
+  | 'military'
+  | 'multseries'
+  | 'musical'
+  | 'russian'
+  | 'short'
+  | 'soyzmyltfilm'
+  | 'sport'
+  | 'thriller'
+  | 'ukrainian'
+  | 'western'
+
+type GenresAnimation =
+  | 'action'
+  | 'adventures'
+  | 'comedy'
+  | 'detective'
+  | 'drama'
+  | 'ecchi'
+  | 'educational'
+  | 'erotic'
+  | 'everyday'
+  | 'fairytale'
+  | 'fantasy'
+  | 'fiction'
+  | 'fighting'
+  | 'historical'
+  | 'horror'
+  | 'kids'
+  | 'kodomo'
+  | 'mahoushoujo'
+  | 'mecha'
+  | 'military'
+  | 'musical'
+  | 'mystery'
+  | 'parody'
+  | 'romance'
+  | 'samurai'
+  | 'school'
+  | 'shoujo'
+  | 'shoujoai'
+  | 'shounen'
+  | 'shounenai'
+  | 'sport'
+  | 'thriller'
 
 // deno-fmt-ignore
 export const CatalogQueryType = {
-  movie:   1,
-  series:  2,
-  cartoon: 3,
-  anime:   82,
+  film:      1,
+  series:    2,
+  cartoons:  3,
+  animation: 82,
 } as const
 
-export const CatalogFilmGenres = [
-  'action',
-  'adventures',
-  'arthouse',
-  'biographical',
-  'cognitive',
-  'comedy',
-  'concert',
-  'crime',
-  'detective',
-  'documentary',
-  'drama',
-  'erotic',
-  'family',
-  'fantasy',
-  'fiction',
-  'foreign',
-  'historical',
-  'horror',
-  'kids',
-  'melodrama',
-  'military',
-  'musical',
-  'musical',
-  'russian',
-  'short',
-  'sport',
-  'standup',
-  'theatre',
-  'thriller',
-  'travel',
-  'ukrainian',
-  'western',
-] as const
-
-export const CatalogSeriesGenres = [
-  'action',
-  'adventures',
-  'arthouse',
-  'biographical',
-  'comedy',
-  'crime',
-  'detective',
-  'documentary',
-  'drama',
-  'erotic',
-  'family',
-  'fantasy',
-  'fiction',
-  'foreign',
-  'historical',
-  'horror',
-  'melodrama',
-  'military',
-  'musical',
-  'realtv',
-  'russian',
-  'sport',
-  'standup',
-  'telecasts',
-  'thriller',
-  'ukrainian',
-  'western',
-] as const
-
-export const CatalogCartoonsGenres = [
-  'action',
-  'adult',
-  'adventures',
-  'anime',
-  'arthouse',
-  'biographical',
-  'cognitive',
-  'comedy',
-  'crime',
-  'detective',
-  'documentary',
-  'drama',
-  'erotic',
-  'fairytale',
-  'family',
-  'fantasy',
-  'fiction',
-  'foreign',
-  'full-length',
-  'historical',
-  'horror',
-  'kids',
-  'melodrama',
-  'military',
-  'multseries',
-  'musical',
-  'russian',
-  'short',
-  'soyzmyltfilm',
-  'sport',
-  'thriller',
-  'ukrainian',
-  'western',
-] as const
-
-export const CatalogAnimationGenres = [
-  'action',
-  'adventures',
-  'comedy',
-  'detective',
-  'drama',
-  'ecchi',
-  'educational',
-  'erotic',
-  'everyday',
-  'fairytale',
-  'fantasy',
-  'fiction',
-  'fighting',
-  'historical',
-  'horror',
-  'kids',
-  'kodomo',
-  'mahoushoujo',
-  'mecha',
-  'military',
-  'musical',
-  'mystery',
-  'parody',
-  'romance',
-  'samurai',
-  'school',
-  'shoujo',
-  'shoujoai',
-  'shounen',
-  'shounenai',
-  'sport',
-  'thriller',
-] as const
-
-/*
+// deno-fmt-ignore
 export const genres = {
-  'action': 'боевики',
-  'adult': 'для взрослых',
-  'adventures': 'приключения',
-  'anime': 'аниме',
-  'arthouse': 'арт-хаус',
-  'biographical': 'биографические',
-  'cognitive': 'познавательные',
-  'comedy': 'комедии',
-  'concert': 'концерт',
-  'crime': 'криминал',
-  'detective': 'детективы',
-  'documentary': 'документальные',
-  'drama': 'драмы',
-  'ecchi': 'этти',
-  'educational': 'образовательные',
-  'erotic': 'эротика',
-  'everyday': 'повседневность',
-  'fairytale': 'сказки',
-  'family': 'семейные',
-  'fantasy': 'фэнтези',
-  'fiction': 'фантастика',
-  'fighting': 'боевые искусства',
-  'foreign': 'зарубежные',
-  'full-length': 'полнометражные',
-  'historical': 'исторические',
-  'horror': 'ужасы',
-  'kids': 'детские',
-  'kodomo': 'кодомо',
-  'mahoushoujo': 'махо-сёдзё',
-  'mecha': 'меха',
-  'melodrama': 'мелодрамы',
-  'military': 'военные',
-  'multseries': 'мультсериалы',
-  'musical': 'музыкальные',
-  'musical': 'мюзиклы',
-  'mystery': 'мистические',
-  'parody': 'пародия',
-  'realtv': 'реальное тв',
-  'romance': 'романтические',
-  'russian': 'русские',
-  'samurai': 'самурайский боевик',
-  'school': 'школа',
-  'short': 'короткометражные',
-  'shoujo': 'сёдзё',
-  'shoujoai': 'сёдзё-ай',
-  'shounen': 'сёнэн',
-  'shounenai': 'сёнэн-ай',
-  'soyzmyltfilm': 'советские',
-  'sport': 'спортивные',
-  'standup': 'стендап',
-  'telecasts': 'телепередачи',
-  'theatre': 'театр',
-  'thriller': 'триллеры',
-  'travel': 'путешествия',
-  'ukrainian': 'украинские',
-  'western': 'вестерны',
-}
-
-export const genres2 = {
   'вестерны': 'western',
   'семейные': 'family',
   'фэнтези': 'fantasy',
@@ -280,4 +226,3 @@ export const genres2 = {
   'махо-сёдзё': 'mahoushoujo',
   'меха': 'mecha',
 }
- */

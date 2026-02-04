@@ -1,7 +1,7 @@
 import {DOMParser, type HTMLDocument} from '@b-fuze/deno-dom'
 import {config} from '../core/config.ts'
+import type {BaseOptions} from '../core/constants.ts'
 import {RezkaFetchError} from '../core/errors.ts'
-import type {BaseOptions} from '../types.ts'
 
 export const search = async (query: string, options?: BaseOptions) => {
   const url = new URL('/engine/ajax/search.php', options?.base ?? config.base)

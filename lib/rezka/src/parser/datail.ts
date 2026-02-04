@@ -1,9 +1,8 @@
 import {DOMParser, type Element, type HTMLDocument} from '@b-fuze/deno-dom'
 import {config} from '../core/config.ts'
-import type {CatalogType} from '../core/constants.ts'
+import type {BaseOptions} from '../core/constants.ts'
 import {RezkaFetchError, RezkaParseError} from '../core/errors.ts'
 import {detectLanguage, parseDateString, parseUri} from '../core/utils.ts'
-import type {BaseOptions} from '../types.ts'
 
 export const getDetails = async (url: string | URL, options?: BaseOptions) => {
   const uri = parseUri(url)
@@ -31,7 +30,7 @@ export const getDetails = async (url: string | URL, options?: BaseOptions) => {
     },
     data: {
       url: response.url || url.toString(),
-      type: uri.type as keyof typeof CatalogType,
+      type: uri.type,
       ...data,
     },
   }

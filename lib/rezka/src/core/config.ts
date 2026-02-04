@@ -1,4 +1,4 @@
-import type {BaseOptions} from '../types.ts'
+import type {BaseOptions} from './constants.ts'
 
 // deno-fmt-ignore
 export const config: Partial<BaseOptions> = {

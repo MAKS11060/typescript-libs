@@ -1,3 +1,5 @@
+import type {Type} from './constants.ts'
+
 /**
  * @param dateString - '11 января 2011'
  */
@@ -103,7 +105,7 @@ export const parseUri = (href: string | URL) => {
 
     return {
       hostname,
-      type,
+      type: type as Type,
       genre,
       title: removeLatest(removeHtml(title)),
       id,
@@ -116,7 +118,7 @@ export const parseUri = (href: string | URL) => {
 
   return {
     hostname,
-    type,
+    type: type as Type,
     genre,
     title: removeLatest(title),
     id,
