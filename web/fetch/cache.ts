@@ -37,8 +37,9 @@ const l = {
   orange: `color: orange`,
   red: `color: red`,
 }
+
 const log = {
-  match: () => console.log('%c[cache]%c matches %chit', l.blue, l.green, l.lime),
+  match: () => console.log('%c[cache]%c hit', l.blue, l.lime),
   miss: () => console.log('%c[cache]%c miss', l.blue, l.orange),
   put: () => console.log('%c[cache]%c put', l.blue, l.green),
   delete: () => console.log(`[cache]%c delete`, l.red),
@@ -63,8 +64,7 @@ export const fetchCache = async (
   return {
     // match
     async onRequest({request, ctx}) {
-      if (!filter?.(request)) return
-
+      if (filter && !filter(request)) return
       if (request.method !== 'GET') return
 
       const matches = await cache.match(request)
