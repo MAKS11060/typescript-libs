@@ -1,9 +1,15 @@
 {
   "deno.enable": true,
+  "prettier.enable": false,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
 
   "[json]": { "editor.defaultFormatter": "denoland.vscode-deno" },
   "[jsonc]": { "editor.defaultFormatter": "denoland.vscode-deno" },
   "[markdown]": { "editor.defaultFormatter": "denoland.vscode-deno" },
-  "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" }
+  "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "deno.json*": "package.json, tsconfig.json, *.lock, .*"
+  }
 }

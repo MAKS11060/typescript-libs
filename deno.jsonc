@@ -12,7 +12,7 @@
   ],
   "fmt": {
     "lineWidth": 120,
-    "newLineKind": "system",
+    "newLineKind": "auto",
     "quoteProps": "asNeeded",
     "semiColons": false,
     "singleQuote": true,

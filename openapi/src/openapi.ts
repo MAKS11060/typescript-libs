@@ -967,7 +967,7 @@ export const getOperationIds = (doc: OpenAPI): Map<string, string> => {
     }
 
     const {operations = []} = getInternal(pathItem)
-    for (const [method, operation] of operations) {
+    for (const [_method, operation] of operations) {
       const {operationId} = getInternal(operation)
       if (operationId) res.set(operationId, path)
     }

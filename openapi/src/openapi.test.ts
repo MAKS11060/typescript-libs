@@ -591,3 +591,13 @@ Deno.test('createDoc() security', async (t) => {
     },
   })
 })
+
+Deno.test('Test 135882', async (t) => {
+  const doc = createDoc({info: {title: '', version: ''}})
+
+  doc.addPath('/').get((t) => {
+    t.response('2XX', (t) => {
+      t.content('application/json', {})
+    })
+  })
+})

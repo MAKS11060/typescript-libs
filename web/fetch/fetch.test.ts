@@ -27,12 +27,6 @@ Deno.test('Test 800287', async (t) => {
 Deno.test('Test 334341', async (t) => {
   const api = Fetch({baseUrl: 'https://api.myip.com/'})
     .use({
-      onRequest({request, options}) {
-        // Add authorization header
-        const headers = new Headers(request.headers)
-        headers.set('Authorization', 'Bearer token')
-        return new Request(request, {headers})
-      },
       onResponse({response}) {
         // Log response status
         console.log(`Response: ${response.status}`)
@@ -44,6 +38,9 @@ Deno.test('Test 334341', async (t) => {
 })
 
 Deno.test('Test 477518', async (t) => {
-  const test1 = Fetch()
-  test1.use(await fetchCache({name: 'cache-1'}))
+  const api = Fetch()
+  api.use(await fetchCache({name: 'cache-1', ttl: 10, log: true}))
+
+  // const res = await api.fetch('https://api.myip.com/')
+  // console.log(await res.json())
 })

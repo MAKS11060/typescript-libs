@@ -123,7 +123,7 @@
 
 export * from './aaguid.ts'
 export * from './authn.ts'
-export {alg, pubKeyCredParams} from './types.ts'
+export {alg, pubKeyCredParams} from './constants.ts'
 export type {
   AttestationObject,
   AuthenticatorData,

@@ -1,29 +1,33 @@
 import {concat} from '@std/bytes/concat'
 import {decodeCbor} from '@std/cbor/decode-cbor'
 import {timingSafeEqual} from '@std/crypto/timing-safe-equal'
-import {decodeBase64Url, encodeBase64Url} from '@std/encoding/base64url'
 import {decodeAsn1} from './asn1.ts'
-import {
-  alg,
-  type AttestationObject,
-  type AuthenticatorData,
-  type AuthenticatorDataFlags,
-  type AuthnPublicKeyCredential,
-  type AuthnPublicKeyCredentialAssertion,
-  type AuthnPublicKeyCredentialAttestation,
-  type ClientDataJSON,
-  type CredentialCreationOptions,
-  type CredentialRequestOptions,
-  type PublicKeyCredentialCreationOptionsJSON,
-  type PublicKeyCredentialJSON,
-  type PublicKeyCredentialRequestOptionsJSON,
-  type PublicKeyCredentialResponseAssertionJSON,
-  type PublicKeyCredentialResponseAttestationJSON,
-  type Uint8Array_,
-  verifyOptionsByKey,
+import {alg, verifyOptionsByKey} from './constants.ts'
+import type {
+  AttestationObject,
+  AuthenticatorData,
+  AuthenticatorDataFlags,
+  AuthnPublicKeyCredential,
+  AuthnPublicKeyCredentialAssertion,
+  AuthnPublicKeyCredentialAttestation,
+  ClientDataJSON,
+  CredentialCreationOptions,
+  CredentialRequestOptions,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  PublicKeyCredentialResponseAssertionJSON,
+  PublicKeyCredentialResponseAttestationJSON,
+  Uint8Array_,
 } from './types.ts'
 
+const base64url = { // to base64url
+  alphabet: 'base64url',
+  omitPadding: true,
+} satisfies Parameters<Uint8Array['toBase64']>[0]
+
 const encoder = new TextEncoder()
+const decoder = new TextDecoder()
 
 const sha256 = async (input: string | Uint8Array_) => {
   return new Uint8Array(
@@ -198,7 +202,7 @@ export const credentials: Credential = {
 
         return JSON.parse(JSON.stringify(options.publicKey, (_, val) => {
           if (val instanceof Uint8Array || val instanceof ArrayBuffer) {
-            return encodeBase64Url(val)
+            return new Uint8Array(val).toBase64(base64url)
           }
           return val
         }))
@@ -228,7 +232,7 @@ export const credentials: Credential = {
 
         return JSON.parse(JSON.stringify(options.publicKey, (_, val) => {
           if (val instanceof Uint8Array || val instanceof ArrayBuffer) {
-            return encodeBase64Url(val)
+            return new Uint8Array(val).toBase64(base64url)
           }
           return val
         }))
@@ -239,12 +243,14 @@ export const credentials: Credential = {
 
 // PublicKeyCredential
 const parseClientDataJSON = (clientDataJSON: string) => {
-  const clientDataText = new TextDecoder().decode(decodeBase64Url(clientDataJSON))
+  const clientDataText = decoder.decode(Uint8Array.fromBase64(clientDataJSON, {alphabet: 'base64url'}))
   return JSON.parse(clientDataText) as ClientDataJSON
 }
 
 const parseAuthenticatorData = (authData: string | Uint8Array_): AuthenticatorData => {
-  const authenticatorData = authData instanceof Uint8Array ? new Uint8Array(authData) : decodeBase64Url(authData)
+  const authenticatorData = authData instanceof Uint8Array
+    ? new Uint8Array(authData)
+    : Uint8Array.fromBase64(authData, {alphabet: 'base64url'})
   const view = new DataView(authenticatorData.buffer)
 
   return {
@@ -289,7 +295,7 @@ export const parseAuthenticatorDataFlags = (flags: number): AuthenticatorDataFla
 
 /** https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/attestationObject#value */
 const parseAttestation = (response: PublicKeyCredentialResponseAttestationJSON) => {
-  const attestationBuffer = decodeBase64Url(response.attestationObject)
+  const attestationBuffer = Uint8Array.fromBase64(response.attestationObject, {alphabet: 'base64url'})
   const attestation = decodeCbor(attestationBuffer) as unknown as AttestationObject
 
   return {
@@ -314,7 +320,7 @@ export const publicKeyCredential: PublicKeyCredential = {
       type: 'public-key',
 
       get rawId() {
-        return decodeBase64Url(cred.rawId)
+        return Uint8Array.fromBase64(cred.rawId, {alphabet: 'base64url'})
       },
 
       get authData() {
@@ -322,7 +328,7 @@ export const publicKeyCredential: PublicKeyCredential = {
       },
 
       get rawAuthData() {
-        return decodeBase64Url(cred.response.authenticatorData)
+        return Uint8Array.fromBase64(cred.response.authenticatorData, {alphabet: 'base64url'})
       },
 
       get clientData() {
@@ -330,7 +336,7 @@ export const publicKeyCredential: PublicKeyCredential = {
       },
 
       get rawClientData() {
-        return decodeBase64Url(cred.response.clientDataJSON)
+        return Uint8Array.fromBase64(cred.response.clientDataJSON, {alphabet: 'base64url'})
       },
 
       // register data
@@ -341,12 +347,14 @@ export const publicKeyCredential: PublicKeyCredential = {
 
       get rawAttestation() {
         if (!(cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject) return
-        return decodeBase64Url((cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject)
+        return Uint8Array.fromBase64((cred.response as PublicKeyCredentialResponseAttestationJSON).attestationObject, {
+          alphabet: 'base64url',
+        })
       },
 
       get publicKey() {
         const {publicKey} = cred.response as PublicKeyCredentialResponseAttestationJSON
-        return publicKey ? decodeBase64Url(publicKey) : undefined
+        return publicKey ? Uint8Array.fromBase64(publicKey, {alphabet: 'base64url'}) : undefined
       },
 
       get publicKeyAlgorithm() {
@@ -356,12 +364,12 @@ export const publicKeyCredential: PublicKeyCredential = {
       // login data
       get signature() {
         const {signature} = cred.response as PublicKeyCredentialResponseAssertionJSON
-        return signature ? decodeBase64Url(signature) : undefined
+        return signature ? Uint8Array.fromBase64(signature, {alphabet: 'base64url'}) : undefined
       },
 
       get userHandle() {
         const {userHandle} = cred.response as PublicKeyCredentialResponseAssertionJSON
-        return userHandle ? decodeBase64Url(userHandle) : null
+        return userHandle ? Uint8Array.fromBase64(userHandle, {alphabet: 'base64url'}) : null
       },
     }
   },

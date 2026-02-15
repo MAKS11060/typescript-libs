@@ -3,12 +3,19 @@ interface BroadcastChannelTypedEventMap<T = unknown> {
   messageerror: MessageEvent
 }
 
-/** [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel) */
+/**
+ * @example
+ * ```ts
+ * type BcType =
+ *  | {type: 'req'}
+ *  | {type: 'res'; value: number}
+ *
+ * const bc1 = new BroadcastChannelTyped<BcType>('bc-1')
+ * ```
+ *
+ * [MDN Reference](https://developer.mozilla.org/docs/Web/API/BroadcastChannel)
+ */
 export class BroadcastChannelTyped<T extends unknown> extends BroadcastChannel {
-  constructor(name: string) {
-    super(name)
-  }
-
   override set onmessage(handler: ((this: BroadcastChannel, ev: MessageEvent<T>) => any) | null) {
     super.onmessage = handler
   }
@@ -18,18 +25,22 @@ export class BroadcastChannelTyped<T extends unknown> extends BroadcastChannel {
   }
 
   override addEventListener<K extends keyof BroadcastChannelTypedEventMap<T>>(
-    type: K,
-    listener: (this: BroadcastChannel, ev: BroadcastChannelTypedEventMap<T>[K]) => any,
-    options?: boolean | AddEventListenerOptions,
+    ...args: [
+      type: K,
+      listener: (this: BroadcastChannel, ev: BroadcastChannelTypedEventMap<T>[K]) => any,
+      options?: boolean | AddEventListenerOptions,
+    ]
   ): void {
-    super.addEventListener(type, listener, options)
+    super.addEventListener(...args)
   }
 
   override removeEventListener<K extends keyof BroadcastChannelTypedEventMap<T>>(
-    type: K,
-    listener: (this: BroadcastChannel, ev: BroadcastChannelTypedEventMap<T>[K]) => any,
-    options?: boolean | EventListenerOptions,
+    ...args: [
+      type: K,
+      listener: (this: BroadcastChannel, ev: BroadcastChannelTypedEventMap<T>[K]) => any,
+      options?: boolean | EventListenerOptions,
+    ]
   ): void {
-    super.removeEventListener(type, listener, options)
+    super.removeEventListener(...args)
   }
 }
