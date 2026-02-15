@@ -1,6 +1,6 @@
 {
   "name": "@maks11060/webauthn",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "tasks": {
     "test": "deno test",
     "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
