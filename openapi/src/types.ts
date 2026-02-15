@@ -48,6 +48,8 @@ export type PluginInputType<T> = T extends SchemaPlugin<infer O> ? O : unknown
 type ExtractSchemaPlugins<T> = T extends {plugins: {schema: Array<infer O>}} ? O : unknown
 
 ////////////////
+type AnyString = string & {}
+
 export type Status = number | `${1 | 2 | 3 | 4 | 5}XX` | 'default'
 
 interface MIME {
@@ -56,7 +58,7 @@ interface MIME {
   text: '*' | 'plain' | 'html'
 }
 
-export type ContentType = { [K in keyof MIME]: `${K}/${MIME[K]}` }[keyof MIME]
+export type ContentType = { [K in keyof MIME]: `${K}/${MIME[K]}` }[keyof MIME] | AnyString
 
 export type ParameterLocation = 'path' | 'query' | 'header' | 'cookie'
 
