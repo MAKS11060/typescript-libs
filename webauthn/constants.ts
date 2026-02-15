@@ -1,4 +1,4 @@
-import {COSEAlgorithmIdentifier, PublicKeyCredentialParameters} from './types.ts'
+import type {COSEAlgorithmIdentifier, PublicKeyCredentialParameters} from './types.ts'
 
 /**
  * A recommended set of algorithms that covers all devices. The list is taken from

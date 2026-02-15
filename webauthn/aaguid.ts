@@ -16,7 +16,7 @@
 
 import aaguidList from './aaguid.json' with {type: 'json'}
 import type {AuthnPublicKeyCredentialAttestation, Uint8Array_} from './types.ts'
-import {stringify} from './uuid.ts'
+import {parse, stringify} from './uuid.ts'
 
 export interface AAGUID {
   name: string
@@ -41,6 +41,15 @@ export class Aaguid extends Map<string, AAGUID> {
     if (aaguid.attestation.authData.attestedCredentialData?.aaguid) {
       return stringify(aaguid.attestation.authData.attestedCredentialData.aaguid)
     }
+  }
+
+  /**
+   * Convert a AAGUID string to `Uint8Array(16)`.
+   * @param aaguid Raw AAGUID string
+   * @returns `Uint8Array(16)` from AAGUID string
+   */
+  static Parse(aaguid: string): Uint8Array_ {
+    return parse(aaguid)
   }
 
   /**

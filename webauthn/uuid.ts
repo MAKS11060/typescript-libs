@@ -5,7 +5,6 @@ for (let i = 0; i < 6; i++) charCodeToUint[97 + i] = charCodeToUint[65 + i] = 10
 
 // stringify
 const byteToHex: string[] = []
-
 for (let i = 0; i < 256; i++) byteToHex.push(i.toString(16).padStart(2, '0'))
 
 export const parse = (uuid: string) => {
