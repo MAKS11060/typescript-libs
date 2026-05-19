@@ -1,0 +1,25 @@
+{
+  "type": "module",
+  "name": "@maks11060/iqdb-hash",
+  "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MAKS11060/typescript-libs.git",
+    "directory": "/iqdb-hash"
+  },
+  "bugs": {
+    "url": "https://github.com/MAKS11060/typescript-libs/issues"
+  },
+  "scripts": {
+    "build": ""
+  },
+  "dependencies": {},
+  "imports": {},
+  "exports": {
+    ".": {
+      "import": "./wasm.js",
+      "types": "./wasm.d.ts"
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import type {StandardSchemaV1} from '@standard-schema/spec'
 import * as YAML from '@std/yaml/stringify'
+import {ComponentKeyName} from './constants.ts'
 import {entriesToRecord, extractParams, toProp, toRest} from './lib/helpers.ts'
 import {createRef, deRef, isRef, type MaybeRef, type Ref} from './lib/ref.ts'
 import {
@@ -24,8 +25,6 @@ import {
   type ServerObject,
   type Status,
 } from './types.ts'
-
-const ComponentKeyName = /^[a-zA-Z0-9\.\-_]+$/
 
 const isValidComponentName = (name: string) => {
   if (!ComponentKeyName.test(name)) {

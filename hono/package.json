@@ -1,12 +1,12 @@
 {
   "type": "module",
-  "name": "@maks11060/webauthn",
-  "version": "0.1.3",
+  "name": "@maks11060/hono",
+  "version": "0.0.1",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MAKS11060/typescript-libs.git",
-    "directory": "/webauthn"
+    "directory": "/hono"
   },
   "bugs": {
     "url": "https://github.com/MAKS11060/typescript-libs/issues"
@@ -15,24 +15,16 @@
     "build": "tsdown"
   },
   "dependencies": {
-    "@std/bytes": "jsr:^1.0.6",
-    "@std/cbor": "jsr:^0.1.9",
-    "@std/crypto": "jsr:^1.1.0",
-    "@std/encoding": "jsr:^1.0.10"
+    "hono": "catalog:"
   },
   "exports": {
-    ".": "./mod.ts",
-    "./aaguid": "./aaguid.ts"
+    ".": "./src/mod.ts"
   },
   "publishConfig": {
     "exports": {
       ".": {
         "import": "./dist/mod.mjs",
         "types": "./dist/mod.d.mts"
-      },
-      "./aaguid": {
-        "import": "./dist/aaguid.mjs",
-        "types": "./dist/aaguid.d.mts"
       }
     }
   }

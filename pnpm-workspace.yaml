@@ -6,9 +6,9 @@ allowBuilds:
 
 catalog:
   "@types/deno": "^2.7.0"
-  "@types/node": "^25.8.0"
+  "@types/node": "^25.9.0"
   "@typescript/native-preview": "7.0.0-dev.20260518.1"
   "typescript": "^6.0.3"
   "zod": "^4.4.3"
-  "tsx": "^4.22.1"
-  "hono": "*"
+  "tsx": "^4.22.2"
+  "hono": "^4.12.19"

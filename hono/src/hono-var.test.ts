@@ -1,7 +1,7 @@
 import {Hono} from 'hono'
 import {deleteCookie, getCookie, setCookie} from 'hono/cookie'
 import {HTTPException} from 'hono/http-exception'
-import {createHonoVar} from './mod.ts'
+import {createHonoVar} from '../../lib/hono/mod.ts'
 
 const honoSession = createHonoVar(() => {
   const sessionName = 'session'

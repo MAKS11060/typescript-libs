@@ -2,6 +2,15 @@
   "type": "module",
   "name": "@maks11060/web",
   "version": "0.1.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MAKS11060/typescript-libs.git",
+    "directory": "/web"
+  },
+  "bugs": {
+    "url": "https://github.com/MAKS11060/typescript-libs/issues"
+  },
   "scripts": {
     "build": "tsdown"
   },

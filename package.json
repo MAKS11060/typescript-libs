@@ -4,7 +4,8 @@
   "scripts": {
     "fmt": "dprint fmt",
     "lint": "dprint check",
-    "prepare": "git config core.hooksPath .hooks"
+    "prepare": "git config core.hooksPath .hooks",
+    "build": "pnpm -r build"
   },
   "devEngines": {
     "packageManager": {

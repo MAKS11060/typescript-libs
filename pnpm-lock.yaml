@@ -209,14 +209,17 @@ catalogs:
       specifier: ^2.7.0
       version: 2.7.0
     '@types/node':
-      specifier: ^25.8.0
-      version: 25.8.0
+      specifier: ^25.9.0
+      version: 25.9.0
     '@typescript/native-preview':
       specifier: 7.0.0-dev.20260518.1
       version: 7.0.0-dev.20260518.1
+    hono:
+      specifier: ^4.12.19
+      version: 4.12.19
     tsx:
-      specifier: ^4.22.1
-      version: 4.22.1
+      specifier: ^4.22.2
+      version: 4.22.2
     typescript:
       specifier: ^6.0.3
       version: 6.0.3
@@ -233,22 +236,30 @@ importers:
         version: 2.7.0
       '@types/node':
         specifier: 'catalog:'
-        version: 25.8.0
+        version: 25.9.0
       '@typescript/native-preview':
         specifier: 'catalog:'
         version: 7.0.0-dev.20260518.1
       tsdown:
         specifier: ^0.22.0
-        version: 0.22.0(@typescript/native-preview@7.0.0-dev.20260518.1)(tsx@4.22.1)(typescript@6.0.3)
+        version: 0.22.0(@typescript/native-preview@7.0.0-dev.20260518.1)(tsx@4.22.2)(typescript@6.0.3)
       tsx:
         specifier: 'catalog:'
-        version: 4.22.1
+        version: 4.22.2
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
       zod:
         specifier: 'catalog:'
         version: 4.4.3
+
+  hono:
+    dependencies:
+      hono:
+        specifier: 'catalog:'
+        version: 4.12.19
+
+  iqdb-hash: {}
 
   lib:
     dependencies:
@@ -259,17 +270,32 @@ importers:
         specifier: npm:@jsr/std__bytes@^1.0.6
         version: '@jsr/std__bytes@1.0.6'
       '@std/crypto':
-        specifier: npm:@jsr/std__crypto@^1.0.5
+        specifier: npm:@jsr/std__crypto@^1.1.0
         version: '@jsr/std__crypto@1.1.0'
       '@std/encoding':
         specifier: npm:@jsr/std__encoding@^1.0.10
         version: '@jsr/std__encoding@1.0.10'
       '@std/yaml':
-        specifier: npm:@jsr/std__yaml@^1.0.11
+        specifier: npm:@jsr/std__yaml@^1.1.0
         version: '@jsr/std__yaml@1.1.0'
       hono:
-        specifier: npm:hono@^4.11.7
+        specifier: 'catalog:'
         version: 4.12.19
+
+  openapi:
+    dependencies:
+      '@standard-schema/spec':
+        specifier: ^1.1.0
+        version: 1.1.0
+      '@std/yaml':
+        specifier: jsr:^1.1.0
+        version: '@jsr/std__yaml@1.1.0'
+      hono:
+        specifier: 'catalog:'
+        version: 4.12.19
+      zod:
+        specifier: 'catalog:'
+        version: 4.4.3
 
   web: {}
 
@@ -640,6 +666,9 @@ packages:
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
 
+  '@standard-schema/spec@1.1.0':
+    resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
 
@@ -652,8 +681,8 @@ packages:
   '@types/jsesc@2.5.1':
     resolution: {integrity: sha512-9VN+6yxLOPLOav+7PwjZbxiID2bVaeq0ED4qSQmdQTdjnXJSaCVKTR58t15oqH1H5t8Ng2ZX1SabJVoN9Q34bw==}
 
-  '@types/node@25.8.0':
-    resolution: {integrity: sha512-TCFSk8IZh+iLX1xtksoBVtdmgL+1IX0fC9BeU4QqFSuNdN/K+HUlhqOzEmSYYpZUVsLYcPqc9KX+60iDuninSQ==}
+  '@types/node@25.9.0':
+    resolution: {integrity: sha512-AOQwYUNolgy3VosiRqXrACUXTN8nJUtPl7FJXMqZVyxiiCLhQuG3jXKvCS1ALr+Y2OmZhzzLVlYPEqJaiqkaJQ==}
 
   '@typescript/native-preview-darwin-arm64@7.0.0-dev.20260518.1':
     resolution: {integrity: sha512-5n6xnR8jsDjrjHkf30hVVzby/cTusPrc0f6S3hQLrTdACC9JejsrHMHV1rRu55gSAIZhhBY0pqvG3/VKB9J0tA==}
@@ -869,8 +898,8 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  tsx@4.22.1:
-    resolution: {integrity: sha512-TvncJykhxAzFCk0VQZKBTClall4Pm7qXDSodb6uxi8QFa8X8mT6ABjxxsQ2opDRYxG7AzcRWXaFtruz5HJKuWg==}
+  tsx@4.22.2:
+    resolution: {integrity: sha512-6w9FwtT8WQqRAyTNR+Z+86kghRqpmOLjXUrBlBT6T+CQGDuIMm0VmAqaFUFBIeKDTGobE6/YSigZYLeomzBaRg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -1129,6 +1158,8 @@ snapshots:
 
   '@rolldown/pluginutils@1.0.1': {}
 
+  '@standard-schema/spec@1.1.0': {}
+
   '@tybys/wasm-util@0.10.2':
     dependencies:
       tslib: 2.8.1
@@ -1140,7 +1171,7 @@ snapshots:
 
   '@types/jsesc@2.5.1': {}
 
-  '@types/node@25.8.0':
+  '@types/node@25.9.0':
     dependencies:
       undici-types: 7.24.6
 
@@ -1304,7 +1335,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  tsdown@0.22.0(@typescript/native-preview@7.0.0-dev.20260518.1)(tsx@4.22.1)(typescript@6.0.3):
+  tsdown@0.22.0(@typescript/native-preview@7.0.0-dev.20260518.1)(tsx@4.22.2)(typescript@6.0.3):
     dependencies:
       ansis: 4.3.0
       cac: 7.0.0
@@ -1322,7 +1353,7 @@ snapshots:
       tree-kill: 1.2.2
       unconfig-core: 7.5.0
     optionalDependencies:
-      tsx: 4.22.1
+      tsx: 4.22.2
       typescript: 6.0.3
     transitivePeerDependencies:
       - '@ts-macro/tsc'
@@ -1333,7 +1364,7 @@ snapshots:
   tslib@2.8.1:
     optional: true
 
-  tsx@4.22.1:
+  tsx@4.22.2:
     dependencies:
       esbuild: 0.28.0
     optionalDependencies:

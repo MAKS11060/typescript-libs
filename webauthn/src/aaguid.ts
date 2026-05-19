@@ -14,7 +14,7 @@
  * @module aaguid
  */
 
-import aaguidList from './aaguid.json' with {type: 'json'}
+import aaguidList from './aaguid-known.json' with {type: 'json'}
 import type {AuthnPublicKeyCredentialAttestation, Uint8Array_} from './types.ts'
 import {parse, stringify} from './uuid.ts'
 

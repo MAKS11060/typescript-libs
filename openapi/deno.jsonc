@@ -13,7 +13,7 @@
     "zod": "npm:zod@^4.3.6",
   },
   "exports": {
-    ".": "./mod.ts",
+    ".": "./src/mod.ts",
     "./zod": "./src/plugins/zod.ts",
   },
 }
