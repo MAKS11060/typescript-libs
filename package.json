@@ -17,8 +17,9 @@
     "@types/deno": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native-preview": "catalog:",
+    "tsdown": "^0.22.0",
+    "tsx": "catalog:",
     "typescript": "catalog:",
-    "zod": "catalog:",
-    "tsx": "catalog:"
+    "zod": "catalog:"
   }
 }

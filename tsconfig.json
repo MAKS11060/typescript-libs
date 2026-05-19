@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "types": ["node", "deno"],
     "target": "esnext",
-    "module": "esnext",
+    "module": "nodenext",
     "moduleResolution": "nodenext",
 
     "allowImportingTsExtensions": true,
@@ -18,7 +18,7 @@
     "skipLibCheck": true,
 
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
+    // "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
     "noUnusedLocals": false,
