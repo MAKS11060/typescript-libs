@@ -2,34 +2,34 @@
   "tasks": {
     "ok": "deno fmt --check && deno publish --dry-run --allow-dirty",
     "init": "git config core.hooksPath .hooks",
-    "publish": "deno publish --allow-slow-types"
+    "publish": "deno publish --allow-slow-types",
   },
   "imports": {
     "@deno/dnt": "jsr:@deno/dnt@^0.42.3",
-    "@std/expect": "jsr:@std/expect@^1.0.17"
+    "@std/expect": "jsr:@std/expect@^1.0.17",
   },
   "workspace": [
-    "./**/*"
+    "./**/*",
   ],
   "fmt": {
     "exclude": [
-      "**/*-lock.*"
+      "**/*-lock.*",
     ],
     "lineWidth": 120,
     "newLineKind": "auto",
     "quoteProps": "asNeeded",
     "semiColons": false,
     "singleQuote": true,
-    "spaceSurroundingProperties": false
+    "spaceSurroundingProperties": false,
   },
   "publish": {
     "exclude": [
       "**/*.test.ts",
       "**/*.bench.ts",
-      "**/examples"
-    ]
+      "**/examples",
+    ],
   },
   "unstable": [
-    "kv"
-  ]
+    "kv",
+  ],
 }

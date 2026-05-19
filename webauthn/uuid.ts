@@ -36,7 +36,7 @@ export const parse = (uuid: string) => {
 
 export const stringify = (bytes: Uint8Array<ArrayBuffer>) => {
   if (bytes.byteLength !== 16) throw new Error('The uuid must contain 16 bytes')
-  // deno-fmt-ignore
+  // dprint-ignore
   return (
     byteToHex[bytes[0]] + byteToHex[bytes[1]] +
     byteToHex[bytes[2]] + byteToHex[bytes[3]] + '-' +

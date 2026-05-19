@@ -265,7 +265,7 @@ Deno.test('ASN.1 parse DER ECDSA Sign', async (t) => {
   )
   const res = parseDerEcdsaSign(signature)
 
-  // deno-fmt-ignore
+  // dprint-ignore
   expect(res).toEqual(new Uint8Array([
     60, 239, 39, 15, 139, 241, 72, 208, 119, 166, 177,
     157, 120, 93, 104, 95, 105, 35, 228, 111, 99, 44,

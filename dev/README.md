@@ -33,8 +33,8 @@ Create `package.json` with:
     "@std/path": "jsr:@std/path@^1.1.4",
     "zod": "npm:zod@^4.3.6",
     // alias
-    "#/routes/": "./src/routes/"
-  }
+    "#/routes/": "./src/routes/",
+  },
 }
 ```
 

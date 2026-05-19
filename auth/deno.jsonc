@@ -4,19 +4,19 @@
   "publish": false,
   "tasks": {
     "test": "deno test -A",
-    "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty"
+    "ok": "deno fmt --check && deno task test && deno publish --dry-run --allow-dirty",
   },
   "imports": {
-    "jose": "npm:jose@^6.1.3"
+    "jose": "npm:jose@^6.1.3",
   },
   "exports": {
     "./client": "./client/mod.ts",
-    "./server": "./server/mod.ts"
+    "./server": "./server/mod.ts",
   },
   "compilerOptions": {
     "lib": [
       "deno.window",
-      "dom"
-    ]
-  }
+      "dom",
+    ],
+  },
 }

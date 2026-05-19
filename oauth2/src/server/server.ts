@@ -580,8 +580,8 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       }
 
       if (
-        (responseType === ResponseType.Code && !options.grants?.authorizationCode) ||
-        (responseType === ResponseType.Token && !options.grants?.implicit)
+        (responseType === ResponseType.Code && !options.grants?.authorizationCode)
+        || (responseType === ResponseType.Token && !options.grants?.implicit)
       ) throw new OAuth2UnsupportedResponseType()
 
       // if (!options.grants?.authorizationCode && !options.grants?.implicit) {
@@ -674,10 +674,10 @@ export const createOauth2Server: CreateOauth2Server = (options: OAuth2ServerOpti
       const {grant_type: grantType, client_id} = data
 
       if (
-        (grantType === GrantType.AuthorizationCode && !options.grants?.authorizationCode) ||
-        (grantType === GrantType.RefreshToken && !options.grants?.refreshToken) ||
-        (grantType === GrantType.Password && !options.grants?.password) ||
-        (grantType === GrantType.ClientCredentials && !options.grants?.credentials)
+        (grantType === GrantType.AuthorizationCode && !options.grants?.authorizationCode)
+        || (grantType === GrantType.RefreshToken && !options.grants?.refreshToken)
+        || (grantType === GrantType.Password && !options.grants?.password)
+        || (grantType === GrantType.ClientCredentials && !options.grants?.credentials)
       ) throw new OAuth2UnsupportedGrantType({})
 
       // required parameters

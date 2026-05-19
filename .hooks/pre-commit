@@ -2,4 +2,4 @@
 
 export NO_COLOR=true
 
-deno task ok
+pnpm lint

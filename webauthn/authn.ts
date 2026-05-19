@@ -376,13 +376,15 @@ export const publicKeyCredential: PublicKeyCredential = {
 
   isAttestation(cred: AuthnPublicKeyCredential): cred is
     & Omit<AuthnPublicKeyCredential, keyof AuthnPublicKeyCredentialAssertion>
-    & AuthnPublicKeyCredentialAttestation {
+    & AuthnPublicKeyCredentialAttestation
+  {
     return cred.clientData.type === 'webauthn.create'
   },
 
   isAssertion(cred: AuthnPublicKeyCredential): cred is
     & Omit<AuthnPublicKeyCredential, keyof AuthnPublicKeyCredentialAttestation>
-    & AuthnPublicKeyCredentialAssertion {
+    & AuthnPublicKeyCredentialAssertion
+  {
     return cred.clientData.type === 'webauthn.get'
   },
 

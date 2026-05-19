@@ -10,7 +10,7 @@ Deno.test('decode DER_ECDSA_Sign', async (t) => {
   // console.log(asn1Parse(signature))
   // console.log(encodeHex(signature))
 
-  // deno-fmt-ignore
+  // dprint-ignore
   expect(decodeAsn1.DER_ECDSA_Sign(signature)).toEqual(new Uint8Array([
     60, 239, 39, 15, 139, 241, 72, 208, 119, 166, 177,
     157, 120, 93, 104, 95, 105, 35, 228, 111, 99, 44,

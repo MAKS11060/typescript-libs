@@ -184,7 +184,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     clientExtensionResults: {},
     id: '931QGw1poO_Pr-aBvHhhyw',
     rawId: '931QGw1poO_Pr-aBvHhhyw',
-    // deno-fmt-ignore
+    // dprint-ignore
     response: {
       attestationObject: 'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViU-Jx3W2CIjpKPnIQIsHlBYdSZfagIar-Fvq4jvuvvrDpdAAAAAOqbjWZNAR0hPOS2tIy1ddQAEPd9UBsNaaDvz6_mgbx4YculAQIDJiABIVggU-dlyytnRNS0bX0c9v8naV_6Lfb_Hf8ZfyaArlGTuociWCChDcCr8gGpFMdK8QDOmtIpY5Up6zFK5dG2q0fAg8jBNg',
       authenticatorData: '-Jx3W2CIjpKPnIQIsHlBYdSZfagIar-Fvq4jvuvvrDpdAAAAAOqbjWZNAR0hPOS2tIy1ddQAEPd9UBsNaaDvz6_mgbx4YculAQIDJiABIVggU-dlyytnRNS0bX0c9v8naV_6Lfb_Hf8ZfyaArlGTuociWCChDcCr8gGpFMdK8QDOmtIpY5Up6zFK5dG2q0fAg8jBNg',
@@ -208,7 +208,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     crossOrigin: false,
   })
   expect(cred.authData).toEqual({
-    // deno-fmt-ignore
+    // dprint-ignore
     rpIdHash: new Uint8Array([
       248, 156, 119,  91,  96, 136, 142,
       146, 143, 156, 132,   8, 176, 121,
@@ -227,7 +227,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     rawFlags: 93,
     signCount: 0,
     attestedCredentialData: {
-      // deno-fmt-ignore
+      // dprint-ignore
       aaguid: new Uint8Array([
         234, 155, 141, 102,  77,
           1,  29,  33,  60, 228,
@@ -235,14 +235,14 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
         212
       ]),
       credentialIdLength: 16,
-      // deno-fmt-ignore
+      // dprint-ignore
       credentialId: new Uint8Array([
         247, 125,  80,  27,  13,
         105, 160, 239, 207, 175,
         230, 129, 188, 120,  97,
         203
       ]),
-      // deno-fmt-ignore
+      // dprint-ignore
       credentialPublicKey: new Uint8Array([
         165,   1,   2,   3,  38,  32,   1,  33,  88,  32,  83, 231,
         101, 203,  43, 103,  68, 212, 180, 109, 125,  28, 246, 255,
@@ -260,7 +260,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
     fmt: 'none',
     attStmt: {},
     authData: {
-      // deno-fmt-ignore
+      // dprint-ignore
       rpIdHash: new Uint8Array([
         248, 156, 119,  91,  96, 136, 142,
         146, 143, 156, 132,   8, 176, 121,
@@ -282,7 +282,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
         aaguid: new Uint8Array([234, 155, 141, 102, 77, 1, 29, 33, 60, 228, 182, 180, 140, 181, 117, 212]),
         credentialIdLength: 16,
         credentialId: new Uint8Array([247, 125, 80, 27, 13, 105, 160, 239, 207, 175, 230, 129, 188, 120, 97, 203]),
-        // deno-fmt-ignore
+        // dprint-ignore
         credentialPublicKey: new Uint8Array([
           165,   1,   2,   3,  38,  32,   1,  33,  88,  32,  83, 231,
           101, 203,  43, 103,  68, 212, 180, 109, 125,  28, 246, 255,
@@ -320,7 +320,7 @@ Deno.test('publicKeyCredentialFromJSON Attestation', async (t) => {
 Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
   const publicKey = await publicKeyCredential.getPublicKey({
     publicKeyAlgorithm: -7,
-    // deno-fmt-ignore
+    // dprint-ignore
     publicKey: new Uint8Array([
       48,  89,  48,  19,   6,   7,  42, 134,  72, 206,  61,   2,
         1,   6,   8,  42, 134,  72, 206,  61,   3,   1,   7,   3,
@@ -337,7 +337,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
     clientExtensionResults: {},
     id: 'wBCk_EC4zWD8cAll0sLZwyW1cIE9lvZNl8E6lFXxE5c',
     rawId: 'wBCk_EC4zWD8cAll0sLZwyW1cIE9lvZNl8E6lFXxE5c',
-    // deno-fmt-ignore
+    // dprint-ignore
     response: {
       authenticatorData: '-Jx3W2CIjpKPnIQIsHlBYdSZfagIar-Fvq4jvuvvrDoFAAAAAg',
       clientDataJSON: 'eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoib1d1UklnbXZ6eWc1QW5ZRmJSb3E3Tk14TWFWSkdsVGpCZjFtZlEtcExrNCIsIm9yaWdpbiI6Imh0dHBzOi8vbWFrczExMDYwLmtlZW5ldGljLmxpbmsiLCJjcm9zc09yaWdpbiI6ZmFsc2UsIm90aGVyX2tleXNfY2FuX2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgifQ',
@@ -359,7 +359,7 @@ Deno.test('publicKeyCredentialFromJSON Assertion', async (t) => {
     other_keys_can_be_added_here: 'do not compare clientDataJSON against a template. See https://goo.gl/yabPex',
   })
   expect(cred.authData).toEqual({
-    // deno-fmt-ignore
+    // dprint-ignore
     rpIdHash: new Uint8Array([
       248, 156, 119,  91,  96, 136, 142,
       146, 143, 156, 132,   8, 176, 121,

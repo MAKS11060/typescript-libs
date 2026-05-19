@@ -260,7 +260,7 @@ Deno.test('Test 261007', {ignore: true}, async (t) => {
   // 3
   const app3 = createOauth2Server<{a: 'global'}>({
     getClient: (clientId) => ({} as any),
-    storage: {} as any, //as Storage<{a: 'local'}>,
+    storage: {} as any, // as Storage<{a: 'local'}>,
     grants: {},
   })
   app3.authorize({uri: new URL(''), ctx: {a: 'global'}})
@@ -268,7 +268,7 @@ Deno.test('Test 261007', {ignore: true}, async (t) => {
   // 4
   const app4 = createOauth2Server<DefaultCtx & {a: 'global'}, OAuth2Client & {prop: string}>({
     getClient: (clientId) => ({} as any),
-    storage: {} as any, //as Storage<{a: 'local'}>,// err ok
+    storage: {} as any, // as Storage<{a: 'local'}>,// err ok
     grants: {},
   })
   const a4 = await app4.authorize({uri: new URL(''), ctx: {sub: '', a: 'global'}})

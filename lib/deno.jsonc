@@ -8,12 +8,12 @@
     "@std/crypto": "jsr:@std/crypto@^1.0.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/yaml": "jsr:@std/yaml@^1.0.11",
-    "hono": "npm:hono@^4.11.7"
+    "hono": "npm:hono@^4.11.7",
   },
   "exports": {
     "./danbooru/tags": "./danbooru/tags.ts",
     "./hono": "./hono/mod.ts",
     "./hono/hono-var": "./hono/hono-var.ts",
-    "./iqdb": "./iqdb/wasm.js"
-  }
+    "./iqdb": "./iqdb/wasm.js",
+  },
 }

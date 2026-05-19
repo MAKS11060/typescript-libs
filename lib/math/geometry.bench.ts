@@ -17,8 +17,8 @@ export function getDistance(a: Point, b?: Point): number {
 export function getDistanceAlt(a: Point, b?: Point): number {
   if (!b) return 0
   return Math.sqrt(
-    (b.clientX - a.clientX) * (b.clientX - a.clientX) +
-      (b.clientY - a.clientY) * (b.clientY - a.clientY),
+    (b.clientX - a.clientX) * (b.clientX - a.clientX)
+      + (b.clientY - a.clientY) * (b.clientY - a.clientY),
   )
 }
 

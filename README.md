@@ -136,8 +136,8 @@ Openapi 3.1 Schema builder.
 // deno.json
 {
   "unstable": [
-    "kv"
-  ]
+    "kv",
+  ],
 }
 ```
 
@@ -159,7 +159,10 @@ const userRegisterSchema = z.object({
   username: userSchema.shape.username,
   password: passwdSchema.shape.passwd,
 })
-const userLoginSchema = userRegisterSchema.pick({username: true, password: true})
+const userLoginSchema = userRegisterSchema.pick({
+  username: true,
+  password: true,
+})
 
 const userModel = kvModel(kv, userSchema, {
   prefix: 'user',
@@ -179,18 +182,28 @@ const isUsernameAvailable = async (username: string) => {
 
 const registerUser = async (data: z.input<typeof userRegisterSchema>) => {
   const op = userModel.atomic()
-  const user = await userModel.create({username: data.username}, {op, transaction: true})
-  const passwd = await passwdModel.create({passwd: data.password}, {op, key: user.id})
+  const user = await userModel.create({username: data.username}, {
+    op,
+    transaction: true,
+  })
+  const passwd = await passwdModel.create({passwd: data.password}, {
+    op,
+    key: user.id,
+  })
 
   return user
 }
 
 const loginUser = async (data: z.input<typeof userLoginSchema>) => {
-  const user = await userModel.findByIndex('username', data.username, {resolve: true})
+  const user = await userModel.findByIndex('username', data.username, {
+    resolve: true,
+  })
   if (!user) throw new Error('User not found')
 
   const passwd = await passwdModel.find(user.id)
-  if (!passwd || passwd.passwd !== data.password) throw new Error('Password invalid')
+  if (!passwd || passwd.passwd !== data.password) {
+    throw new Error('Password invalid')
+  }
 
   return user
 }
