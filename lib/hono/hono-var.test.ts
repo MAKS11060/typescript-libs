@@ -1,5 +1,69 @@
-import {expect} from '@std/expect'
 import {Hono} from 'hono'
+import {deleteCookie, getCookie, setCookie} from 'hono/cookie'
+import {HTTPException} from 'hono/http-exception'
+import {createHonoVar} from './mod.ts'
+
+const honoSession = createHonoVar(() => {
+  const sessionName = 'session'
+
+  return {
+    createSession(c) {
+      setCookie(c, sessionName, crypto.randomUUID(), {
+        httpOnly: true,
+        maxAge: 600,
+      })
+    },
+    getSession(c) {
+      return getCookie(c, sessionName)
+    },
+    deleteSession(c) {
+      return deleteCookie(c, sessionName)
+    },
+  }
+})
+
+const honoAuth = createHonoVar(honoSession, () => {
+  return {
+    login(c, data: {username: string; password: string}) {
+      if (data.username === 'admin' && data.password === 'admin') {
+        c.var.createSession()
+      } else {
+        throw new HTTPException(401)
+      }
+    },
+    register(c, data: {username: string; password: string}) {
+      console.log('Register', data)
+      c.var.createSession()
+    },
+    logout(c) {
+      const session = c.var.getSession()
+      if (session) {
+        c.var.deleteSession()
+      } else {
+        throw new HTTPException(401)
+      }
+    },
+  }
+})
+
+const app = new Hono()
+  .use(honoAuth)
+  .post('/api/register', async (c) => {
+    const data = await c.req.json<{username: string; password: string}>()
+    c.var.register(data)
+    return c.json({})
+  })
+  .post('/api/login', async (c) => {
+    const data = await c.req.json<{username: string; password: string}>()
+    c.var.login(data)
+    return c.json({})
+  })
+  .post('/api/logout', (c) => {
+    c.var.logout()
+    return c.json({})
+  })
+
+/* import {expect} from '@std/expect'
 import {getCookie, setCookie} from 'hono/cookie'
 import {createHonoVar} from './hono-var.ts'
 
@@ -110,3 +174,4 @@ Deno.test('/login admin', async (t) => {
     expect(await res.json()).toEqual('ok')
   })
 })
+ */

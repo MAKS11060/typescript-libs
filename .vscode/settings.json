@@ -1,15 +1,19 @@
 {
-  "deno.enable": true,
+  "deno.enable": false,
   "prettier.enable": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
 
-  "[json]": { "editor.defaultFormatter": "denoland.vscode-deno" },
-  "[jsonc]": { "editor.defaultFormatter": "denoland.vscode-deno" },
-  "[markdown]": { "editor.defaultFormatter": "denoland.vscode-deno" },
-  "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  "editor.defaultFormatter": "dprint.dprint",
+
+  // "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+
+  // "[json]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  // "[jsonc]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  // "[markdown]": { "editor.defaultFormatter": "denoland.vscode-deno" },
+  // "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" },
 
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
-    "deno.json*": "package.json, tsconfig.json, *.lock, .*"
+    // "deno.json*": "package.json, tsconfig.json, *.lock, .*"
+    "package.json": ".*, *.json, *.jsonc, *.yaml"
   }
 }

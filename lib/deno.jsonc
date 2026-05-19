@@ -5,16 +5,15 @@
   "imports": {
     "@b-fuze/deno-dom": "jsr:@b-fuze/deno-dom@^0.1.56",
     "@std/bytes": "jsr:@std/bytes@^1.0.6",
+    "@std/crypto": "jsr:@std/crypto@^1.0.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@std/yaml": "jsr:@std/yaml@^1.0.11",
     "hono": "npm:hono@^4.11.7"
   },
   "exports": {
-    "./animego": "./animego/mod.ts",
     "./danbooru/tags": "./danbooru/tags.ts",
     "./hono": "./hono/mod.ts",
     "./hono/hono-var": "./hono/hono-var.ts",
-    "./iqdb": "./iqdb/wasm.js",
-    "./rezka": "./rezka/src/mod.ts"
+    "./iqdb": "./iqdb/wasm.js"
   }
 }

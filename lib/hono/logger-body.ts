@@ -29,25 +29,23 @@ export const loggerBody = <T = unknown, O = unknown>(
       const start = performance.now()
       console.log(`<-- ${c.req.method.padStart(pad, padFill)} %c${c.req.url}`, 'color: green')
       c.req.header('content-type') === 'application/json'
-        ? options.incoming!(await c.req.raw.clone().json())
+        ? options.incoming!(await c.req.raw.clone().json() as T)
         : console.log(await c.req.raw.clone().text())
 
       await next()
 
       if (options.outgoing) {
         c.res.headers.get('content-type')?.startsWith('application/json')
-          ? options.outgoing(await c.res.clone().json())
+          ? options.outgoing(await c.res.clone().json() as O)
           : console.log(await c.res.clone().text())
       }
 
       console.log(
-        `--> ${c.req.method.padStart(pad, padFill)} %c${c.res.status} %c${c.req.url} %c${
-          (
-            performance.now() - start
-          ).toFixed(3)
+        `--> ${c.req.method.padStart(pad, padFill)} %c${c.req.url} %c${c.res.status} %c${
+          (performance.now() - start).toFixed(3)
         } ms`,
-        `color: ${statusColor(c.res.status)}`,
         'color: green',
+        `color: ${statusColor(c.res.status)}`,
         'color: blue',
       )
       return

@@ -1,0 +1,20 @@
+{
+  "type": "module",
+  "dependencies": {
+    "hono": "npm:hono@^4.11.7",
+    "@b-fuze/deno-dom": "npm:@jsr/b-fuze__deno-dom@^0.1.56",
+    "@std/bytes": "npm:@jsr/std__bytes@^1.0.6",
+    "@std/crypto": "npm:@jsr/std__crypto@^1.0.5",
+    "@std/encoding": "npm:@jsr/std__encoding@^1.0.10",
+    "@std/yaml": "npm:@jsr/std__yaml@^1.0.11"
+  },
+  "imports": {},
+  "exports": {
+    "./animego": "./animego/mod.ts",
+    "./danbooru/tags": "./danbooru/tags.ts",
+    "./hono": "./hono/mod.ts",
+    "./hono/hono-var": "./hono/hono-var.ts",
+    "./iqdb": "./iqdb/wasm.js",
+    "./rezka": "./rezka/src/mod.ts"
+  }
+}

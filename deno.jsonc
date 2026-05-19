@@ -5,12 +5,16 @@
     "publish": "deno publish --allow-slow-types"
   },
   "imports": {
+    "@deno/dnt": "jsr:@deno/dnt@^0.42.3",
     "@std/expect": "jsr:@std/expect@^1.0.17"
   },
   "workspace": [
     "./**/*"
   ],
   "fmt": {
+    "exclude": [
+      "**/*-lock.*"
+    ],
     "lineWidth": 120,
     "newLineKind": "auto",
     "quoteProps": "asNeeded",

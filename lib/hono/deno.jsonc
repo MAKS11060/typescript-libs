@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "imports": {
+    "hono": "npm:hono@^4.11.9"
+  }
+}
