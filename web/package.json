@@ -1,0 +1,35 @@
+{
+  "type": "module",
+  "name": "@maks11060/web",
+  "version": "0.1.1",
+  "scripts": {
+    "build": "tsdown"
+  },
+  "dependencies": {},
+  "exports": {
+    ".": "./src/mod.ts",
+    "./broadcast-channel": "./src/broadcast-channel.ts",
+    "./fetch": "./src/fetch/mod.ts",
+    "./url-pattern": "./src/url-pattern.ts"
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "import": "./dist/mod.mjs",
+        "types": "./dist/mod.d.mts"
+      },
+      "./broadcast-channel": {
+        "import": "./dist/broadcast-channel.mjs",
+        "types": "./dist/broadcast-channel.d.mjs"
+      },
+      "./fetch": {
+        "import": "./dist/fetch/fetch.mjs",
+        "types": "./dist/fetch/fetch.d.mjs"
+      },
+      "./url-pattern": {
+        "import": "./dist/url-pattern.mjs",
+        "types": "./dist/url-pattern.d.mts"
+      }
+    }
+  }
+}
