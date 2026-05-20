@@ -1,13 +1,13 @@
 import {OpenAPI} from '@maks11060/openapi'
 import {Hono} from 'hono'
 import {cors} from 'hono/cors'
-import '../../lib/dev/yaml.ts'
+import '../../lib/dev/console-yaml.ts'
 
 export const serve = (doc: OpenAPI) => {
   const app = new Hono() //
     .use(cors())
     .get('/openapi.json', (c) => c.text(doc.toJSON(true), {headers: {'Content-Type': 'application/json'}}))
-    .get('/openapi.yml', (c) => c.text(doc.toYAML()))
+    .get('/openapi.yml', (c) => c.text(doc.toYAML(), {headers: {'Content-Type': 'application/yaml'}}))
 
   // Deno.serve(app.fetch)
   Deno.serve({
