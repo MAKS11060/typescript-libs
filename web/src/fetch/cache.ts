@@ -10,6 +10,12 @@ export interface CacheOptions {
   name: string
 
   /**
+   * Provide a cache object
+   * @default `globalThis.caches.open()`
+   */
+  cache?: Cache
+
+  /**
    * The maximum time-to-live (TTL) for cached items in seconds
    * @default 60
    */
@@ -51,15 +57,19 @@ const log = {
  *
  * @param options - Cache options
  * @param filter
- * @returns
  */
 export const fetchCache = async (
   options: CacheOptions,
   filter?: (request: Request) => boolean | void,
 ): Promise<FetchMiddleware> => {
+  if (!('caches' in globalThis)) {
+    if (options.log !== false) console.warn('caches is not defined')
+    return {}
+  }
+
   const ttl = options.ttl ?? 60
-  const cache = await caches.open(options.name)
   const isMatch = new WeakSet()
+  const cache = options.cache ?? await caches.open(options.name)
 
   return {
     // match
