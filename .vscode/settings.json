@@ -1,9 +1,7 @@
 {
   "deno.enable": false,
-  "prettier.enable": false,
 
   "editor.defaultFormatter": "dprint.dprint",
-
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "package.json": ".*, *.json, *.jsonc, *.yaml",
@@ -11,6 +9,17 @@
   },
 
   "nodejs-testing.extensions": [
-    { "extensions": ["ts"], "parameters": ["--import", "tsx"] }
+    { "extensions": ["ts"], "filePatterns": ["**/*{js,ts,tsx,jsx,mjs}"], "parameters": ["--import", "tsx"] }
+  ],
+
+  "js/ts.referencesCodeLens.enabled": true,
+  "js/ts.preferences.autoImportSpecifierExcludeRegexes": [
+    "console",
+    "node:console",
+    "node:inspector",
+    "zod/.*",
+    "zod/v3*",
+    "zod/v4*"
+    // "^node:"
   ]
 }
