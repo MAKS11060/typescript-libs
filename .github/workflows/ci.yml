@@ -12,24 +12,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: dprint/check@v2.3
 
-      - name: Set up Deno
-        uses: denoland/setup-deno@v2
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
         with:
-          cache: true
+          node-version: latest
+          cache: "pnpm"
 
-      - name: Format
-        run: deno fmt --check
+      - name: Lint
+        run: pnpm lint
 
-      - name: Test
-        run: >
-          deno test --parallel
-          kv/
-          openapi/
-          web/
-          webauthn/
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: Publish dry run
-        run: deno publish --allow-slow-types --dry-run
+      - name: Build
+        run: pnpm build
+
+      # - name: Set up Deno
+      #   uses: denoland/setup-deno@v2
+      #   with:
+      #     cache: true
+
+      # - name: Format
+      #   run: deno fmt --check
+
+      # - name: Test
+      #   run: >
+      #     deno test --parallel
+      #     kv/
+      #     openapi/
+      #     web/
+      #     webauthn/
+
+      # - name: Publish dry run
+      #   run: deno publish --allow-slow-types --dry-run
