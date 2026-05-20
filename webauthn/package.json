@@ -6,7 +6,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MAKS11060/typescript-libs.git",
-    "directory": "/webauthn"
+    "directory": "webauthn"
   },
   "bugs": {
     "url": "https://github.com/MAKS11060/typescript-libs/issues"
