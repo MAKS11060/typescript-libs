@@ -206,6 +206,18 @@ export interface OpenAPIConfig {
 
 //////////////// Parameters
 export type AddParameterPath<T = unknown> = {
+  /**
+   * Path parameter serialization styles for OpenAPI 3.2.
+   *
+   * | style | explode | supported | example |
+   * | --- | --- | --- | --- |
+   * | `simple` | `true` | array, object | `/colors/blue,black` |
+   * | `simple` | `false` | array, object | `/colors/blue,black` |
+   * | `label` | `true` | array, object | `/.color=blue.black=black` |
+   * | `label` | `false` | array, object | `/.blue.black` |
+   * | `matrix` | `true` | array, object | `;color=blue;color=black` |
+   * | `matrix` | `false` | array, object | `;color=blue,black` |
+   */
   style(style: 'matrix' | 'label' | 'simple'): AddParameterPath<T>
   schema<T>(schema: T): AddParameterPath<ExtractSchema<T>>
   describe(description: string): AddParameterPath<T>
@@ -218,6 +230,17 @@ export type AddParameterPath<T = unknown> = {
 }
 
 export type AddParameterQuery<T = unknown> = {
+  /**
+   * Query parameter serialization styles for OpenAPI 3.2.
+   *
+   * | style | explode | supported | example |
+   * | ---: | --- | --- | --- |
+   * | `form` | `true` | array, object | `?color=blue&color=black` |
+   * | `form` | `false` | array, object | `?color=blue,black` |
+   * | `spaceDelimited` | `false` | array only | `?color=blue%20black` |
+   * | `pipeDelimited` | `false` | array only | `?color=blue\|black` |
+   * | `deepObject` | `true` | object only | `?user[role]=admin&user[firstName]=Alex` |
+   */
   style(style: 'form' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'): AddParameterQuery<T>
   schema<T>(schema: T): AddParameterQuery<ExtractSchema<T>>
   describe(description: string): AddParameterQuery<T>
@@ -231,6 +254,14 @@ export type AddParameterQuery<T = unknown> = {
 }
 
 export type AddParameterHeader<T = unknown> = {
+  /**
+   * Header parameter serialization styles for OpenAPI 3.2.
+   *
+   * | style | explode | supported | example |
+   * | --- | --- | --- | --- |
+   * | `simple` | `true` | array, object | `blue,black` |
+   * | `simple` | `false` | array, object | `blue,black` |
+   */
   style(style: 'simple'): AddParameterHeader<T>
   schema<T>(schema: T): AddParameterHeader<ExtractSchema<T>>
   describe(description: string): AddParameterHeader<T>
@@ -242,6 +273,14 @@ export type AddParameterHeader<T = unknown> = {
 }
 
 export type AddParameterCookie<T = unknown> = {
+  /**
+   * Cookie parameter serialization styles for OpenAPI 3.2.
+   *
+   * | style | explode | supported | example |
+   * | --- | --- | --- | --- |
+   * | `form` | `true` | array, object | `color=blue&color=black` |
+   * | `form` | `false` | array, object | `color=blue,black` |
+   */
   style(style: 'form'): AddParameterCookie<T>
   schema<T>(schema: T): AddParameterCookie<ExtractSchema<T>>
   describe(description: string): AddParameterCookie<T>
