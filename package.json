@@ -5,7 +5,8 @@
     "fmt": "dprint fmt",
     "lint": "dprint check",
     "prepare": "git config core.hooksPath .hooks",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "prepublishOnly": "pnpm -r build"
   },
   "devDependencies": {
     "@types/deno": "catalog:",
