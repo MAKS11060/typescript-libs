@@ -119,8 +119,7 @@ export interface ServerVariableObject {
   description?: string
 }
 
-export const httpMethods = ['get', 'post', 'put', 'delete', 'options', 'head', 'patch', 'trace', 'query'] as const
-export type HttpMethods = typeof httpMethods[number]
+export type HttpMethods = 'get' | 'post' | 'put' | 'delete' | 'options' | 'head' | 'patch' | 'trace' | 'query'
 
 export interface OpenAPIDoc {
   openapi: `${string}.${string}.${string}`
@@ -180,6 +179,7 @@ export interface OpenAPIConfig {
    * @default '3.2.0'
    */
   openapi?: string
+
   $self?: string
 
   /**
@@ -201,6 +201,7 @@ export interface OpenAPIConfig {
 
   /** Additional external documentation. */
   externalDocs?: ExternalDocumentationObject
+
   jsonSchemaDialect?: string
 }
 

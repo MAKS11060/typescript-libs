@@ -664,6 +664,8 @@ test('Test 198217', async (t) => {
     t.content('application/json', z.object({}))
       .example('Example 1', (t) => t.value({}))
   })
+    .describe('Get empty obj')
+    .summary('Response empty obj')
 
   const requestBody = doc.addRequestBody('req-ok', (t) => {
     t.content('application/json', z.object({query: z.string()}))
@@ -673,8 +675,31 @@ test('Test 198217', async (t) => {
   const queryParam1 = doc.addParameter('queryParam1', 'query', 'q', (t) => {
     t.required()
     t.schema(z.string())
+
+    t.style('form').explode()
   })
 
-  console.dir(doc.toDoc(), {depth: null})
-  // console.log(doc.toYAML())
+  doc.addExample('Example-1', (t) => {
+    t.describe('describe')
+    t.summary('summary')
+    t.value('val')
+    t.externalValue('https://localhost/externalValue')
+  })
+
+  doc.addPath('/1')
+    .get((t) => {
+      t.parameter(queryParam1)
+      t.response(210, (t) => {
+        t.content('application/json', z.object({}))
+        t.header('x-text', (t) => {})
+      })
+      t.response(200, responseOk)
+    })
+    .post((t) => {
+      t.requestBody(requestBody)
+      t.response('default', responseOk)
+    })
+
+  // console.dir(doc.toDoc(), {depth: null})
+  console.log(doc.toYAML())
 })
