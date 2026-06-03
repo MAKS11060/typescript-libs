@@ -24,11 +24,11 @@ jobs:
           node-version: latest
           cache: "pnpm"
 
-      - name: Lint
-        run: pnpm lint
-
       - name: Install dependencies
         run: pnpm install
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Build
         run: pnpm build

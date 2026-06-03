@@ -2,6 +2,23 @@ name: Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      publish-npm:
+        type: boolean
+        default: true
+        required: true
+      publish-npm-stage:
+        type: boolean
+        default: false
+        required: false
+      publish-jsr:
+        type: boolean
+        default: true
+        required: true
+      generate-release:
+        type: boolean
+        default: true
+        required: true
 
 permissions:
   contents: write
@@ -11,7 +28,44 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
-  publish:
+  publish-npm:
+    if: inputs.publish-npm
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dprint/check@v2.3
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: latest
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish NPM stage
+        if: inputs.publish-npm-stage
+        run: |
+          echo 'to npm stage'
+          # pnpm --filter @maks11060/openapi stage publish --access public
+
+      - name: Publish NPM
+        if: ${{ !inputs.publish-npm-stage }}
+        run: |
+          echo 'to npm'
+          # pnpm --filter @maks11060/openapi publish --access public
+
+  publish-jsr:
+    if: inputs.publish-jsr
     needs: ci
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -27,7 +81,13 @@ jobs:
       - name: Publish to JSR
         run: deno task publish
 
-      - name: Calculate tag version
+  # Create Github release with current date
+  release:
+    if: inputs.generate-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Generate tag from current Date
         run: |
           CURRENT_DATE=$(date +"%Y.%m.%d")
           BASE_TAG="${CURRENT_DATE}"
@@ -45,13 +105,11 @@ jobs:
             FINAL_TAG="$BASE_TAG-$COUNT"
           fi
 
-          echo "FINAL_TAG=$FINAL_TAG" >> $GITHUB_ENV
-          echo "$FINAL_TAG"
-
-      - name: Create and push Git tag
-        run: |
           git tag "$FINAL_TAG"
           git push origin "$FINAL_TAG"
+
+          echo "FINAL_TAG=$FINAL_TAG" >> $GITHUB_ENV
+          echo "$FINAL_TAG"
 
       - name: Release
         uses: softprops/action-gh-release@v2
