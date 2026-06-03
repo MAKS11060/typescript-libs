@@ -55,7 +55,7 @@ export type Status = number | `${1 | 2 | 3 | 4 | 5}XX` | 'default'
 interface MIME {
   application: 'json' | 'x-www-form-urlencoded' | 'xml' | 'yaml' | 'octet-stream'
   multipart: 'form-data'
-  text: '*' | 'plain' | 'html'
+  text: '*' | 'plain' | 'html' | 'event-stream'
 }
 
 export type ContentType = { [K in keyof MIME]: `${K}/${MIME[K]}` }[keyof MIME] | AnyString
@@ -335,6 +335,7 @@ export interface OAuthFlowsObject<
   T2 extends string = never,
   T3 extends string = never,
   T4 extends string = never,
+  T5 extends string = never,
 > {
   authorizationCode?: {
     authorizationUrl: string
@@ -356,6 +357,12 @@ export interface OAuthFlowsObject<
     tokenUrl: string
     refreshUrl?: string
     scopes: Record<T4, string>
+  }
+  deviceAuthorization?: {
+    deviceAuthorizationUrl: string
+    tokenUrl: string
+    refreshUrl?: string
+    scopes: Record<T5, string>
   }
 }
 

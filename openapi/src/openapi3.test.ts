@@ -706,5 +706,78 @@ test('Test 198217', async (t) => {
   doc.extension('x-test', 'text-extension')
 
   // console.dir(doc.toDoc(), {depth: null})
-  console.log(doc.toYAML())
+  // console.log(doc.toYAML())
+})
+
+test('Test 736199', async (t) => {
+  const doc = createDoc({
+    plugins: {schema: [zodPlugin()]},
+    info: {title: 'Protected User API', version: '1.0.0'},
+    tags: [{name: 'users'}],
+  })
+
+  doc.server({url: 'https://example.com'})
+
+  const oauth2 = doc.addSecuritySchema.oauth2('OAuth2', {
+    authorizationCode: {
+      authorizationUrl: 'https://example.com/authorize',
+      tokenUrl: 'https://example.com/api/token',
+      scopes: {
+        read: 'Access user data (view profiles, comments, etc)',
+        edit: 'Modify user data (update profile, change settings, etc)',
+      },
+    },
+  })
+
+  const unauthorizedResponse = doc.addResponse('Unauthorized', (t) => {
+    t.content('application/json', z.object({error: z.string()}))
+      .example('Example', (t) => t.value({error: 'Unauthorized: Please authenticate to access this resource'}))
+  })
+
+  const user = z.object({
+    id: z.string(),
+    username: z.string(),
+    email: z.string().optional(),
+    createdAt: z.iso.datetime(),
+  })
+
+  doc
+    .addPath('/user')
+    .get((t) => {
+      t.tag('users')
+      t.summary('Get the authenticated user')
+      t.describe('Retrieve current user profile information')
+      t.security(oauth2, ['read'])
+
+      t.response(200, (t) => {
+        t.content('application/json', user)
+          .example('User', (t) =>
+            t.value({
+              id: '1',
+              username: 'user1',
+              email: 'user@example.com',
+              createdAt: new Date().toISOString(),
+            }))
+      })
+      t.response(401, unauthorizedResponse)
+    })
+    .patch((t) => {
+      t.tag('users')
+      t.describe('Update user profile')
+      t.security(oauth2, ['edit'])
+
+      t.response(200, (t) => {
+        t.content('application/json', user)
+          .example('User', (t) =>
+            t.value({
+              id: '1',
+              username: 'updated_user',
+              email: 'newuser@example.com',
+              createdAt: new Date().toISOString(),
+            }))
+      })
+      t.response(401, unauthorizedResponse)
+    })
+
+  console.log(doc.toJSON(true))
 })

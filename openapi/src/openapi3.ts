@@ -43,9 +43,14 @@ const registerOperationId = (openapi: InstanceType<typeof OpenAPI3>, op: string)
   }
 }
 
-// OpenAPI 3
+/**
+ * Creates a new OpenAPI document.
+ * @template {OpenAPIConfig} T - The type of the configuration object.
+ * @param {T} config - The configuration object for the OpenAPI document.
+ * @returns A new instance of OpenAPI3 with the provided configuration.
+ */
 export const createDoc = <const T extends OpenAPIConfig>(config: /* OpenAPIConfig & */ T) => {
-  return new OpenAPI3<T>(config)
+  return new OpenAPI3(config)
 }
 
 export class OpenAPI3<Config extends OpenAPIConfig> {
