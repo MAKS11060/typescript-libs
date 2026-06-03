@@ -1,7 +1,7 @@
 import type {StandardSchemaV1} from '@standard-schema/spec'
 import type {ParsePath} from './lib/helpers.ts'
 import type {MaybeRef, Ref} from './lib/ref.ts'
-import {Example, ResponseContent, Schema} from './openapi3.ts'
+import type {Example, ResponseContent, Schema} from './openapi3.ts'
 
 export const Internal = Symbol('Internal')
 
@@ -205,29 +205,6 @@ export interface OpenAPIConfig {
 }
 
 //////////////// Parameters
-// export interface AddParameterContent<T = unknown> extends AddResponseContent<T> {}
-
-/* export interface AddParameterInternal {
-  [Internal]: {
-    in: keyof AddParameter
-    name: string
-    // common
-    description?: string
-    required?: boolean
-    deprecated?: boolean
-    allowEmptyValue?: boolean
-    // with schema
-    style?: 'matrix' | 'label' | 'form' | 'simple' | 'spaceDelimited' | 'pipeDelimited' | 'deepObject'
-    explode?: boolean
-    allowReserved?: boolean
-    schema?: MaybeRef<AddSchema>
-    example?: any
-    examples?: Map<string, MaybeRef<Example>>
-    // with content
-    content?: Map<string, AddParameterContent>
-  }
-} */
-
 export type AddParameterPath<T = unknown> = {
   style(style: 'matrix' | 'label' | 'simple'): AddParameterPath<T>
   schema<T>(schema: T): AddParameterPath<ExtractSchema<T>>
@@ -295,19 +272,6 @@ export type AddParameter<T = unknown, Config extends OpenAPIConfig = OpenAPIConf
 }
 
 //////////////// Security
-export interface AddSecuritySchema {
-  /** Creates a schema that allows access without authorization */
-  anonymous(): Ref<Security<'none'>>
-  /** Creates a schema that allows access with authorization via `http` header */
-  http(name: string, scheme: 'basic'): Ref<Security<'http'>>
-  http(name: string, scheme: 'bearer', bearerFormat?: 'JWT'): Ref<Security<'http'>>
-  http(name: string, scheme: string, bearerFormat?: string): Ref<Security<'http'>>
-  apiKey(name: string, location: 'header' | 'query' | 'cookie', paramName: string): Ref<Security<'apiKey'>>
-  oauth2<T extends OAuthFlowsObject>(name: string, flows: T): Ref<Security<'oauth2', T>>
-  openIdConnect(name: string, openIdConnectUrl: string): Ref<Security<'openIdConnect'>>
-  mutualTLS(name: string): Ref<Security<'mutualTLS'>>
-}
-
 export type Security<T = string, E = never> = {
   type: T
   description?: string

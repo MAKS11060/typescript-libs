@@ -16,7 +16,6 @@ import {
   ExtractTags,
   GetRules,
   HttpMethods,
-  httpMethods,
   Internal,
   OAuthFlowsObject,
   OpenAPIConfig,
@@ -28,24 +27,11 @@ import {
   TagObject,
 } from './types.ts'
 
-// ctx
-type Context = ReturnType<typeof createContext>
-
-const createContext = (config: OpenAPIConfig) => {
-  const operationIds = new Set<string>()
-
-  return {
-    internal: {
-      operationIds,
-    },
-
-    registerOperationId(op: string) {
-      if (config.rules?.operationId !== 'no-check' && operationIds.has(op)) {
-        throw new Error(`The operation ID is already in use: ${op}`)
-      } else {
-        operationIds.add(op)
-      }
-    },
+const registerOperationId = (openapi: InstanceType<typeof OpenAPI3>, op: string) => {
+  if (openapi.config.rules?.operationId !== 'no-check' && openapi[Internal].operationsIdsRegistry.has(op)) {
+    throw new Error(`The operation ID is already in use: ${op}`)
+  } else {
+    openapi[Internal].operationsIdsRegistry.add(op)
   }
 }
 
@@ -56,8 +42,8 @@ export const createDoc = <const T extends OpenAPIConfig>(config: /* OpenAPIConfi
 
 export class OpenAPI3<Config extends OpenAPIConfig> {
   [Internal] = {
-    // operationsIdsRegistry: new Set<string>(), // store uniq op ids
-    // componentNames: new WeakMap<WeakKey, string>(), // store component names
+    operationsIdsRegistry: new Set<string>(), // store uniq op ids
+    componentNames: new WeakMap<WeakKey, string>(), // store component names
 
     tags: new Set<string>(),
     servers: new Set<ServerObject>(),
@@ -80,13 +66,11 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     },
   }
 
-  components = new WeakMap<WeakKey, string>() // component names
-  context: Context
-  config: Config
+  readonly config: Config
   constructor(config: Config) {
     this.config = config
-    this.context = createContext(config)
 
+    // TODO: mb move from class
     this._toComponents = this._toComponents.bind(this)
     this._toContent = this._toContent.bind(this)
     this._toExamples = this._toExamples.bind(this)
@@ -134,7 +118,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       .values()
       .map(([sec, scopes]) => {
         const {value} = deRef(sec)
-        const name = this.components.get(value)!
+        const name = this[Internal].componentNames.get(value)!
 
         // allow no-auth
         if (value.type === 'none') return {}
@@ -148,7 +132,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   _toPathItem(pathItem: MaybeRef<PathItem>) {
     if (isRef(pathItem)) {
       const {value, ref} = deRef(pathItem)
-      const name = this.components.get(value)
+      const name = this[Internal].componentNames.get(value)
       return {$ref: `#/components/pathItems/${name}`, ...ref}
     }
 
@@ -240,11 +224,11 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     return entriesToRecord(headers, (header) => {
       if (isRef(header)) {
         const {value, ref} = deRef(header)
-        const name = this.components.get(value)
+        const name = this[Internal].componentNames.get(value)
         return {$ref: `#/components/headers/${name}`, ...ref}
       }
 
-      const internal = getInternal(header as any as AddParameterInternal)
+      const internal = getInternal(header as any as Parameter)
       const {in: location, name, examples, schema, ...rest} = internal
       return {
         ...rest,
@@ -271,7 +255,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   _toParameter(parameter: MaybeRef<Parameter>) {
     if (isRef(parameter)) {
       const {value, ref} = deRef(parameter)
-      const name = this.components.get(value)
+      const name = this[Internal].componentNames.get(value)
       return {$ref: `#/components/parameters/${name}`, ...ref}
     }
 
@@ -287,7 +271,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   _toRequestBody(res: MaybeRef<RequestBody>) {
     if (isRef(res)) {
       const {value, ref} = deRef(res)
-      const name = this.components.get(value)
+      const name = this[Internal].componentNames.get(value)
       return {$ref: `#/components/requestBodies/${name}`, ...ref}
     }
 
@@ -305,7 +289,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     return entriesToRecord(responses, (res, status) => {
       if (isRef(res)) {
         const {value, ref} = deRef(res)
-        const name = this.components.get(value)
+        const name = this[Internal].componentNames.get(value)
         return {$ref: `#/components/responses/${name}`, ...ref}
       }
 
@@ -323,13 +307,13 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   _toSchema(schema: MaybeRef<Schema> | unknown) {
     if (isRef<Schema>(schema)) {
       const {value, ref} = deRef(schema)
-      const name = value.name ?? this.components.get(value.schema!)
+      const name = value.name ?? this[Internal].componentNames.get(value.schema!)
       return {$ref: `#/components/schemas/${name}`, ...ref}
     }
 
     // raw schema
-    if (this.components.has(schema as any)) {
-      const name = this.components.get(schema as any)
+    if (this[Internal].componentNames.has(schema as any)) {
+      const name = this[Internal].componentNames.get(schema as any)
       return {$ref: `#/components/schemas/${name}`}
     }
 
@@ -347,7 +331,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     return entriesToRecord(examples, (el) => {
       if (isRef(el)) {
         const {value, ref} = deRef(el)
-        const name = this.components.get(value)
+        const name = this[Internal].componentNames.get(value)
         return {$ref: `#/components/examples/${name}`, ...ref}
       }
       return getInternal(el)
@@ -414,8 +398,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       pathItem = _options as Ref<PathItem>
     } else {
       options = _options ?? {}
-      // pathItem = createPathItem(context)
-      pathItem = new PathItem(this.context)
+      pathItem = new PathItem(this)
     }
 
     for (const param of extractParams(path)) {
@@ -471,7 +454,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     for (const plugin of this.config.plugins?.schema ?? []) {
       if (plugin.vendor === (schema as StandardSchemaV1)?.['~standard']?.vendor) {
         plugin.addSchemaGlobal(schema, name, {io})
-        this.components.set(schema!, name)
+        this[Internal].componentNames.set(schema!, name)
         this[Internal].components.schemas.set(name, schema)
 
         return createRef({
@@ -482,7 +465,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
 
     // register schema as object
-    this.components.set(schema!, name)
+    this[Internal].componentNames.set(schema!, name)
     this[Internal].components.schemas.set(name, schema)
     return createRef({
       schema,
@@ -534,7 +517,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
 
     const response = new Response()
-    this.components.set(response, name)
+    this[Internal].componentNames.set(response, name)
     this[Internal].components.responses.set(name, response)
 
     handler(response)
@@ -556,7 +539,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
 
     const requestBody = new RequestBody()
-    this.components.set(requestBody, name)
+    this[Internal].componentNames.set(requestBody, name)
     this[Internal].components.requestBodies.set(name, requestBody)
 
     handler(requestBody)
@@ -583,7 +566,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
 
     const parameter = Parameter.create(location, paramName)
-    this.components.set(parameter, name)
+    this[Internal].componentNames.set(parameter, name)
     this[Internal].components.parameters.set(name, parameter)
 
     handler(parameter)
@@ -605,7 +588,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
 
     const parameter = Parameter.create('header', '')
-    this.components.set(parameter, name)
+    this[Internal].componentNames.set(parameter, name)
     this[Internal].components.headers.set(name, parameter)
 
     handler(parameter)
@@ -633,7 +616,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
 
     const example = new Example()
-    this.components.set(example, name)
+    this[Internal].componentNames.set(example, name)
     this[Internal].components.examples.set(name, example)
 
     typeof schema === 'function' ? schema(example) : handler?.(example)
@@ -654,8 +637,8 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       throw new Error(`Component name is already used: ${name}`)
     }
 
-    const pathItem = new PathItem(this.context)
-    this.components.set(pathItem, name)
+    const pathItem = new PathItem(this)
+    this[Internal].componentNames.set(pathItem, name)
     this[Internal].components.pathItems.set(name, pathItem)
 
     handler(pathItem)
@@ -665,13 +648,23 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   //
   addSecuritySchema = new SecuritySchema(this)
 
+  security<E>(
+    schema: Ref<Security<string, E>>,
+    scopes?: GetRules<Config, 'security', true> extends false //
+      ? ExtractScopesFromFlows<E>[] | string[]
+      : ExtractScopesFromFlows<E>[],
+  ): void
+
+  security(securitySchema: Ref<Security<string>>): void
+  security(securitySchema: Ref<Security<'openIdConnect'>>, scopes?: string[]): void
   security(sec: Ref<Security>, scopes?: string[]) {
+    this[Internal].security ??= new Set()
     this[Internal].security.add([sec, scopes])
   }
 }
 
 class SecuritySchema {
-  readonly openapi: InstanceType<typeof OpenAPI3>
+  private openapi: InstanceType<typeof OpenAPI3>
   constructor(openapi: InstanceType<typeof OpenAPI3>) {
     this.openapi = openapi
   }
@@ -694,7 +687,7 @@ class SecuritySchema {
     }
 
     this.openapi[Internal].components.securitySchemas.set(name, sec)
-    this.openapi.components.set(sec, name)
+    this.openapi[Internal].componentNames.set(sec, name)
     return createRef(sec)
   }
 
@@ -716,12 +709,11 @@ class SecuritySchema {
     }
 
     this.openapi[Internal].components.securitySchemas.set(name, sec)
-    this.openapi.components.set(sec, name)
+    this.openapi[Internal].componentNames.set(sec, name)
     return createRef(sec)
   }
 
-  oauth2<T extends OAuthFlowsObject>(name: string, flows: T): Ref<Security<'oauth2', T>>
-  oauth2(name: string, flows: any) {
+  oauth2<T extends OAuthFlowsObject>(name: string, flows: T): Ref<Security<'oauth2', T>> {
     isValidComponentName(name)
     if (this.openapi[Internal].components.securitySchemas.has(name)) {
       throw new Error(`SecuritySchema name is already used: ${name}`)
@@ -729,11 +721,11 @@ class SecuritySchema {
 
     const sec: Security<'oauth2'> = {
       type: 'oauth2',
-      flows,
+      flows: flows as any,
     }
 
     this.openapi[Internal].components.securitySchemas.set(name, sec)
-    this.openapi.components.set(sec, name)
+    this.openapi[Internal].componentNames.set(sec, name)
     return createRef(sec)
   }
 
@@ -749,7 +741,7 @@ class SecuritySchema {
     }
 
     this.openapi[Internal].components.securitySchemas.set(name, sec)
-    this.openapi.components.set(sec, name)
+    this.openapi[Internal].componentNames.set(sec, name)
     return createRef(sec)
   }
 
@@ -764,13 +756,12 @@ class SecuritySchema {
     }
 
     this.openapi[Internal].components.securitySchemas.set(name, sec)
-
-    this.openapi.components.set(sec, name)
+    this.openapi[Internal].componentNames.set(sec, name)
     return createRef(sec)
   }
 }
 
-// PathItem
+// components
 export class PathItem<Config extends OpenAPIConfig = OpenAPIConfig> {
   [Internal]: {
     summary?: string
@@ -783,9 +774,9 @@ export class PathItem<Config extends OpenAPIConfig = OpenAPIConfig> {
     operations: new Map(),
   }
 
-  context: Context
-  constructor(context: Context) {
-    this.context = context
+  private openapi: InstanceType<typeof OpenAPI3>
+  constructor(openapi: InstanceType<typeof OpenAPI3>) {
+    this.openapi = openapi
   }
 
   /**
@@ -845,7 +836,7 @@ export class PathItem<Config extends OpenAPIConfig = OpenAPIConfig> {
 
     this[Internal].parameters ??= new Set()
 
-    if (isRef<AddParameterInternal>(location)) {
+    if (isRef<Parameter>(location)) {
       this[Internal].parameters.add(location)
       return this
     }
@@ -873,11 +864,10 @@ export class PathItem<Config extends OpenAPIConfig = OpenAPIConfig> {
   }
 
   #registerOperation(method: HttpMethods, handler: (t: Operation<Config>) => void) {
-    const operation = new Operation(this.context)
+    const operation = new Operation(this.openapi)
 
     this[Internal].operations?.set(method, operation)
     handler(operation)
-    console.log(operation)
 
     return this
   }
@@ -1010,7 +1000,7 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
     operationId?: string
     deprecated?: boolean
 
-    parameters?: Set<MaybeRef<AddParameterInternal>>
+    parameters?: Set<MaybeRef<Parameter>>
     requestBody?: MaybeRef<RequestBody>
     responses?: Map<Status, MaybeRef<Response>>
     security?: Set<[Ref<Security>, string[] | undefined]>
@@ -1019,9 +1009,9 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
     responses: new Map(),
   }
 
-  context: Context
-  constructor(context: Context) {
-    this.context = context
+  private openapi: InstanceType<typeof OpenAPI3>
+  constructor(openapi: InstanceType<typeof OpenAPI3>) {
+    this.openapi = openapi
   }
 
   tag(tag: ExtractTags<Config>): this
@@ -1069,7 +1059,8 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
 
   operationId(id: string): this {
     this[Internal].operationId = id
-    this.context.registerOperationId(id)
+    registerOperationId(this.openapi, id)
+
     return this
   }
 
@@ -1083,7 +1074,7 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
   parameter(location: any, paramName?: string, handler?: any) {
     this[Internal].parameters ??= new Set()
 
-    if (isRef<AddParameterInternal>(location)) {
+    if (isRef<Parameter>(location)) {
       this[Internal].parameters.add(location)
       return this
     }
@@ -1314,7 +1305,7 @@ export class Parameter {
     example?: any
     examples?: Map<string, MaybeRef<Example>>
     // with content
-    content?: Map<string, AddParameterContent>
+    content?: Map<string, ResponseContent> // TODO: check types
   }
 
   private constructor(location: ParameterLocation, name: string) {
@@ -1402,8 +1393,8 @@ export class Parameter {
 //
 
 /** Get a list of registered operation IDs */
-export const getOperationIds = (doc: InstanceType<typeof OpenAPI3>): Map<string, string> => {
-  const {paths} = getInternal(doc)
+export const getOperationIds = (openapi: InstanceType<typeof OpenAPI3>): Map<string, string> => {
+  const {paths} = getInternal(openapi)
   const res = new Map<string, string>()
   for (const [path, pathItem] of paths) {
     if (isRef(pathItem)) {
@@ -1420,11 +1411,12 @@ export const getOperationIds = (doc: InstanceType<typeof OpenAPI3>): Map<string,
 }
 
 /** Get a list of registered `paths` */
-export const getPaths = (doc: InstanceType<typeof OpenAPI3>): Set<string> => {
-  const {paths} = getInternal(doc)
-  const res = new Set<string>()
-  for (const [path] of paths) {
-    res.add(path)
-  }
-  return res
+export const getPaths = (openapi: InstanceType<typeof OpenAPI3>): Set<string> => {
+  const {paths} = getInternal(openapi)
+  return new Set(paths.keys())
+  // const res = new Set<string>()
+  // for (const [path] of paths) {
+  //   res.add(path)
+  // }
+  // return res
 }
