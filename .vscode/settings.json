@@ -8,9 +8,12 @@
     "*.mjs": "${capture}.d.mts, ${capture}.mjs.map"
   },
 
-  "nodejs-testing.extensions": [
-    { "extensions": ["ts"], "filePatterns": ["**/*{js,ts,tsx,jsx,mjs}"], "parameters": ["--import", "tsx"] }
-  ],
+  "nodejs-testing.env": { "FORCE_COLOR": "0" },
+  "nodejs-testing.extensions": [{
+    "filePatterns": ["**/*{js,ts}"],
+    "parameters": ["--env-file-if-exists=.env", "--import", "tsx"],
+    "extensions": ["ts"]
+  }],
 
   "js/ts.referencesCodeLens.enabled": true,
   "js/ts.preferences.autoImportSpecifierExcludeRegexes": [
