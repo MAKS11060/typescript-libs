@@ -55,7 +55,6 @@ jobs:
       - name: Publish NPM
         if: ${{ !inputs.publish-npm-stage }}
         run: |
-          echo 'to npm'
           pnpm --filter @maks11060/openapi publish --access public
 
       - name: Publish NPM stage
