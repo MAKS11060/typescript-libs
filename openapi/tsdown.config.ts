@@ -11,8 +11,4 @@ export default defineConfig({
     tsgo: true,
   },
   // unbundle: true,
-
-  deps: {
-    // alwaysBundle: ['@std/yaml'],
-  },
 })
