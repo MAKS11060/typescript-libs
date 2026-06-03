@@ -55,12 +55,12 @@ jobs:
       - name: Publish NPM
         if: ${{ !inputs.publish-npm-stage }}
         run: |
-          pnpm --filter @maks11060/openapi publish --access public
+          pnpm --filter @maks11060/openapi publish --access public --no-git-checks
 
       - name: Publish NPM stage
         if: ${{ inputs.publish-npm-stage }}
         run: |
-          pnpm --filter @maks11060/openapi stage publish --access public
+          pnpm --filter @maks11060/openapi stage publish --access public --no-git-checks
 
   publish-jsr:
     if: inputs.publish-jsr
