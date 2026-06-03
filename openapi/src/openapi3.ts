@@ -1,7 +1,15 @@
 import {StandardSchemaV1} from '@standard-schema/spec'
 import {stringify as YAML_Stringify, type StringifyOptions as YAML_StringifyOptions} from '@std/yaml'
 import {OpenapiVersionDefault} from './constants.ts'
-import {entriesToRecord, extractParams, getInternal, isValidComponentName, toProp, toRest} from './lib/helpers.ts'
+import {
+  entriesToRecord,
+  extractParams,
+  getInternal,
+  isValidComponentName,
+  isValidExtensionName,
+  toProp,
+  toRest,
+} from './lib/helpers.ts'
 import {createRef, deRef, isRef, MaybeRef, Ref} from './lib/ref.ts'
 import {
   AddParameter,
@@ -61,9 +69,14 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       pathItems: new Map<string, PathItem>(),
       requestBodies: new Map<string, RequestBody>(),
       securitySchemas: new Map<string, Security>(),
-      links: new Map<string, any>(),
-      callbacks: new Map<string, any>(),
+      // links: new Map<string, any>(),
+      // callbacks: new Map<string, any>(),
+      // mediaTypes: new Map<string, any>(),
+
+      extension: new Map<string, any>(), // x-custom
     },
+
+    extension: new Map<string, any>(), // x-custom
   }
 
   readonly config: Config
@@ -104,8 +117,11 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       ...toProp('tags', this[Internal].tags, this._toTags),
       paths: entriesToRecord(this[Internal].paths, this._toPathItem),
       components: this._toComponents(),
+
+      ...Object.fromEntries(this[Internal].extension),
     }
   }
+
   //
   protected _toServers(servers: Set<ServerObject>) {
     return servers.values().toArray()
@@ -215,7 +231,9 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       // ...toProp('links', this[Internal].components.links, v => ),
       // ...toProp('callbacks', this[Internal].components.callbacks, v => ),
       ...toProp('pathItems', this[Internal].components.pathItems, (v) => entriesToRecord(v, this._toPathItem)),
-      // ...toProp('pathItems', this[Internal].components.pathItems, (v) => {}),
+      // ...toProp('mediaTypes', this[Internal].components.mediaTypes, v => ),
+
+      ...Object.fromEntries(this[Internal].components.extension),
     }
   }
 
@@ -229,11 +247,12 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       }
 
       const internal = getInternal(header as any as Parameter)
-      const {in: location, name, examples, schema, ...rest} = internal
+      const {in: location, name, examples, schema, extension, ...rest} = internal
       return {
         ...rest,
         ...toProp('schema', internal.schema, this._toSchema),
         ...toProp('examples', internal.examples, this._toExamples),
+        ...Object.fromEntries(extension),
       }
     })
   }
@@ -259,12 +278,13 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       return {$ref: `#/components/parameters/${name}`, ...ref}
     }
 
-    const {schema, content, examples, ...internal} = getInternal(parameter)
+    const {schema, content, examples, extension, ...internal} = getInternal(parameter)
     return {
       ...internal,
       ...toProp('schema', schema, this._toSchema),
       ...toProp('content', content, this._toContent),
       ...toProp('examples', examples, this._toExamples),
+      ...Object.fromEntries(extension),
     }
   }
 
@@ -282,6 +302,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
         required: true,
       }),
       ...toProp('content', internal.content, this._toContent),
+      ...Object.fromEntries(internal.extension),
     }
   }
 
@@ -300,6 +321,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
         ...toRest(internal, {description: true}),
         ...toProp('headers', internal.headers, this._toHeader),
         ...toProp('content', internal.content, this._toContent),
+        ...Object.fromEntries(internal.extension),
       }
     })
   }
@@ -334,7 +356,18 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
         const name = this[Internal].componentNames.get(value)
         return {$ref: `#/components/examples/${name}`, ...ref}
       }
-      return getInternal(el)
+      const internal = getInternal(el)
+      return {
+        ...toRest(internal, {
+          summary: true,
+          description: true,
+          dataValue: true,
+          serializedValue: true,
+          externalValue: true,
+          value: true,
+          ...Object.fromEntries(internal.extension),
+        }),
+      }
     })
   }
   //
@@ -683,6 +716,11 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     this[Internal].security ??= new Set()
     this[Internal].security.add([sec, scopes])
   }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
+  }
 }
 
 class SecuritySchema {
@@ -792,8 +830,11 @@ export class PathItem<Config extends OpenAPIConfig = OpenAPIConfig> {
     parameters?: Set<MaybeRef<Parameter>>
     servers?: Set<ServerObject>
     tags?: Set<TagObject>
+
+    extension: Map<string, any> // x-custom
   } = {
     operations: new Map(),
+    extension: new Map<string, any>(), // x-custom
   }
 
   private openapi: InstanceType<typeof OpenAPI3>
@@ -1011,6 +1052,11 @@ export class PathItem<Config extends OpenAPIConfig = OpenAPIConfig> {
     this.#registerOperation('query', handler)
     return this
   }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
+  }
 }
 
 export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
@@ -1027,8 +1073,11 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
     responses?: Map<Status, MaybeRef<Response>>
     security?: Set<[Ref<Security>, string[] | undefined]>
     servers?: Set<ServerObject>
+
+    extension: Map<string, any> // x-custom
   } = {
     responses: new Map(),
+    extension: new Map<string, any>(), // x-custom
   }
 
   private openapi: InstanceType<typeof OpenAPI3>
@@ -1175,6 +1224,11 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
     this[Internal].servers ??= new Set()
     this[Internal].servers?.add(server)
   }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
+  }
 }
 
 export class Response<Config extends OpenAPIConfig = OpenAPIConfig> {
@@ -1183,7 +1237,11 @@ export class Response<Config extends OpenAPIConfig = OpenAPIConfig> {
     headers?: Map<string, MaybeRef<AddParameterHeader>>
     content?: Map<string, ResponseContent>
     // links?: Map<string, LinkData>
-  } = {}
+
+    extension: Map<string, any> // x-custom
+  } = {
+    extension: new Map<string, any>(), // x-custom
+  }
 
   /**
    * Add description
@@ -1250,6 +1308,11 @@ export class Response<Config extends OpenAPIConfig = OpenAPIConfig> {
 
     return this
   }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
+  }
 }
 
 export class ResponseContent<T = unknown> {
@@ -1285,7 +1348,11 @@ export class RequestBody<Config extends OpenAPIConfig = OpenAPIConfig> {
     description?: string
     required?: boolean
     content?: Map<string, RequestBodyContent>
-  } = {}
+
+    extension: Map<string, any> // x-custom
+  } = {
+    extension: new Map<string, any>(), // x-custom
+  }
 
   describe(description: string): this {
     this[Internal].description = description
@@ -1313,6 +1380,11 @@ export class RequestBody<Config extends OpenAPIConfig = OpenAPIConfig> {
 
     return responseContent
   }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
+  }
 }
 
 export class RequestBodyContent<T = unknown> extends ResponseContent<T> {} // TODO: check
@@ -1332,9 +1404,15 @@ export class Example<T = unknown> {
   [Internal]: {
     summary?: string
     description?: string
+    dataValue?: any
+    serializedValue?: string
     value?: T
     externalValue?: string
-  } = {}
+
+    extension: Map<string, any> // x-custom
+  } = {
+    extension: new Map<string, any>(), // x-custom
+  }
 
   /**
    * Add summary
@@ -1365,6 +1443,42 @@ export class Example<T = unknown> {
   }
 
   /**
+   * Add dataValue
+   *
+   * ```yaml
+   * examples:
+   *   [name]:
+   *     dataValue: # <-- HERE
+   * ```
+   */
+  dataValue(value: T): this {
+    if (this[Internal].value) {
+      throw new Error(`If dataValue field is present, 'value' MUST be absent`)
+    }
+
+    this[Internal].dataValue = value
+    return this
+  }
+
+  /**
+   * Add serializedValue
+   *
+   * ```yaml
+   * examples:
+   *   [name]:
+   *     serializedValue: # <-- HERE
+   * ```
+   */
+  serializedValue(value: any): this {
+    if (this[Internal].value || this[Internal].externalValue) {
+      throw new Error(`If serializedValue field is present, 'value' and 'externalValue' MUST be absent`)
+    }
+
+    this[Internal].serializedValue = value
+    return this
+  }
+
+  /**
    * Add value
    *
    * ```yaml
@@ -1388,8 +1502,17 @@ export class Example<T = unknown> {
    * ```
    */
   externalValue(uri: string): this {
+    // if (this[Internal].serializedValue || this[Internal].value) {
+    //   throw new Error(`If externalValue field is present, 'serializedValue' and 'value' MUST be absent`)
+    // }
+
     this[Internal].externalValue = uri
     return this
+  }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
   }
 }
 
@@ -1412,6 +1535,8 @@ export class Parameter {
     examples?: Map<string, MaybeRef<Example>>
     // with content
     content?: Map<string, ResponseContent> // TODO: check types
+
+    extension: Map<string, any> // x-custom
   }
 
   private constructor(location: ParameterLocation, name: string) {
@@ -1419,6 +1544,8 @@ export class Parameter {
       in: location,
       name,
       ...(location === 'path' && {required: true}),
+
+      extension: new Map<string, any>(), // x-custom
     }
   }
 
@@ -1493,6 +1620,11 @@ export class Parameter {
     this[Internal].content.set(type, responseContent)
 
     return responseContent
+  }
+
+  extension(name: string, value: any): void {
+    isValidExtensionName(name)
+    this[Internal].extension.set(name, value)
   }
 }
 

@@ -84,6 +84,12 @@ export const isValidComponentName = (name: string) => {
   }
 }
 
+export const isValidExtensionName = (name: string) => {
+  if (!name.startsWith('x-')) {
+    throw new Error(`extension must start with 'x-'`)
+  }
+}
+
 /**
  * Get `Internal` component data
  */

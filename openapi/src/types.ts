@@ -76,7 +76,9 @@ export type AddPathItemOptions<T extends string> = {
 }
 
 //////////////// Doc
-export interface InfoObject {
+type Extension = {[k: `x-${string}`]: unknown}
+
+export interface InfoObject extends Extension {
   title: string
   version: string
   description?: string
@@ -85,35 +87,40 @@ export interface InfoObject {
   license?: LicenseObject
 }
 
-export interface ContactObject {
+export interface ContactObject extends Extension {
   name?: string
   url?: string
   email?: string
 }
 
-export interface LicenseObject {
+export interface LicenseObject extends Extension {
   name: string
+  /** https://spdx.org/licenses/ */
+  identifier?: string
   url?: string
 }
 
 export interface TagObject {
   name: string
+  summary?: string
   description?: string
   externalDocs?: ExternalDocumentationObject
+  parent?: string
+  kind?: string
 }
 
-export interface ExternalDocumentationObject {
+export interface ExternalDocumentationObject extends Extension {
   description?: string
   url: string
 }
 
-export interface ServerObject<T extends string = string> {
+export interface ServerObject<T extends string = string> extends Extension {
   url: T
   description?: string
   variables?: Record<ParsePath<T>, ServerVariableObject>
 }
 
-export interface ServerVariableObject {
+export interface ServerVariableObject extends Extension {
   enum?: string[]
   default: string
   description?: string
@@ -161,7 +168,7 @@ export interface OpenAPIDoc {
 }
 
 //////////////// Config
-export interface OpenAPIConfig {
+export interface OpenAPIConfig extends Extension {
   /**
    * Rule settings for the OpenAPI Schema
    */
@@ -187,6 +194,8 @@ export interface OpenAPIConfig {
    */
   info: InfoObject
 
+  jsonSchemaDialect?: string
+
   /**
    * A list of `tags` to group paths.
    *
@@ -201,8 +210,6 @@ export interface OpenAPIConfig {
 
   /** Additional external documentation. */
   externalDocs?: ExternalDocumentationObject
-
-  jsonSchemaDialect?: string
 }
 
 //////////////// Parameters

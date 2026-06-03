@@ -607,7 +607,10 @@ test('Test 135882', async (t) => {
 test('Test 679916', async (t) => {
   const doc = createDoc({
     plugins: {schema: [zodPlugin()]},
-    info: {title: 'test', version: '1'},
+    info: {
+      title: 'test',
+      version: '1',
+    },
   })
 
   const user = z.object({
@@ -699,6 +702,8 @@ test('Test 198217', async (t) => {
       t.requestBody(requestBody)
       t.response('default', responseOk)
     })
+
+  doc.extension('x-test', 'text-extension')
 
   // console.dir(doc.toDoc(), {depth: null})
   console.log(doc.toYAML())
