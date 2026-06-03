@@ -1121,7 +1121,25 @@ export class Operation<Config extends OpenAPIConfig = OpenAPIConfig> {
     return this
   }
 
+  /**
+   * Add response
+   *
+   * ```yaml
+   * responses:
+   *   [status]: # <-- HERE
+   *     description: Response [status]
+   * ```
+   */
   response(status: Status, handler: (t: Response<Config>) => void): this
+  /**
+   * Add ref to `responses`
+   *
+   * ```yaml
+   * responses:
+   *   [status]:
+   *     $ref: '#/components/responses/[ref-name]'
+   * ```
+   */
   response(status: Status, response: Ref<Response<Config>>): this
   response(status: Status, handler: any) {
     this[Internal].responses ??= new Map()
@@ -1167,11 +1185,29 @@ export class Response<Config extends OpenAPIConfig = OpenAPIConfig> {
     // links?: Map<string, LinkData>
   } = {}
 
+  /**
+   * Add description
+   *
+   * ```yaml
+   * responses:
+   *   [status]:
+   *     description: # <-- HERE
+   * ```
+   */
   describe(description: string): this {
     this[Internal].description = description
     return this
   }
 
+  /**
+   * Add response `content`
+   *
+   * ```yaml
+   * responses:
+   *   [status]:
+   *     content: # <-- HERE
+   * ```
+   */
   content<T extends PluginInputType<ExtractSchemaPlugins<Config>>>(
     type: ContentType,
     schema: T | MaybeRef<Schema<T>>,
@@ -1189,6 +1225,15 @@ export class Response<Config extends OpenAPIConfig = OpenAPIConfig> {
     return responseContent
   }
 
+  /**
+   * Add response `headers`
+   *
+   * ```yaml
+   * responses:
+   *   [status]:
+   *     headers: # <-- HERE
+   * ```
+   */
   header(name: string, handler: (t: AddParameterHeader) => void): this
   header(name: string, ref: Ref<AddParameterHeader>): this
   header(name: string, handler: any): this {
@@ -1291,18 +1336,57 @@ export class Example<T = unknown> {
     externalValue?: string
   } = {}
 
+  /**
+   * Add summary
+   *
+   * ```yaml
+   * examples:
+   *   [name]:
+   *     summary: # <-- HERE
+   * ```
+   */
   summary(summary: string): this {
     this[Internal].summary = summary
     return this
   }
+
+  /**
+   * Add description
+   *
+   * ```yaml
+   * examples:
+   *   [name]:
+   *     description: # <-- HERE
+   * ```
+   */
   describe(description: string): this {
     this[Internal].description = description
     return this
   }
+
+  /**
+   * Add value
+   *
+   * ```yaml
+   * examples:
+   *   [name]:
+   *     value: # <-- HERE
+   * ```
+   */
   value(value: T): this {
     this[Internal].value = value
     return this
   }
+
+  /**
+   * Add externalValue
+   *
+   * ```yaml
+   * examples:
+   *   [name]:
+   *     externalValue: # <-- HERE
+   * ```
+   */
   externalValue(uri: string): this {
     this[Internal].externalValue = uri
     return this

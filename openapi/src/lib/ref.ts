@@ -7,7 +7,25 @@ export interface Ref<T> {
     summary?: string
     description?: string
   }
+
+  /**
+   * Add summary for `reference`
+   *
+   * ```yaml
+   * $ref: '#/components/[component]/[ref-name]'
+   * summary: # <-- HERE
+   * ```
+   */
   summary(summary: string): Ref<T>
+
+  /**
+   * Add description for `reference`
+   *
+   * ```yaml
+   * $ref: '#/components/[component]/[ref-name]'
+   * description: # <-- HERE
+   * ```
+   */
   describe(description: string): Ref<T>
 }
 
