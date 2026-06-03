@@ -290,16 +290,16 @@ importers:
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
+    devDependencies:
+      '@std/expect':
+        specifier: jsr:^1.0.19
+        version: '@jsr/std__expect@1.0.19'
       '@std/yaml':
         specifier: jsr:^1.1.0
         version: '@jsr/std__yaml@1.1.0'
       hono:
         specifier: 'catalog:'
         version: 4.12.19
-    devDependencies:
-      '@std/expect':
-        specifier: jsr:^1.0.19
-        version: '@jsr/std__expect@1.0.19'
     optionalDependencies:
       zod:
         specifier: 'catalog:'

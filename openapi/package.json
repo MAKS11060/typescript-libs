@@ -31,14 +31,14 @@
     }
   },
   "dependencies": {
-    "@standard-schema/spec": "^1.1.0",
-    "@std/yaml": "jsr:^1.1.0",
-    "hono": "catalog:"
+    "@standard-schema/spec": "^1.1.0"
   },
   "optionalDependencies": {
     "zod": "catalog:"
   },
   "devDependencies": {
+    "hono": "catalog:",
+    "@std/yaml": "jsr:^1.1.0",
     "@std/expect": "jsr:^1.0.19"
   }
 }

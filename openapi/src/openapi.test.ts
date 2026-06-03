@@ -5,7 +5,6 @@ import {expect} from '@std/expect/expect'
 import {test} from 'node:test'
 import {z} from 'zod'
 import {OpenapiVersionDefault} from './constants.ts'
-import {getInternal} from './lib/helpers.ts'
 import {createDoc} from './openapi3.ts'
 
 test('createDoc()', async (t) => {
@@ -620,6 +619,15 @@ test('Test 679916', async (t) => {
 
   //
   doc.addPath('/1')
+    .get((t) => {
+      t.describe('Get /')
+      t.operationId('get_1')
+      t.tag('test')
+
+      t.response(200, (t) => {
+        return t.content('application/json', z.object({}))
+      })
+    })
 
   const path1 = doc.addPathItem('path1', (t) => {
     t.get((t) => {
@@ -643,5 +651,30 @@ test('Test 679916', async (t) => {
   // console.log(getInternal(doc).components.pathItems)
   // console.log(doc.toDoc().paths)
   console.dir(doc.toDoc().components.pathItems, {depth: null})
+  // console.log(doc.toYAML())
+})
+
+test('Test 198217', async (t) => {
+  const doc = createDoc({
+    plugins: {schema: [zodPlugin()]},
+    info: {title: 'test', version: '1'},
+  })
+
+  const responseOk = doc.addResponse('res-ok', (t) => {
+    t.content('application/json', z.object({}))
+      .example('Example 1', (t) => t.value({}))
+  })
+
+  const requestBody = doc.addRequestBody('req-ok', (t) => {
+    t.content('application/json', z.object({query: z.string()}))
+      .example('Input query', (t) => t.value({query: 'hello'}))
+  })
+
+  const queryParam1 = doc.addParameter('queryParam1', 'query', 'q', (t) => {
+    t.required()
+    t.schema(z.string())
+  })
+
+  console.dir(doc.toDoc(), {depth: null})
   // console.log(doc.toYAML())
 })

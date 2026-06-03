@@ -10,5 +10,9 @@ export default defineConfig({
   dts: {
     tsgo: true,
   },
-  unbundle: true,
+  // unbundle: true,
+
+  deps: {
+    // alwaysBundle: ['@std/yaml'],
+  },
 })

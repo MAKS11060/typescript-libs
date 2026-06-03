@@ -1,11 +1,11 @@
 #!/usr/bin/env -S deno test -A --watch
 
 import {expect} from '@std/expect/expect'
+import {test} from 'node:test'
 import z from 'zod'
-import '../../../lib/dev/yaml.ts'
 import {zodPlugin} from './zod.ts'
 
-Deno.test('zodPlugin()', async (t) => {
+test('zodPlugin()', async (t) => {
   const plugin = zodPlugin()
 
   const ID = z.int().positive()
@@ -127,7 +127,7 @@ Deno.test('zodPlugin()', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() io', async (t) => {
+test('zodPlugin() io', async (t) => {
   const plugin = zodPlugin()
 
   const email = z.email()
@@ -154,7 +154,7 @@ Deno.test('zodPlugin() io', async (t) => {
   // expect(plugin.getSchemas()).toEqual()
 })
 
-Deno.test('zodPlugin() global io output (default)', async (t) => {
+test('zodPlugin() global io output (default)', async (t) => {
   const plugin = zodPlugin({})
 
   const schema1 = z.number().pipe(z.coerce.string())
@@ -218,7 +218,7 @@ Deno.test('zodPlugin() global io output (default)', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() global io input', async (t) => {
+test('zodPlugin() global io input', async (t) => {
   const plugin = zodPlugin({io: 'input'})
 
   const schema1 = z.number().pipe(z.coerce.string())
@@ -282,7 +282,7 @@ Deno.test('zodPlugin() global io input', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() global io mixed 1', async (t) => {
+test('zodPlugin() global io mixed 1', async (t) => {
   const plugin = zodPlugin()
 
   const schema1 = z.number().pipe(z.coerce.string())
@@ -319,7 +319,7 @@ Deno.test('zodPlugin() global io mixed 1', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() global io mixed 2', async (t) => {
+test('zodPlugin() global io mixed 2', async (t) => {
   const plugin = zodPlugin()
 
   const schema1 = z.string().transform((v) => v.length).pipe(z.number())
@@ -352,7 +352,7 @@ Deno.test('zodPlugin() global io mixed 2', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() global io mixed 3', async (t) => {
+test('zodPlugin() global io mixed 3', async (t) => {
   const plugin = zodPlugin()
 
   const email = z.email()
@@ -417,7 +417,7 @@ Deno.test('zodPlugin() global io mixed 3', async (t) => {
   })
 })
 
-Deno.test('zodPlugin() global io mixed 4', async (t) => {
+test('zodPlugin() global io mixed 4', async (t) => {
   const plugin = zodPlugin()
 
   const schema1 = z.string().transform((v) => v.length).pipe(z.number())
@@ -490,7 +490,7 @@ Deno.test('zodPlugin() global io mixed 4', async (t) => {
   })
 })
 
-Deno.test('Test 447843', async (t) => {
+test('Test 447843', async (t) => {
   // --- schemas ---
   const ID = z.int().positive().describe('The ID')
   const userID = ID.describe('The user ID').meta({example: 406192})

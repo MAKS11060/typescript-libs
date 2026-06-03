@@ -107,13 +107,13 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
   }
   //
-  _toServers(servers: Set<ServerObject>) {
+  protected _toServers(servers: Set<ServerObject>) {
     return servers.values().toArray()
   }
-  _toTags(tags: Set<string>) {
+  protected _toTags(tags: Set<string>) {
     return tags.values().toArray()
   }
-  _toSecurity(security: Set<[Ref<Security>, string[] | undefined]>) {
+  protected _toSecurity(security: Set<[Ref<Security>, string[] | undefined]>) {
     return security
       .values()
       .map(([sec, scopes]) => {
@@ -129,7 +129,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
       .toArray()
   }
 
-  _toPathItem(pathItem: MaybeRef<PathItem>) {
+  protected _toPathItem(pathItem: MaybeRef<PathItem>) {
     if (isRef(pathItem)) {
       const {value, ref} = deRef(pathItem)
       const name = this[Internal].componentNames.get(value)
@@ -165,7 +165,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
   }
 
-  _toComponents() {
+  protected _toComponents() {
     return {
       ...toProp('schemas', {}, (v) => {
         const schemas = {
@@ -220,7 +220,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   }
 
   //
-  _toHeader(headers: Map<string, MaybeRef<AddParameterHeader>>) {
+  protected _toHeader(headers: Map<string, MaybeRef<AddParameterHeader>>) {
     return entriesToRecord(headers, (header) => {
       if (isRef(header)) {
         const {value, ref} = deRef(header)
@@ -238,7 +238,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     })
   }
 
-  _toContent(content: Map<string, ResponseContent | RequestBodyContent>) {
+  protected _toContent(content: Map<string, ResponseContent | RequestBodyContent>) {
     return entriesToRecord(content, (mediaType) => {
       const internal = getInternal(mediaType)
       return {
@@ -248,11 +248,11 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     })
   }
 
-  _toParameters(parameters: Set<MaybeRef<Parameter>>) {
+  protected _toParameters(parameters: Set<MaybeRef<Parameter>>) {
     return parameters.values().map(this._toParameter).toArray()
   }
 
-  _toParameter(parameter: MaybeRef<Parameter>) {
+  protected _toParameter(parameter: MaybeRef<Parameter>) {
     if (isRef(parameter)) {
       const {value, ref} = deRef(parameter)
       const name = this[Internal].componentNames.get(value)
@@ -268,7 +268,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
   }
 
-  _toRequestBody(res: MaybeRef<RequestBody>) {
+  protected _toRequestBody(res: MaybeRef<RequestBody>) {
     if (isRef(res)) {
       const {value, ref} = deRef(res)
       const name = this[Internal].componentNames.get(value)
@@ -285,7 +285,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     }
   }
 
-  _toResponses(responses: Map<Status, MaybeRef<Response>>) {
+  protected _toResponses(responses: Map<Status, MaybeRef<Response>>) {
     return entriesToRecord(responses, (res, status) => {
       if (isRef(res)) {
         const {value, ref} = deRef(res)
@@ -304,7 +304,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     })
   }
 
-  _toSchema(schema: MaybeRef<Schema> | unknown) {
+  protected _toSchema(schema: MaybeRef<Schema> | unknown) {
     if (isRef<Schema>(schema)) {
       const {value, ref} = deRef(schema)
       const name = value.name ?? this[Internal].componentNames.get(value.schema!)
@@ -327,7 +327,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     return schema // default / no plugins
   }
 
-  _toExamples(examples: Map<string, MaybeRef<Example>>) {
+  protected _toExamples(examples: Map<string, MaybeRef<Example>>) {
     return entriesToRecord(examples, (el) => {
       if (isRef(el)) {
         const {value, ref} = deRef(el)
@@ -349,7 +349,14 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     return YAML_Stringify(this.toDoc(), options)
   }
 
-  /** Add `server` global */
+  /**
+   * Add `server` global
+   *
+   * ```yaml
+   * servers:
+   *  - # <-- HERE
+   * ```
+   */
   server<URI extends string>(server: ServerObject<URI>): void {
     this[Internal].servers.add(server)
   }
@@ -645,9 +652,24 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
     return createRef(pathItem)
   }
 
-  //
+  /** Register Security schemas */
   addSecuritySchema = new SecuritySchema(this)
 
+  /**
+   * Add global `security`
+   *
+   * ```yaml
+   * security:
+   *  - # <-- HERE
+   * ```
+   *
+   * @example
+   * ```ts
+   * const anon = doc.addSecuritySchema.anonymous()
+   *
+   * doc.security(anon)
+   * ```
+   */
   security<E>(
     schema: Ref<Security<string, E>>,
     scopes?: GetRules<Config, 'security', true> extends false //
