@@ -2,16 +2,19 @@
 
 import {zodPlugin} from '@maks11060/openapi/zod'
 import {expect} from '@std/expect/expect'
-import z from 'zod'
-import {createDoc} from './openapi.ts'
+import {test} from 'node:test'
+import {z} from 'zod'
+import {OpenapiVersionDefault} from './constants.ts'
+import {getInternal} from './lib/helpers.ts'
+import {createDoc} from './openapi3.ts'
 
-Deno.test('createDoc()', async (t) => {
+test('createDoc()', async (t) => {
   const doc = createDoc({
     info: {title: 'test', version: '1'},
   })
 
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {
       title: 'test',
       version: '1',
@@ -21,7 +24,7 @@ Deno.test('createDoc()', async (t) => {
   })
 })
 
-Deno.test('createDoc() components schemas', async (t) => {
+test('createDoc() components schemas', async (t) => {
   const doc = createDoc({
     info: {title: 'test', version: '1'},
   })
@@ -30,7 +33,7 @@ Deno.test('createDoc() components schemas', async (t) => {
 
   // console.log(doc.toDoc())
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {
       title: 'test',
       version: '1',
@@ -44,7 +47,7 @@ Deno.test('createDoc() components schemas', async (t) => {
   })
 })
 
-Deno.test('createDoc() components schemas with zod plugin', async (t) => {
+test('createDoc() components schemas with zod plugin', async (t) => {
   const doc = createDoc({
     plugins: {schema: [zodPlugin()]},
     info: {title: 'test', version: '1'},
@@ -56,7 +59,7 @@ Deno.test('createDoc() components schemas with zod plugin', async (t) => {
   doc.addSchemas({ID, user})
 
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {title: 'test', version: '1'},
     paths: {},
     components: {
@@ -82,7 +85,7 @@ Deno.test('createDoc() components schemas with zod plugin', async (t) => {
   })
 })
 
-Deno.test('createDoc() components responses', async (t) => {
+test('createDoc() components responses', async (t) => {
   const doc = createDoc({
     plugins: {schema: [zodPlugin()]},
     info: {title: 'test', version: '1'},
@@ -100,7 +103,7 @@ Deno.test('createDoc() components responses', async (t) => {
 
   // console.log(doc.toJSON(true))
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {
       title: 'test',
       version: '1',
@@ -153,7 +156,7 @@ Deno.test('createDoc() components responses', async (t) => {
   })
 })
 
-Deno.test('createDoc() components parameters', async (t) => {
+test('createDoc() components parameters', async (t) => {
   const doc = createDoc({
     plugins: {schema: [zodPlugin()]},
     info: {title: 'test', version: '1'},
@@ -178,7 +181,7 @@ Deno.test('createDoc() components parameters', async (t) => {
 
   // console.log(doc.toJSON(true))
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {
       title: 'test',
       version: '1',
@@ -288,7 +291,7 @@ Deno.test('createDoc() components parameters', async (t) => {
   })
 })
 
-Deno.test('createDoc() paths', async (t) => {
+test('createDoc() paths', async (t) => {
   const doc = createDoc({
     plugins: {schema: [zodPlugin()]},
     info: {title: 'test', version: '1'},
@@ -311,7 +314,7 @@ Deno.test('createDoc() paths', async (t) => {
 
   // console.log(doc.toJSON(true))
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {
       title: 'test',
       version: '1',
@@ -359,7 +362,7 @@ Deno.test('createDoc() paths', async (t) => {
   })
 })
 
-Deno.test('createDoc() schemas io', async (t) => {
+test('createDoc() schemas io', async (t) => {
   const doc = createDoc({
     plugins: {schema: [zodPlugin()]},
     info: {title: 'test', version: '1'},
@@ -400,7 +403,7 @@ Deno.test('createDoc() schemas io', async (t) => {
 
   // console.log(doc.toJSON())
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {title: 'test', version: '1'},
     paths: {
       '/login': {
@@ -462,7 +465,7 @@ Deno.test('createDoc() schemas io', async (t) => {
   })
 })
 
-Deno.test('createDoc() security', async (t) => {
+test('createDoc() security', async (t) => {
   const doc = createDoc({
     info: {title: 'test', version: '1'},
   })
@@ -518,7 +521,7 @@ Deno.test('createDoc() security', async (t) => {
 
   // console.log(doc.toJSON(true))
   expect(doc.toDoc()).toEqual({
-    openapi: '3.1.1',
+    openapi: OpenapiVersionDefault,
     info: {title: 'test', version: '1'},
     security: [
       {},
@@ -592,7 +595,7 @@ Deno.test('createDoc() security', async (t) => {
   })
 })
 
-Deno.test('Test 135882', async (t) => {
+test('Test 135882', async (t) => {
   const doc = createDoc({info: {title: '', version: ''}})
 
   doc.addPath('/').get((t) => {
@@ -600,4 +603,45 @@ Deno.test('Test 135882', async (t) => {
       t.content('application/json', {})
     })
   })
+})
+
+test('Test 679916', async (t) => {
+  const doc = createDoc({
+    plugins: {schema: [zodPlugin()]},
+    info: {title: 'test', version: '1'},
+  })
+
+  const user = z.object({
+    id: z.number(),
+    username: z.string(),
+  })
+  const users = z.array(user)
+  doc.addSchemas({user, users})
+
+  //
+  doc.addPath('/1')
+
+  const path1 = doc.addPathItem('path1', (t) => {
+    t.get((t) => {
+      t.response(200, (t) => {
+        t.content('application/json', {})
+      })
+    })
+  })
+
+  doc.addPath('/api/v1', path1)
+
+  // doc.addPath('/test/1')
+  //   .get((t) => {
+  //     t.describe('asdas')
+  //     t.response(200, (t) => {
+  //       t.content('application/json', z.object({}))
+  //     })
+  //   })
+
+  // console.log(doc.toDoc())
+  // console.log(getInternal(doc).components.pathItems)
+  // console.log(doc.toDoc().paths)
+  console.dir(doc.toDoc().components.pathItems, {depth: null})
+  // console.log(doc.toYAML())
 })

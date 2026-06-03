@@ -14,12 +14,6 @@
   "scripts": {
     "build": "tsdown"
   },
-  "dependencies": {
-    "@standard-schema/spec": "^1.1.0",
-    "@std/yaml": "jsr:^1.1.0",
-    "hono": "catalog:",
-    "zod": "catalog:"
-  },
   "exports": {
     ".": "./src/mod.ts",
     "./zod": "./src/plugins/zod.ts"
@@ -35,5 +29,16 @@
         "types": "./dist/plugins/zod.d.mts"
       }
     }
+  },
+  "dependencies": {
+    "@standard-schema/spec": "^1.1.0",
+    "@std/yaml": "jsr:^1.1.0",
+    "hono": "catalog:"
+  },
+  "optionalDependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@std/expect": "jsr:^1.0.19"
   }
 }

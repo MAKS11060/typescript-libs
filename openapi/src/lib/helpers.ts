@@ -1,3 +1,6 @@
+import {ComponentKeyName} from '../constants.ts'
+import {Internal} from '../types.ts'
+
 // '/api/{version}' => 'version'
 export type ParsePath<T extends string> = T extends `${string}{${infer P}}${infer Rest}` ? P | ParsePath<Rest> : never
 
@@ -72,3 +75,16 @@ export const toProp = <K extends PropertyKey, T, R>(
 
   return {[key]: output}
 }
+
+export const isValidComponentName = (name: string) => {
+  if (!ComponentKeyName.test(name)) {
+    throw new Error(`Invalid component name: ${name}`, {
+      cause: ComponentKeyName,
+    })
+  }
+}
+
+/**
+ * Get `Internal` component data
+ */
+export const getInternal = <T>(component: {[Internal]: T}) => component[Internal]

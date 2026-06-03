@@ -1,5 +1,5 @@
-import z from 'zod'
-import {ComponentName} from '../constants.ts'
+import {z} from 'zod'
+import {ComponentSchemasName} from '../constants.ts'
 import type {SchemaPlugin, SchemaPluginConfig} from '../types.ts'
 
 export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> => {
@@ -23,11 +23,11 @@ export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> 
                 if (prop.$ref) {
                   if (prop.$ref.startsWith('#/$defs/')) { // use register store
                     const id = prop.$ref.slice('#/$defs/'.length)
-                    prop.$ref = `${ComponentName}/${id}`
+                    prop.$ref = `${ComponentSchemasName}/${id}`
                   }
 
                   if (prop.$ref === '#' && registry.get(schema)?.id) { // self
-                    prop.$ref = `${ComponentName}/${registry.get(schema)?.id}`
+                    prop.$ref = `${ComponentSchemasName}/${registry.get(schema)?.id}`
                   }
                 }
               }
@@ -57,7 +57,7 @@ export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> 
     },
     getSchemas() {
       const jsonSchemas = z.toJSONSchema(registry, {
-        uri: (id) => `${ComponentName}/${id}`,
+        uri: (id) => `${ComponentSchemasName}/${id}`,
         io: config?.io ?? 'output',
       })
 
@@ -68,7 +68,7 @@ export const zodPlugin = (config?: SchemaPluginConfig): SchemaPlugin<z.ZodType> 
       // overwrite using input schema
       if (ioModeGlobal.size) {
         const jsonSchemasInput = z.toJSONSchema(registryInput, {
-          uri: (id) => `${ComponentName}/${id}`,
+          uri: (id) => `${ComponentSchemasName}/${id}`,
           io: 'input',
           reused: 'inline',
         })
