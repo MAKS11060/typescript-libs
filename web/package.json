@@ -1,8 +1,15 @@
 {
   "type": "module",
   "name": "@maks11060/web",
-  "version": "0.1.2",
-  "license": "MIT",
+  "version": "0.1.1",
+  "description": "Enhanced web api",
+  "keywords": [
+    "web",
+    "webapi",
+    "utils"
+  ],
+  "author": "MAKS11060",
+  "homepage": "https://github.com/MAKS11060/typescript-libs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MAKS11060/typescript-libs.git",
@@ -11,10 +18,10 @@
   "bugs": {
     "url": "https://github.com/MAKS11060/typescript-libs/issues"
   },
+  "license": "MIT",
   "scripts": {
     "build": "tsdown"
   },
-  "dependencies": {},
   "exports": {
     ".": "./src/mod.ts",
     "./broadcast-channel": "./src/broadcast-channel.ts",
