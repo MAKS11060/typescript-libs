@@ -691,7 +691,7 @@ export class OpenAPI3<Config extends OpenAPIConfig> {
   }
 
   /** Register Security schemas */
-  addSecuritySchema = new SecuritySchema(this)
+  addSecuritySchema: SecuritySchema = new SecuritySchema(this)
 
   /**
    * Add global `security`
