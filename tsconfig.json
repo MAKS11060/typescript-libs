@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
-    "types": ["node", "deno"],
+    "types": ["node", "deno", "bun"],
     "target": "esnext",
     "module": "nodenext",
     "moduleResolution": "nodenext",

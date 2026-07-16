@@ -2,9 +2,9 @@
   "name": "@maks11060/web",
   "version": "0.1.2",
   "exports": {
-    ".": "./mod.ts",
-    "./broadcast-channel": "./broadcast-channel.ts",
-    "./fetch": "./fetch/mod.ts",
-    "./url-pattern": "./url-pattern.ts",
+    ".": "./src/mod.ts",
+    "./broadcast-channel": "./src/broadcast-channel.ts",
+    "./fetch": "./src/fetch/mod.ts",
+    "./url-pattern": "./src/url-pattern.ts",
   },
 }

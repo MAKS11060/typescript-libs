@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "ok": "deno fmt --check && deno publish --dry-run --allow-dirty",
+    "ok": "dprint check && deno publish --dry-run --allow-dirty",
     "init": "git config core.hooksPath .hooks",
     "publish": "deno publish --allow-slow-types",
   },
