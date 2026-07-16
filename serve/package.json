@@ -1,0 +1,30 @@
+{
+  "type": "module",
+  "name": "@maks11060/serve",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "deno run -A --env-file --watch-hmr ./test/deno.ts"
+  },
+  "exports": {
+    ".": {
+      "deno": "./src/net/deno.ts",
+      "node": "./src/net/node.ts",
+      "import": "./src/net/node.ts",
+      "types": "./src/net/deno.ts"
+    },
+    "./io": "./src/lib/io.ts"
+  },
+  "imports": {
+    "#serve": {
+      "bun": "./src/net/bun.ts",
+      "deno": "./src/net/deno.ts",
+      "node": "./src/net/node.ts",
+      "types": "./src/net/deno.ts"
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/deno": "catalog:",
+    "@types/node": "catalog:"
+  }
+}
